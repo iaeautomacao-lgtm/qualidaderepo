@@ -1,0 +1,179 @@
+/* ==========================================================================
+   Tela: Clientes (operações)
+
+   Mesma restrição do Dashboard: nada de rolagem vertical em 1440x900. Sobram
+   764px (900 - topbar 64 - padding do workspace 24 em cima e 48 embaixo):
+
+     cabeçalho 72 + 24 · KPIs 116 + 20 · título 32 · grade 444 + 12 · páginas 44
+
+   Daí as escolhas apertadas daqui: 6 cartões por página, aviso de "sem
+   formulário" em linha e botões de 40px no cartão.
+   ========================================================================== */
+
+.painel {
+  display: grid;
+  gap: var(--sp-5);
+}
+
+.busca {
+  width: min(260px, 38vw);
+}
+
+.tituloSecao {
+  margin-bottom: var(--sp-2);
+  font-size: var(--fs-500);
+  font-weight: var(--fw-semibold);
+  letter-spacing: -0.01em;
+}
+
+/* --- grade de cartões ---------------------------------------------------- */
+
+.grade {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: var(--sp-3);
+  margin-bottom: var(--sp-3);
+}
+
+.cartao {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: var(--sp-4) var(--sp-4) var(--sp-3);
+  text-align: center;
+}
+
+.nome {
+  margin-top: var(--sp-1);
+  font-size: var(--fs-400);
+  font-weight: var(--fw-semibold);
+  line-height: var(--lh-snug);
+}
+
+/* --- ficha do cliente ---------------------------------------------------- */
+
+.meta {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  align-items: center;
+  column-gap: var(--sp-2);
+  width: 100%;
+  margin-top: var(--sp-3);
+  font-size: var(--fs-200);
+  text-align: left;
+}
+
+.meta dt,
+.meta dd {
+  display: flex;
+  align-items: center;
+  min-height: 20px;
+  min-width: 0;
+  margin: 0;
+}
+
+.meta dt {
+  color: var(--text-muted);
+  font-weight: var(--fw-semibold);
+}
+
+.metaLink {
+  overflow: hidden;
+  color: var(--accent-strong);
+  font-weight: var(--fw-semibold);
+  text-decoration: underline;
+  text-underline-offset: 2px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.metaLink:hover {
+  color: var(--accent-deep);
+}
+
+/* Aviso em linha, não `.alert`: o alerta em bloco tem 16px de padding e
+   estouraria a altura da fileira, que é a mesma para todos os cartões.
+   Continua com ícone + texto — a cor laranja é o terceiro sinal. */
+.aviso {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--sp-1);
+  min-width: 0;
+  padding: 1px var(--sp-2);
+  border-radius: var(--r-sm);
+  background: var(--warning-soft);
+  color: var(--warning-text);
+  font-size: var(--fs-100);
+  font-weight: var(--fw-semibold);
+  line-height: var(--lh-snug);
+}
+
+.aviso > svg {
+  flex: 0 0 auto;
+}
+
+/* --- ações do cartão ----------------------------------------------------- */
+
+.acoes {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto auto;
+  align-items: center;
+  gap: var(--sp-2);
+  width: 100%;
+  margin-top: auto;
+  padding-top: var(--sp-3);
+}
+
+/* Confirmação da exclusão ocupa a mesma linha das ações: trocar o conteúdo
+   sem mudar a altura evita a fileira inteira "pulando" ao clicar em excluir. */
+.acoesConfirma {
+  grid-template-columns: auto minmax(0, 1fr);
+}
+
+/* 40px em vez dos 44 de `--tap-min`: com três controles lado a lado e o rótulo
+   "Acessar <Nome>" completo, os 4px extras por cartão custariam a fileira
+   inteira. Segue bem acima do mínimo do WCAG 2.2 (24x24) e volta a 44 no
+   celular, onde o alvo é o dedo. */
+.acoes .btn {
+  min-height: 40px;
+  padding-inline: var(--sp-3);
+  line-height: var(--lh-tight);
+}
+
+.acoes .btn.icon-only {
+  width: 40px;
+  padding-inline: 0;
+}
+
+@media (max-width: 700px) {
+  .acoes .btn.icon-only {
+    width: var(--tap-min);
+  }
+}
+
+/* ==========================================================================
+   Responsivo — abaixo de 1100px a promessa de "sem rolagem" cai de propósito:
+   os cartões reorganizam e a página rola como qualquer outra.
+   ========================================================================== */
+
+@media (max-width: 1100px) {
+  .grade {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 700px) {
+  .grade {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .acoes .btn {
+    min-height: var(--tap-min);
+  }
+}
+
+@media (max-width: 640px) {
+  .busca {
+    width: 100%;
+  }
+}

@@ -1,0 +1,108 @@
+/* ==========================================================================
+   Tela Formulários — só o que é específico desta página.
+   Tokens e primitivas (.card, .btn, .chip, .list, .kpi-grid) vêm de globals.css.
+   ========================================================================== */
+
+/* Busca do cabeçalho: larga o bastante para o placeholder inteiro caber, mas
+   sem competir com o título. */
+.busca {
+  width: min(320px, 46vw);
+}
+
+/* --- KPIs ---------------------------------------------------------------- */
+
+/* O valor vem primeiro no DOM e é o elemento mais pesado do card; o título
+   explica o número e o detalhe qualifica. Três pesos, uma leitura só. */
+.kpi {
+  display: grid;
+  align-content: start;
+  gap: var(--sp-1);
+  padding: var(--sp-5);
+}
+
+.kpiTopo {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: var(--sp-3);
+}
+
+.kpiTitulo {
+  color: var(--text);
+  font-size: var(--fs-300);
+  font-weight: var(--fw-semibold);
+}
+
+/* --- Ações Rápidas ------------------------------------------------------- */
+
+/* auto-fit resolve o mobile sem media query: em 1440px cabem as 5 ações lado a
+   lado, no celular cada uma ocupa a linha inteira. */
+.acoesGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 196px), 1fr));
+  gap: var(--sp-4);
+}
+
+.acoesGrid > li {
+  display: grid;
+}
+
+.acao {
+  display: grid;
+  align-content: start;
+  gap: var(--sp-2);
+  height: 100%;
+  padding: var(--sp-4);
+  border: 1px solid var(--line);
+  border-radius: var(--r-md);
+  background: var(--surface-2);
+  transition: background var(--dur) var(--ease), border-color var(--dur) var(--ease);
+}
+
+.acao:hover {
+  border-color: var(--accent-soft-strong);
+  background: var(--accent-soft);
+}
+
+.acao strong {
+  font-size: var(--fs-300);
+  font-weight: var(--fw-semibold);
+}
+
+.acaoTopo {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.acaoDetalhe {
+  color: var(--text-muted);
+  font-size: var(--fs-100);
+  line-height: var(--lh-snug);
+}
+
+.acaoSeta {
+  color: var(--text-muted);
+  transition: transform var(--dur) var(--ease), color var(--dur) var(--ease);
+}
+
+.acao:hover .acaoSeta {
+  color: var(--accent-strong);
+  transform: translateX(2px);
+}
+
+/* --- Formulários Recentes ------------------------------------------------ */
+
+/* .section-head alinha pela baseline, o que desalinha um botão de 44px ao lado
+   de um bloco de duas linhas. */
+.cabecalhoComBotao {
+  align-items: center;
+}
+
+.linhaFim {
+  display: flex;
+  flex: 0 0 auto;
+  align-items: center;
+  gap: var(--sp-3);
+  color: var(--text-muted);
+}

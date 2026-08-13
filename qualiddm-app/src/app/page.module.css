@@ -1,0 +1,352 @@
+/* ==========================================================================
+   Tela: Dashboard
+
+   Restrição que manda em tudo aqui: nada de rolagem vertical em 1440x900.
+   O orçamento é 764px (900 - topbar 64 - padding do workspace 24 em cima e
+   48 embaixo), repartido assim:
+
+     cabeçalho 42 + 24 · KPIs 116 + 20 · gráficos 258 + 20 · listas 267 = 747
+
+   Por isso os cartões usam padding menor que `.card.pad` e as listas trocam
+   `gap` por divisórias. Se algo crescer, corte conteúdo — não empurre pra
+   baixo.
+   ========================================================================== */
+
+.painel {
+  display: grid;
+  gap: var(--sp-5);
+}
+
+.faixa {
+  display: grid;
+  grid-template-columns: minmax(0, 2fr) minmax(0, 1fr);
+  gap: var(--sp-5);
+}
+
+/* Grade de duas faixas (cabeçalho + corpo) para o corpo poder ocupar a altura
+   sobrando quando o cartão vizinho for mais alto. */
+.cartao,
+.cartaoBaixo {
+  display: grid;
+  grid-template-rows: auto minmax(0, 1fr);
+  align-content: start;
+}
+
+.cartao {
+  padding: var(--sp-4) var(--sp-5);
+}
+
+.cartaoBaixo {
+  padding: var(--sp-3) var(--sp-5) var(--sp-4);
+}
+
+.corpoCentral {
+  display: grid;
+  align-content: center;
+  min-height: 0;
+}
+
+/* --- gráfico de linha ---------------------------------------------------- */
+
+.figura {
+  display: grid;
+  min-width: 0;
+}
+
+.grafico {
+  width: 100%;
+  height: auto;
+}
+
+.grade {
+  stroke: var(--chart-grid);
+  stroke-width: 1;
+}
+
+.tick {
+  fill: var(--text-muted);
+  font-size: 12px;
+  font-weight: var(--fw-medium);
+}
+
+/* `--tom` desce da série para linha, marcador e amostra da legenda: uma fonte
+   de cor só por série. */
+.serieA {
+  --tom: var(--chart-bar);
+}
+
+.serieB {
+  --tom: var(--info);
+}
+
+.linha {
+  fill: none;
+  stroke: var(--tom);
+  stroke-width: 2.5;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+.serieB .linha {
+  stroke-dasharray: 7 4;
+}
+
+/* Contorno na cor da superfície: onde as duas linhas se cruzam, o marcador
+   continua legível. */
+.marcador {
+  fill: var(--tom);
+  stroke: var(--surface);
+  stroke-width: 1.5;
+}
+
+.legenda {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--sp-2) var(--sp-4);
+  flex: 0 1 auto;
+}
+
+.legenda li {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--sp-2);
+  color: var(--text-soft);
+  font-size: var(--fs-100);
+  font-weight: var(--fw-medium);
+}
+
+.marca {
+  flex: 0 0 auto;
+  width: 10px;
+  height: 10px;
+  background: var(--tom);
+}
+
+.marcaCirculo {
+  border-radius: var(--r-pill);
+}
+
+.marcaLosango {
+  transform: rotate(45deg);
+}
+
+/* --- rosca de quadrantes ------------------------------------------------- */
+
+.cartaoQuadrantes {
+  /* Não existe token para o 5º quadrante ("danger-deep"). Em vez de um hex
+     cru, escurece o vermelho de texto contra a tinta do app. */
+  --tom-danger-deep: color-mix(in srgb, var(--danger-text) 62%, var(--surface-inverse));
+}
+
+.rosca {
+  display: grid;
+  grid-template-columns: minmax(0, auto) minmax(0, 1fr);
+  align-content: center;
+  align-items: center;
+  gap: var(--sp-4);
+  min-height: 0;
+}
+
+.roscaSvg {
+  width: 132px;
+  height: auto;
+}
+
+.fatia {
+  fill: none;
+  stroke: var(--tom);
+  stroke-width: 16;
+}
+
+.roscaValor {
+  fill: var(--text);
+  font-size: 26px;
+  font-weight: var(--fw-bold);
+}
+
+.roscaRotulo {
+  fill: var(--text-muted);
+  font-size: 11px;
+  font-weight: var(--fw-semibold);
+}
+
+.roscaLegenda {
+  display: grid;
+  gap: var(--sp-1);
+  min-width: 0;
+}
+
+.roscaLegenda li {
+  display: grid;
+  grid-template-columns: 10px minmax(0, 1fr) auto;
+  align-items: center;
+  gap: var(--sp-2);
+  padding: var(--sp-1) 0;
+  border-bottom: 1px solid var(--line);
+  font-size: var(--fs-200);
+}
+
+.roscaLegenda li:last-child {
+  border-bottom: 0;
+}
+
+.amostra {
+  width: 10px;
+  height: 10px;
+  border-radius: var(--r-xs);
+  background: var(--tom);
+}
+
+.roscaLegendaRotulo {
+  overflow: hidden;
+  color: var(--text-soft);
+  font-weight: var(--fw-semibold);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.roscaLegendaValor {
+  color: var(--text);
+  font-weight: var(--fw-bold);
+  font-variant-numeric: tabular-nums;
+}
+
+.tomSuccess {
+  --tom: var(--success);
+}
+
+.tomInfo {
+  --tom: var(--info);
+}
+
+.tomWarning {
+  --tom: var(--warning);
+}
+
+.tomDanger {
+  --tom: var(--danger);
+}
+
+.tomDangerDeep {
+  --tom: var(--tom-danger-deep);
+}
+
+/* --- status atual -------------------------------------------------------- */
+
+/* Divisória em vez de `gap`: economiza 24px de altura na coluna e é o mesmo
+   ritmo visual de `.list` do globals. */
+.statusLista {
+  display: grid;
+  align-content: start;
+  min-height: 0;
+}
+
+.statusItem {
+  display: flex;
+  align-items: center;
+  gap: var(--sp-3);
+  min-height: 44px;
+  padding: var(--sp-2);
+  border-radius: var(--r-sm);
+}
+
+.statusItem + .statusItem {
+  border-top: 1px solid var(--line);
+}
+
+.statusIcone {
+  display: grid;
+  place-items: center;
+  flex: 0 0 auto;
+  width: 28px;
+  height: 28px;
+  border-radius: var(--r-sm);
+  background: var(--tom-suave);
+  color: var(--tom-texto);
+}
+
+.linhaSuccess {
+  --tom-suave: var(--success-soft);
+  --tom-texto: var(--success-text);
+}
+
+.linhaWarning {
+  --tom-suave: var(--warning-soft);
+  --tom-texto: var(--warning-text);
+}
+
+.linhaInfo {
+  --tom-suave: var(--info-soft);
+  --tom-texto: var(--info-text);
+}
+
+.linhaDanger {
+  --tom-suave: var(--danger-soft);
+  --tom-texto: var(--danger-text);
+}
+
+.statusTexto {
+  min-width: 0;
+  flex: 1 1 auto;
+}
+
+.statusTexto strong {
+  display: block;
+  overflow: hidden;
+  font-size: var(--fs-200);
+  font-weight: var(--fw-semibold);
+  line-height: var(--lh-snug);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.statusTexto span {
+  display: block;
+  color: var(--text-muted);
+  font-size: var(--fs-100);
+  line-height: var(--lh-snug);
+}
+
+/* Linha de perigo: fundo tinta + ícone + chip "Crítico". A cor é o terceiro
+   sinal, nunca o único. */
+.statusCritico {
+  background: var(--danger-soft);
+}
+
+.statusCritico .statusIcone {
+  background: var(--surface);
+}
+
+/* --- ofensores ----------------------------------------------------------- */
+
+.ofensores {
+  align-content: start;
+}
+
+/* ==========================================================================
+   Responsivo — abaixo de 1200px a garantia de "sem rolagem" cai por terra de
+   propósito: o conteúdo empilha e a página rola como qualquer outra.
+   ========================================================================== */
+
+@media (max-width: 1200px) {
+  .faixa {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+
+@media (max-width: 640px) {
+  .cartao,
+  .cartaoBaixo {
+    padding: var(--sp-4);
+  }
+
+  .rosca {
+    grid-template-columns: minmax(0, 1fr);
+    justify-items: center;
+  }
+
+  .roscaLegenda {
+    width: 100%;
+  }
+}

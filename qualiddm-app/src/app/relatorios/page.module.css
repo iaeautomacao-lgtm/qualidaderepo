@@ -1,0 +1,862 @@
+/* ==========================================================================
+   Tela Relatórios — a mais densa do app.
+
+   Restrição que manda no layout: em 1440x900 nada pode rolar, e mesmo assim
+   precisam caber 14 tipos de relatório, 8 campos de filtro, o passo a passo e
+   o estado vazio dos resultados. Duas decisões saem daí:
+
+   - controles de 36px em vez dos 44px do padrão. Continua acima do alvo mínimo
+     do WCAG 2.2 (24x24, critério 2.5.8) e é a mesma régua já adotada nos itens
+     da sidebar;
+   - grade de filtros em 4 colunas (e não 3): a quarta coluna elimina uma linha
+     inteira de campos, que é exatamente o que faltava para o estado vazio dos
+     resultados caber na mesma dobra.
+
+   Tokens e primitivas vêm de globals.css.
+   ========================================================================== */
+
+/* Cabeçalho enxuto: h1 em --fs-700 no lugar do --fs-800 padrão. Cada pixel
+   gasto aqui sai do painel de filtros. */
+.pageHead {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: var(--sp-3);
+}
+
+.pageHead h1 {
+  font-size: var(--fs-700);
+}
+
+.pageHead p {
+  font-size: var(--fs-200);
+}
+
+/* Altura definida = 100dvh menos topbar (64), padding do workspace (24 no topo
+   e 48 embaixo), cabeçalho da página (~33) e o gap do workspace (24). Sem uma
+   altura concreta a coluna de tipos não teria contra o que calcular a própria
+   rolagem e empurraria a página inteira para baixo. */
+.board {
+  display: grid;
+  grid-template-columns: 240px minmax(0, 1fr);
+  grid-template-rows: minmax(0, 1fr);
+  gap: var(--sp-4);
+  height: calc(100dvh - 193px);
+  min-height: 520px;
+}
+
+/* --- coluna de tipos ----------------------------------------------------- */
+
+.rail {
+  display: flex;
+  min-height: 0;
+  flex-direction: column;
+  gap: var(--sp-3);
+  padding: var(--sp-4);
+}
+
+.railHead h2 {
+  font-size: var(--fs-400);
+}
+
+.railHead p {
+  margin-top: 2px;
+  color: var(--text-muted);
+  font-size: var(--fs-100);
+}
+
+/* Única região com rolagem própria da tela — exceção assumida: 14 itens não
+   cabem em 900px de altura e a página inteira não pode rolar. Não leva
+   tabindex: os botões de dentro já trazem o teclado até aqui. */
+.railList {
+  display: grid;
+  min-height: 0;
+  flex: 1 1 auto;
+  align-content: start;
+  gap: var(--sp-3);
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  padding-right: var(--sp-1);
+}
+
+/* Dois grupos com cabeçalho próprio: análises com IA não são relatórios de
+   sistema, e misturar as duas listas apagaria a diferença. */
+.grupo {
+  display: grid;
+  gap: var(--sp-1);
+}
+
+.grupo + .grupo {
+  padding-top: var(--sp-3);
+  border-top: 1px solid var(--line);
+}
+
+.grupoLista {
+  display: grid;
+  gap: 2px;
+}
+
+.tipo {
+  display: flex;
+  align-items: center;
+  gap: var(--sp-1);
+}
+
+.tipoBtn {
+  display: grid;
+  min-width: 0;
+  flex: 1 1 auto;
+  gap: 2px;
+  padding: var(--sp-2);
+  border: 1px solid transparent;
+  border-radius: var(--r-sm);
+  background: transparent;
+  text-align: left;
+  transition: background var(--dur) var(--ease), border-color var(--dur) var(--ease);
+}
+
+.tipoBtn:hover {
+  background: var(--surface-2);
+}
+
+.tipoNome {
+  overflow: hidden;
+  color: var(--text);
+  font-size: var(--fs-200);
+  font-weight: var(--fw-medium);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.tipoMeta {
+  display: flex;
+  align-items: center;
+  gap: var(--sp-2);
+}
+
+.tipoMeta :global(.chip) {
+  min-height: 20px;
+  padding: 0 var(--sp-2);
+}
+
+/* Selecionado: borda laranja + fundo tinta + peso + a palavra "Selecionado".
+   A cor sozinha nunca informa (WCAG 1.4.1); o aria-current no JSX é quem conta
+   a história para o leitor de tela. */
+.tipoBtn[aria-current="true"] {
+  border-color: var(--accent);
+  background: var(--accent-soft);
+}
+
+.tipoBtn[aria-current="true"] .tipoNome {
+  color: var(--accent-strong);
+  font-weight: var(--fw-semibold);
+}
+
+.tipoAtual {
+  color: var(--accent-deep);
+  font-size: var(--fs-100);
+  font-weight: var(--fw-semibold);
+}
+
+/* Favorito: o set de ícones do projeto não tem estrela, então o marcador é o
+   mesmo "sparkles" de destaque. O estado marcado muda cor E fundo, e o rótulo
+   acessível troca de texto — não depende de cor. */
+.estrela {
+  display: grid;
+  flex: 0 0 auto;
+  place-items: center;
+  width: 28px;
+  height: 28px;
+  border: 0;
+  border-radius: var(--r-sm);
+  background: transparent;
+  color: var(--text-muted);
+  transition: background var(--dur) var(--ease), color var(--dur) var(--ease);
+}
+
+.estrela:hover {
+  background: var(--surface-3);
+  color: var(--text);
+}
+
+.estrela[aria-pressed="true"] {
+  background: var(--accent-soft);
+  color: var(--accent-strong);
+}
+
+/* --- coluna principal ---------------------------------------------------- */
+
+/* overflow-y é válvula de segurança para telas mais baixas que 900px: no
+   tamanho de referência o conteúdo cabe e nenhuma barra aparece. */
+.mainCol {
+  display: grid;
+  min-height: 0;
+  align-content: start;
+  gap: var(--sp-2);
+  overflow-y: auto;
+}
+
+.btnCompacto {
+  min-height: 36px;
+  padding: 0 var(--sp-3);
+  font-size: var(--fs-200);
+}
+
+/* --- contexto + passo a passo -------------------------------------------- */
+
+.contexto {
+  display: grid;
+  gap: var(--sp-1);
+  padding: var(--sp-3) var(--sp-4);
+}
+
+.contextoTopo {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--sp-3);
+}
+
+.contextoNome {
+  display: flex;
+  min-width: 0;
+  align-items: center;
+  gap: var(--sp-3);
+}
+
+.contextoNome h2 {
+  font-size: var(--fs-500);
+}
+
+.contextoSub {
+  color: var(--text-muted);
+  font-size: var(--fs-100);
+}
+
+.passosLinha {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--sp-3);
+  margin-top: var(--sp-2);
+  padding-top: var(--sp-3);
+  border-top: 1px solid var(--line);
+}
+
+.passos {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--sp-2);
+}
+
+.passo {
+  display: flex;
+  min-width: 0;
+  align-items: center;
+  gap: var(--sp-2);
+}
+
+.passoNum {
+  display: grid;
+  flex: 0 0 auto;
+  place-items: center;
+  width: 22px;
+  height: 22px;
+  border-radius: var(--r-pill);
+  background: var(--surface-3);
+  color: var(--text-soft);
+  font-size: var(--fs-100);
+  font-weight: var(--fw-bold);
+}
+
+.passo[data-estado="concluido"] .passoNum {
+  background: var(--success-soft);
+  color: var(--success-text);
+}
+
+.passo[data-estado="atual"] .passoNum {
+  background: var(--accent-strong);
+  color: var(--text-on-dark);
+}
+
+.passoTexto strong {
+  display: block;
+  font-size: var(--fs-200);
+  font-weight: var(--fw-semibold);
+  line-height: var(--lh-snug);
+}
+
+.passoTexto span {
+  display: block;
+  overflow: hidden;
+  max-width: 24ch;
+  color: var(--text-muted);
+  font-size: var(--fs-100);
+  line-height: var(--lh-snug);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.passo[data-estado="atual"] .passoTexto strong {
+  color: var(--accent-strong);
+}
+
+.passoSeta {
+  flex: 0 0 auto;
+  color: var(--line-strong);
+}
+
+/* --- painel de filtros --------------------------------------------------- */
+
+.filtros {
+  display: grid;
+  gap: var(--sp-2);
+  padding: var(--sp-3) var(--sp-4);
+}
+
+.filtrosTopo {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--sp-3);
+}
+
+.filtrosTitulo {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--sp-3);
+}
+
+.filtrosTitulo h2 {
+  font-size: var(--fs-400);
+}
+
+/* Gatilho do acordeão: o botão vive dentro do heading para o HTML continuar
+   válido e o leitor de tela continuar enxergando o título da seção. */
+.filtrosToggle {
+  display: flex;
+  align-items: center;
+  gap: var(--sp-2);
+  min-height: 32px;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: inherit;
+}
+
+.filtrosToggle > svg {
+  color: var(--text-muted);
+}
+
+.filtrosToggle:hover > svg {
+  color: var(--accent-strong);
+}
+
+.filtrosCorpo {
+  display: grid;
+  gap: var(--sp-2);
+}
+
+/* Sem isto o display:grid acima venceria o atributo hidden e o painel nunca
+   fecharia. */
+.filtrosCorpo[hidden] {
+  display: none;
+}
+
+.contador {
+  color: var(--text-soft);
+  font-size: var(--fs-200);
+  font-weight: var(--fw-semibold);
+  font-variant-numeric: tabular-nums;
+}
+
+.aviso {
+  display: flex;
+  align-items: center;
+  gap: var(--sp-2);
+  color: var(--text-soft);
+  font-size: var(--fs-100);
+}
+
+.aviso > svg {
+  flex: 0 0 auto;
+  color: var(--accent-strong);
+}
+
+.grade {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: var(--sp-3);
+  margin-top: var(--sp-1);
+}
+
+.grade :global(.field) {
+  gap: var(--sp-1);
+}
+
+.grade :global(.field) > label,
+.grade legend {
+  color: var(--text);
+  font-size: var(--fs-100);
+  font-weight: var(--fw-semibold);
+}
+
+.grade :global(.input),
+.grade :global(.select) {
+  min-height: 36px;
+}
+
+/* Período ocupa duas colunas para as duas datas respirarem sem espremer nada.
+   fieldset+legend porque são dois campos que só fazem sentido juntos. */
+.periodo {
+  grid-column: span 2;
+  min-width: 0;
+  padding: 0;
+  border: 0;
+  margin: 0;
+}
+
+.periodo legend {
+  padding: 0;
+  margin-bottom: var(--sp-1);
+}
+
+.periodoCampos {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: var(--sp-2);
+}
+
+.rodape {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--sp-3);
+  margin-top: var(--sp-1);
+  padding-top: var(--sp-3);
+  border-top: 1px solid var(--line);
+}
+
+.atalhos,
+.acoesFiltro {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--sp-2);
+}
+
+/* --- resultados e estado vazio ------------------------------------------- */
+
+.resultado {
+  display: grid;
+  gap: var(--sp-2);
+  padding: var(--sp-3) var(--sp-4);
+}
+
+.resultadoTopo {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--sp-3);
+  padding-bottom: var(--sp-2);
+  border-bottom: 1px solid var(--line);
+}
+
+.resultadoTitulo {
+  font-size: var(--fs-400);
+}
+
+.acoesResultado,
+.exportar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--sp-2);
+}
+
+/* Sem caixa tracejada em volta: o card já é o contêiner. Caixa dentro de caixa
+   só rouba altura numa tela que não tem altura sobrando. */
+.vazio {
+  display: grid;
+  justify-items: center;
+  gap: var(--sp-2);
+  padding: var(--sp-2) 0 var(--sp-1);
+  text-align: center;
+}
+
+.vazio h3 {
+  font-size: var(--fs-400);
+}
+
+.vazio p {
+  max-width: 96ch;
+  color: var(--text-soft);
+  font-size: var(--fs-200);
+  line-height: var(--lh-snug);
+}
+
+.status {
+  width: 100%;
+}
+
+.status :global(.alert) {
+  align-items: center;
+  padding: var(--sp-3);
+  text-align: left;
+}
+
+.beneficios {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 220px), 1fr));
+  gap: var(--sp-3);
+  width: 100%;
+  text-align: left;
+}
+
+.beneficio {
+  display: grid;
+  gap: 2px;
+  padding: var(--sp-2) var(--sp-3);
+  border: 1px solid var(--line);
+  border-radius: var(--r-sm);
+  background: var(--surface-2);
+}
+
+.beneficio strong {
+  display: flex;
+  align-items: center;
+  gap: var(--sp-2);
+  font-size: var(--fs-200);
+  font-weight: var(--fw-semibold);
+}
+
+.beneficio strong > svg {
+  color: var(--accent);
+}
+
+.beneficio span {
+  color: var(--text-muted);
+  font-size: var(--fs-100);
+  line-height: var(--lh-snug);
+}
+
+/* ==========================================================================
+   Painel das análises com IA
+
+   O conteúdo é longo (resumo + achados + recomendações) e a tela não pode
+   rolar: por isso as três seções vivem em abas, e não empilhadas. Achados e
+   recomendações ainda quebram em duas colunas para caber na altura restante.
+   ========================================================================== */
+
+.iaPainel {
+  display: grid;
+  gap: var(--sp-3);
+}
+
+.iaTopo {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--sp-4);
+}
+
+.iaContexto h3 {
+  display: flex;
+  align-items: center;
+  gap: var(--sp-2);
+  font-size: var(--fs-400);
+}
+
+.iaContexto p {
+  margin-top: 2px;
+  color: var(--text-muted);
+  font-size: var(--fs-100);
+}
+
+/* Confiança em três camadas — número, barra e palavra. Barra sozinha seria
+   informação só por forma/cor (WCAG 1.4.1). */
+.confianca {
+  display: grid;
+  gap: var(--sp-1);
+  min-width: 190px;
+}
+
+.confiancaRotulo {
+  color: var(--text-soft);
+  font-size: var(--fs-200);
+}
+
+.confiancaRotulo strong {
+  color: var(--text);
+  font-variant-numeric: tabular-nums;
+}
+
+.iaAlerta {
+  align-items: center;
+  padding: var(--sp-2) var(--sp-3);
+}
+
+/* --- abas ---------------------------------------------------------------- */
+
+.abas {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--sp-1);
+  border-bottom: 1px solid var(--line);
+}
+
+.aba {
+  min-height: 36px;
+  padding: 0 var(--sp-3);
+  border: 0;
+  border-bottom: 2px solid transparent;
+  background: transparent;
+  color: var(--text-soft);
+  font-size: var(--fs-200);
+  font-weight: var(--fw-semibold);
+  transition: color var(--dur) var(--ease), border-color var(--dur) var(--ease);
+}
+
+.aba:hover {
+  color: var(--text);
+}
+
+/* Aba ativa: sublinhado espesso + peso + cor. O aria-selected é quem informa
+   o leitor de tela; aqui nenhum dos três sinais é a cor sozinha. */
+.aba[aria-selected="true"] {
+  border-bottom-color: var(--accent);
+  color: var(--accent-strong);
+}
+
+.abaPainel {
+  min-height: 200px;
+}
+
+/* Foco no painel só aparece quando o teclado chega nele; sem outline-offset
+   negativo o anel escaparia do card. */
+.abaPainel:focus-visible {
+  outline-offset: -2px;
+}
+
+.iaResumo {
+  display: grid;
+  gap: var(--sp-3);
+  max-width: 100ch;
+}
+
+.iaResumo p {
+  color: var(--text-soft);
+  font-size: var(--fs-200);
+  line-height: var(--lh-normal);
+}
+
+/* --- achados ------------------------------------------------------------- */
+
+.achados,
+.recomendacoes {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 320px), 1fr));
+  gap: var(--sp-3);
+}
+
+.achado {
+  display: grid;
+  align-content: start;
+  gap: var(--sp-1);
+  padding: var(--sp-3);
+  border: 1px solid var(--line);
+  border-radius: var(--r-md);
+  background: var(--surface-2);
+}
+
+.achadoTopo {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: var(--sp-2);
+}
+
+.achadoTopo strong {
+  font-size: var(--fs-200);
+  font-weight: var(--fw-semibold);
+  line-height: var(--lh-snug);
+}
+
+.achadoTopo :global(.chip) {
+  flex: 0 0 auto;
+}
+
+/* A evidência é o que separa achado de opinião: ganha peso e dígitos fixos. */
+.achadoEvidencia {
+  color: var(--text);
+  font-size: var(--fs-100);
+  font-weight: var(--fw-semibold);
+  font-variant-numeric: tabular-nums;
+}
+
+.achadoDetalhe {
+  color: var(--text-muted);
+  font-size: var(--fs-100);
+  line-height: var(--lh-snug);
+}
+
+/* --- recomendações ------------------------------------------------------- */
+
+.recomendacao {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--sp-3);
+  padding: var(--sp-3);
+  border: 1px solid var(--line);
+  border-radius: var(--r-md);
+  background: var(--surface-2);
+}
+
+.recomendacao :global(.step-num) {
+  margin-top: 1px;
+}
+
+.recomendacaoAcao {
+  color: var(--text);
+  font-size: var(--fs-200);
+  line-height: var(--lh-snug);
+}
+
+.recomendacaoMeta {
+  margin-top: var(--sp-1);
+  color: var(--text-muted);
+  font-size: var(--fs-100);
+}
+
+.recomendacaoMeta strong {
+  color: var(--text-soft);
+  font-weight: var(--fw-semibold);
+}
+
+/* --- rodapé e carregamento ----------------------------------------------- */
+
+.iaRodape {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--sp-3);
+  padding-top: var(--sp-2);
+  border-top: 1px solid var(--line);
+}
+
+.iaRodape p:first-child {
+  display: flex;
+  align-items: center;
+  gap: var(--sp-2);
+  color: var(--text-soft);
+  font-size: var(--fs-100);
+}
+
+.iaRodape svg {
+  flex: 0 0 auto;
+  color: var(--accent-strong);
+}
+
+.iaCarregando {
+  display: grid;
+  gap: var(--sp-3);
+  min-height: 200px;
+  padding: var(--sp-4) 0;
+}
+
+.iaCarregandoTexto {
+  display: flex;
+  align-items: center;
+  gap: var(--sp-2);
+  color: var(--text-soft);
+  font-size: var(--fs-200);
+}
+
+/* Esqueleto com a silhueta do texto que vem: quatro linhas, a última curta.
+   Assim a tela não dá um salto quando o conteúdo chega. */
+.iaSkeleton {
+  display: grid;
+  gap: var(--sp-3);
+}
+
+.iaSkeleton > span {
+  display: block;
+  height: 12px;
+}
+
+.iaSkeleton > span:nth-child(2) {
+  width: 94%;
+}
+
+.iaSkeleton > span:nth-child(3) {
+  width: 88%;
+}
+
+.iaSkeleton > span:nth-child(4) {
+  width: 62%;
+}
+
+/* ==========================================================================
+   Responsivo — a altura travada só existe no desktop. Em tela estreita a
+   página volta a rolar naturalmente; travar altura no celular esconderia
+   conteúdo em vez de organizá-lo.
+   ========================================================================== */
+
+/* As 4 colunas aguentam até 1024px (campos de ~160px). Abaixo disso a página
+   já rola, então cai para 2 colunas e os campos voltam a respirar. */
+@media (max-width: 1023px) {
+  .grade {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .board {
+    grid-template-columns: minmax(0, 1fr);
+    grid-template-rows: auto;
+    height: auto;
+    min-height: 0;
+  }
+
+  .mainCol {
+    overflow: visible;
+  }
+
+  /* Sem altura de página para dividir, a lista ganha um teto próprio: 14 itens
+     empurrariam os filtros para fora da primeira tela do celular. */
+  .railList {
+    max-height: 320px;
+  }
+}
+
+@media (max-width: 640px) {
+  .grade {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .periodo {
+    grid-column: auto;
+  }
+
+  .periodoCampos {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .rodape,
+  .atalhos,
+  .acoesFiltro {
+    width: 100%;
+  }
+
+  .acoesFiltro :global(.btn) {
+    flex: 1 1 auto;
+  }
+}

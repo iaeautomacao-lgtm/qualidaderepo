@@ -1,0 +1,25 @@
+---
+# Tarefas executadas quando você clica em "Deploy HEAD Commit" no
+# cPanel > Git Version Control.
+#
+# Só é necessário se o repositório for clonado numa pasta DIFERENTE da pasta
+# da aplicação. Se você clonar direto na pasta do app (recomendado, e é o que
+# o passo a passo do relatório manda fazer), este arquivo não é usado.
+#
+# ATENÇÃO ao editar: troque `SEUUSUARIO` pelo usuário real do cPanel. O caminho
+# precisa ser absoluto — o deploy não roda a partir da pasta do repositório.
+deployment:
+  tasks:
+    - export PASTA_APP=/home/SEUUSUARIO/qualiddm
+    - /bin/mkdir -p $PASTA_APP
+    # -a preserva permissões; a barra final em `./` copia o CONTEÚDO, não a
+    # pasta. --exclude protege o que não pode ir junto:
+    #   .git      histórico não pertence ao servidor de produção
+    #   .env*     segredo vive só nas variáveis do painel
+    #   node_modules e .next  são reconstruídos no servidor
+    - /usr/bin/rsync -a --delete
+        --exclude='.git'
+        --exclude='.env*'
+        --exclude='node_modules'
+        --exclude='.next'
+        ./ $PASTA_APP/

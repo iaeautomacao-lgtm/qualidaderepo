@@ -1,0 +1,272 @@
+/* Tela de listagem de avaliações.
+
+   Regra que manda no layout: em 1440x900 nada pode exigir rolagem vertical.
+   Sobram 764px de altura útil (900 - topbar 64 - padding 24/48), e eles são
+   divididos entre cabeçalho, filtros, 6 cartões e paginação. Por isso a tela
+   troca o espaçamento de 24px da área de trabalho por 12px, os cartões usam
+   entrelinha apertada e a lista pagina de 6 em 6 em vez de crescer. */
+
+.tela {
+  display: grid;
+  align-content: start;
+  grid-template-rows: auto auto minmax(0, 1fr) auto;
+  gap: var(--sp-3);
+  /* 136px = topbar (64) + padding vertical da área de trabalho (24 + 48). */
+  min-height: calc(100dvh - 136px);
+}
+
+/* ==========================================================================
+   Contador — o retorno visual do filtro, ancorado no canto do cabeçalho
+   ========================================================================== */
+
+.contador {
+  display: grid;
+  align-content: center;
+  justify-items: end;
+  flex: 0 0 auto;
+  padding: var(--sp-2) var(--sp-4);
+  border: 1px solid var(--accent-soft-strong);
+  border-radius: var(--r-lg);
+  background: var(--accent-soft);
+  line-height: var(--lh-tight);
+  text-align: right;
+}
+
+.contadorValor {
+  color: var(--accent-deep);
+  font-size: var(--fs-600);
+  font-weight: var(--fw-bold);
+  letter-spacing: -0.02em;
+  font-variant-numeric: tabular-nums;
+}
+
+.contadorRotulo {
+  margin-top: 2px;
+  color: var(--text);
+  font-size: var(--fs-200);
+  font-weight: var(--fw-semibold);
+}
+
+.contadorNota {
+  margin-top: 2px;
+  color: var(--text-soft);
+  font-size: var(--fs-100);
+}
+
+/* ==========================================================================
+   Painel de filtros
+   ========================================================================== */
+
+.painel {
+  padding: var(--sp-4);
+}
+
+.painelHead {
+  display: flex;
+  align-items: center;
+  gap: var(--sp-3);
+  margin-bottom: var(--sp-3);
+}
+
+.painelHead h2 {
+  flex: 1 1 auto;
+  font-size: var(--fs-500);
+}
+
+.limpar {
+  flex: 0 0 auto;
+  min-height: 32px;
+  padding-inline: var(--sp-3);
+  font-size: var(--fs-200);
+}
+
+/* auto-fit resolve tablet e celular sem media query: os campos refluem em
+   quantas colunas couberem, com 200px de largura mínima legível. */
+.grade {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 200px), 1fr));
+  gap: var(--sp-3) var(--sp-4);
+  align-items: end;
+}
+
+.grade label {
+  line-height: var(--lh-snug);
+}
+
+/* O período ocupa duas colunas porque são dois campos de data lado a lado. */
+.periodo {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: var(--sp-2);
+  grid-column: span 2;
+  margin: 0;
+  padding: 0;
+  border: 0;
+}
+
+.periodo > legend {
+  padding: 0;
+  margin-bottom: var(--sp-2);
+  color: var(--text);
+  font-size: var(--fs-200);
+  font-weight: var(--fw-semibold);
+  line-height: var(--lh-snug);
+}
+
+@media (max-width: 720px) {
+  .periodo {
+    grid-column: auto;
+  }
+}
+
+/* ==========================================================================
+   Lista em cartões
+   ========================================================================== */
+
+.resultado {
+  min-height: 0;
+}
+
+.cards {
+  display: grid;
+  align-content: start;
+  grid-template-columns: repeat(auto-fill, minmax(min(100%, 320px), 1fr));
+  gap: var(--sp-3);
+}
+
+.item {
+  position: relative;
+  display: grid;
+  align-content: start;
+  gap: var(--sp-2);
+  padding: var(--sp-3);
+  transition: border-color var(--dur) var(--ease), box-shadow var(--dur) var(--ease);
+}
+
+.item:hover {
+  border-color: var(--accent-soft-strong);
+  box-shadow: var(--shadow-md);
+}
+
+/* O foco vem do link esticado; sem isto o anel só apareceria em volta do
+   título e o usuário de teclado não veria qual cartão está selecionado. */
+.item:has(.itemLink:focus-visible) {
+  outline: var(--focus-width) solid var(--accent-mid);
+  outline-offset: var(--focus-offset);
+}
+
+.itemTopo {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--sp-3);
+}
+
+.itemIdent {
+  min-width: 0;
+  flex: 1 1 auto;
+}
+
+.itemTitulo {
+  font-size: var(--fs-300);
+  font-weight: var(--fw-semibold);
+  line-height: var(--lh-snug);
+}
+
+/* Link "esticado": cobre o cartão inteiro sem que o nome acessível do link
+   engula todo o conteúdo do cartão. */
+.itemLink::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+}
+
+.itemLink:focus-visible {
+  outline: none;
+}
+
+.itemId {
+  margin-top: 1px;
+  color: var(--text-muted);
+  font-size: var(--fs-100);
+  line-height: var(--lh-tight);
+  font-variant-numeric: tabular-nums;
+}
+
+.itemScore {
+  display: flex;
+  align-items: center;
+  gap: var(--sp-2);
+  flex: 0 0 auto;
+}
+
+/* --- pares rótulo/valor -------------------------------------------------- */
+
+.itemDados {
+  display: grid;
+  gap: 3px;
+  padding-top: var(--sp-2);
+  border-top: 1px solid var(--line);
+}
+
+.itemDados > div {
+  display: grid;
+  grid-template-columns: 68px minmax(0, 1fr);
+  gap: var(--sp-2);
+  align-items: baseline;
+}
+
+.itemDados dt {
+  color: var(--text-muted);
+  font-size: var(--fs-100);
+  font-weight: var(--fw-semibold);
+  letter-spacing: var(--tracking-label);
+  line-height: var(--lh-tight);
+  text-transform: uppercase;
+}
+
+.itemDados dd {
+  min-width: 0;
+  margin: 0;
+  overflow: hidden;
+  color: var(--text);
+  font-size: var(--fs-200);
+  line-height: var(--lh-tight);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* Sem separador aqui: o chip de status já se destaca do bloco de dados, e mais
+   uma borda custaria altura numa tela que não pode rolar. */
+.itemRodape {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--sp-3);
+}
+
+.itemData {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--sp-1);
+  color: var(--text-soft);
+  font-size: var(--fs-100);
+  font-variant-numeric: tabular-nums;
+}
+
+/* ==========================================================================
+   Responsivo
+   ========================================================================== */
+
+@media (max-width: 900px) {
+  .tela {
+    min-height: 0;
+    gap: var(--sp-4);
+  }
+
+  .contador {
+    justify-items: start;
+    width: 100%;
+    text-align: left;
+  }
+}
