@@ -1413,6 +1413,7 @@ tr:hover .copy-id,
   display: flex;
   min-width: 0;
   flex-direction: column;
+  padding-top: 64px;
 }
 
 .workspace {
@@ -1428,8 +1429,10 @@ tr:hover .copy-id,
 /* --- topbar ------------------------------------------------------------- */
 
 .topbar {
-  position: sticky;
+  position: fixed;
   top: 0;
+  right: 0;
+  left: var(--sidebar-w);
   z-index: var(--z-sticky);
   display: flex;
   align-items: center;
@@ -2485,6 +2488,7 @@ tr:hover .copy-id,
   }
 
   .topbar {
+    left: 0;
     padding-inline: var(--sp-4);
   }
 }
@@ -2499,6 +2503,10 @@ tr:hover .copy-id,
 @media (max-width: 640px) {
   .topbar {
     min-height: 56px;
+  }
+
+  .main {
+    padding-top: 56px;
   }
 
   /* A busca vira botão-ícone: o campo cheio não cabe ao lado do breadcrumb. */
