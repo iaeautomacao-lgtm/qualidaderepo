@@ -140,13 +140,17 @@ export async function getFormulariosOverview() {
           f.versao,
           f.created_at,
           f.updated_at,
+          cl.nome AS cliente,
+          GROUP_CONCAT(DISTINCT ca.nome ORDER BY ca.nome SEPARATOR ', ') AS campanha,
           COUNT(DISTINCT fc.campanha_id) AS campanhas,
           COUNT(DISTINCT i.id) AS questoes
          FROM formularios f
+         LEFT JOIN clientes cl ON cl.id = f.cliente_id
          LEFT JOIN formulario_campanhas fc ON fc.formulario_id = f.id
+         LEFT JOIN campanhas ca ON ca.id = fc.campanha_id
          LEFT JOIN formulario_secoes s ON s.formulario_id = f.id
          LEFT JOIN formulario_criterios i ON i.secao_id = s.id
-        GROUP BY f.id, f.nome, f.categoria, f.status, f.versao, f.created_at, f.updated_at
+        GROUP BY f.id, f.nome, f.categoria, f.status, f.versao, f.created_at, f.updated_at, cl.nome
         ORDER BY f.updated_at DESC, f.id DESC
         LIMIT 20`
     );
@@ -164,6 +168,8 @@ export async function getFormulariosOverview() {
         categoria: form.categoria,
         status: form.status,
         versao: Number(form.versao ?? 1),
+        cliente: form.cliente || null,
+        campanha: form.campanha || null,
         campanhas: Number(form.campanhas ?? 0),
         questoes: Number(form.questoes ?? 0),
         criadoEm: form.created_at,
@@ -209,7 +215,8 @@ export async function createFormulario({ clienteId, nome, categoria = "padrao", 
   return getFormulariosOverview();
 }
 
-export async function getFormularioParaAvaliacaoIa() {
+export async function getFormularioParaAvaliacaoIa({ formularioId = null } = {}) {
+  const filtroFormulario = formularioId ? "AND f.id = :formularioId" : "";
   const formulario = await one(
     `SELECT
         f.id,
@@ -224,8 +231,10 @@ export async function getFormularioParaAvaliacaoIa() {
        LEFT JOIN formulario_campanhas fc ON fc.formulario_id = f.id
        LEFT JOIN campanhas ca ON ca.id = fc.campanha_id
       WHERE f.status IN ('ativo', 'desenvolvimento')
+        ${filtroFormulario}
       ORDER BY f.status = 'ativo' DESC, f.updated_at DESC, f.id DESC
-      LIMIT 1`
+      LIMIT 1`,
+    { formularioId }
   );
 
   if (!formulario) return null;

@@ -60,7 +60,10 @@ export default function IniciarAvaliacaoPage() {
         </div>
 
         <div className="btn-row">
-          <Link className={`btn primary ${!formularioId ? "disabled" : ""}`} href="/upload">
+          <Link
+            className={`btn primary ${!formularioId ? "disabled" : ""}`}
+            href={formularioId ? `/upload?formularioId=${encodeURIComponent(formularioId)}` : "/formularios/iniciar"}
+          >
             <Icon name="upload" size={16} />
             Enviar arquivo
           </Link>

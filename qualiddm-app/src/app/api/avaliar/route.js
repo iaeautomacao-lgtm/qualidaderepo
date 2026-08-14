@@ -17,11 +17,16 @@ export async function POST(request) {
       throw badRequest("Campo 'arquivo' ausente.");
     }
 
+    const formularioId = String(form.get("formularioId") || "").trim();
+    if (!/^\d+$/.test(formularioId)) {
+      throw badRequest("Selecione o formulario correto antes de enviar para a IA.");
+    }
+
     validateUploadFiles([arquivo]);
 
-    const formulario = await getFormularioParaAvaliacaoIa();
+    const formulario = await getFormularioParaAvaliacaoIa({ formularioId });
     if (!formulario || formulario.secoes.length === 0) {
-      throw conflict("Nenhum formulário ativo com critérios foi encontrado para avaliar o arquivo.");
+      throw conflict("O formulario selecionado nao esta ativo ou nao possui criterios para avaliar o arquivo.");
     }
 
     const bytes = Buffer.from(await arquivo.arrayBuffer());

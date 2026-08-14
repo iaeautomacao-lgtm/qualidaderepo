@@ -25,12 +25,52 @@ export default function UploadPage() {
   const inputRef = useRef(null);
   const inputId = useId();
   const [files, setFiles] = useState([]);
+  const [formularios, setFormularios] = useState([]);
+  const [formularioId, setFormularioId] = useState("");
   const [dragging, setDragging] = useState(false);
   // idle | sending | done | error
   const [status, setStatus] = useState("idle");
   const [progress, setProgress] = useState(0);
   const [result, setResult] = useState(null);
   const [error, setError] = useState("");
+  const [formError, setFormError] = useState("");
+
+  useEffect(() => {
+    let ativo = true;
+
+    async function carregarFormularios() {
+      try {
+        const resposta = await fetch("/api/formularios", { cache: "no-store" });
+        const payload = await resposta.json().catch(() => null);
+        if (!resposta.ok || !payload?.ok) {
+          throw new Error(payload?.error?.message || "Nao foi possivel carregar formularios.");
+        }
+
+        if (!ativo) return;
+        const lista = (payload.data?.recentes || []).filter(
+          (formulario) =>
+            ["ativo", "desenvolvimento"].includes(formulario.status) &&
+            Number(formulario.questoes ?? 0) > 0,
+        );
+        setFormularios(lista);
+
+        const preSelecionado = new URLSearchParams(window.location.search).get("formularioId");
+        if (preSelecionado && lista.some((formulario) => formulario.id === preSelecionado)) {
+          setFormularioId(preSelecionado);
+        }
+      } catch (cause) {
+        if (ativo) {
+          setFormError(cause instanceof Error ? cause.message : "Nao foi possivel carregar formularios.");
+        }
+      }
+    }
+
+    carregarFormularios();
+
+    return () => {
+      ativo = false;
+    };
+  }, []);
 
   useEffect(() => {
     if (status !== "sending") return undefined;
@@ -79,6 +119,13 @@ export default function UploadPage() {
       return;
     }
 
+    if (!formularioId) {
+      setError("Selecione o formulario que corresponde ao arquivo enviado.");
+      setProgress(0);
+      setStatus("error");
+      return;
+    }
+
     setStatus("sending");
     setProgress(8);
     setError("");
@@ -88,6 +135,7 @@ export default function UploadPage() {
       // Mandar vários de uma vez misturaria chamadas diferentes numa nota só.
       const body = new FormData();
       body.append("arquivo", files[0]);
+      body.append("formularioId", formularioId);
 
       const resposta = await fetch("/api/avaliar", { method: "POST", body });
       const avaliado = await readApiResponse(resposta);
@@ -138,6 +186,37 @@ export default function UploadPage() {
 
       <section className="upload-board">
         <form className="card pad upload-primary" onSubmit={onSubmit}>
+          <div className="field">
+            <label htmlFor="formulario-upload">Formulario da avaliacao</label>
+            <select
+              className="select"
+              id="formulario-upload"
+              value={formularioId}
+              onChange={(evento) => {
+                setFormularioId(evento.target.value);
+                setStatus("idle");
+                setError("");
+                setResult(null);
+              }}
+            >
+              <option value="">Selecione a ficha correta</option>
+              {formularios.map((formulario) => (
+                <option key={formulario.id} value={formulario.id}>
+                  {[formulario.nome, formulario.cliente, formulario.campanha].filter(Boolean).join(" - ")}
+                </option>
+              ))}
+            </select>
+            <span className="field-hint">
+              A IA usa esta ficha para avaliar o arquivo. Confira o cliente antes de enviar.
+            </span>
+          </div>
+
+          {formError ? (
+            <p className="alert danger">
+              <Icon name="error" size={18} />
+              <span>{formError}</span>
+            </p>
+          ) : null}
           {/* A zona de arraste envolve um input real: quem usa teclado chega
               pelo label, quem usa mouse pode arrastar. Antes não havia input. */}
           <div
@@ -181,7 +260,7 @@ export default function UploadPage() {
                 <button
                   className="btn"
                   type="submit"
-                  disabled={sending || files.length === 0}
+                  disabled={sending || files.length === 0 || !formularioId}
                 >
                   <Icon name={sending ? "spinner" : "sparkles"} size={17} className={sending ? "spinning" : undefined} />
                   {sending ? "Enviando..." : "Enviar para a IA"}
