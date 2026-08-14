@@ -1,82 +1,116 @@
 "use client";
 
-import { use, useEffect, useRef, useState } from "react";
+import { use, useEffect, useState } from "react";
 import Link from "next/link";
-import { notFound } from "next/navigation";
 import AppShell from "@/components/AppShell";
 import AudioPlayer from "@/components/AudioPlayer";
 import { Icon } from "@/components/icons";
-import { STATUS_PENDENTE, getAvaliacao, tomDoScore } from "@/data/avaliacoes";
-import { secoes } from "@/data/seed";
 import styles from "./page.module.css";
 
-/**
- * A aba de NEGOCIAÇÃO/COBRANÇA abre por padrão porque é onde está o único
- * critério Não Conforme da avaliação. Quem abre a ficha quer ver o problema,
- * não percorrer as quatro seções até achá-lo.
- */
-const ABA_INICIAL = Math.max(
-  0,
-  secoes.findIndex((secao) => secao.criterios.some((c) => c.status === "Não Conforme")),
-);
+const STATUS_PENDENTE = "Feedback Pendente";
 
-const ACOES = [
-  { rotulo: "Histórico", icone: "history" },
-  { rotulo: "Edições", icone: "edit" },
-  { rotulo: "Feedback", icone: "feedback" },
-  { rotulo: "Exportar PDF", icone: "download" },
-];
+function tomDoScore(score) {
+  const valor = Number(score);
+  if (valor >= 90) return "success";
+  if (valor >= 80) return "warning";
+  return "danger";
+}
 
 function contar(secao) {
-  const conformes = secao.criterios.filter((c) => c.status === "Conforme").length;
+  const conformes = secao.criterios.filter((criterio) => criterio.status === "Conforme").length;
   return { conformes, naoConformes: secao.criterios.length - conformes };
 }
 
+function PainelModal({ ficha, tipo }) {
+  if (tipo === "feedback") {
+    const feedbacks = ficha.feedbacks || [];
+    return feedbacks.length > 0 ? (
+      feedbacks.map((feedback) => (
+        <article className={styles.modalItem} key={`${feedback.criadoEm}-${feedback.status}`}>
+          <strong>{feedback.status}</strong>
+          <p>{feedback.mensagem || "Sem mensagem registrada."}</p>
+          <span>{feedback.autor} · {feedback.criadoEm}</span>
+        </article>
+      ))
+    ) : (
+      <p className={styles.modalVazio}>Nenhum feedback registrado no banco para esta avaliação.</p>
+    );
+  }
+
+  const historico = (ficha.historico || []).filter((item) =>
+    tipo === "edicoes" ? /edi|edit/.test(item.acao?.toLowerCase() || "") : true
+  );
+
+  return historico.length > 0 ? (
+    historico.map((item) => (
+      <article className={styles.modalItem} key={`${item.criadoEm}-${item.acao}`}>
+        <strong>{item.acao}</strong>
+        <p>{item.detalhe || "Sem detalhe registrado."}</p>
+        <span>{item.usuario} · {item.criadoEm}</span>
+      </article>
+    ))
+  ) : (
+    <p className={styles.modalVazio}>Nenhum registro encontrado no histórico desta avaliação.</p>
+  );
+}
+
 export default function FichaAvaliacaoPage({ params }) {
-  // Em Next 16 `params` é uma Promise; em componente cliente ela é desembrulhada
-  // com `use()`, que suspende até o valor chegar.
   const { id } = use(params);
+  const [ficha, setFicha] = useState(null);
+  const [erro, setErro] = useState("");
+  const [aba, setAba] = useState(0);
+  const [painel, setPainel] = useState(null);
 
-  const [aba, setAba] = useState(ABA_INICIAL);
-  const [copia, setCopia] = useState(null);
-  const abasRef = useRef([]);
-  const relogioRef = useRef(null);
+  useEffect(() => {
+    let ativo = true;
 
-  useEffect(() => () => clearTimeout(relogioRef.current), []);
+    fetch(`/api/avaliacoes/${encodeURIComponent(id)}`, { cache: "no-store" })
+      .then((resposta) => resposta.json())
+      .then((payload) => {
+        if (!payload?.ok) throw new Error(payload?.error?.message || "Não foi possível carregar a avaliação.");
+        if (ativo) setFicha(payload.data.avaliacao);
+      })
+      .catch((error) => {
+        if (ativo) setErro(error instanceof Error ? error.message : "Não foi possível carregar a avaliação.");
+      });
 
-  const ficha = getAvaliacao(id);
-  if (!ficha) notFound();
+    return () => {
+      ativo = false;
+    };
+  }, [id]);
 
+  if (erro) {
+    return (
+      <AppShell active="Avaliações" breadcrumb={`Avaliações > ${id}`}>
+        <section className="card pad">
+          <div className="empty-state">
+            <Icon name="error" size={38} />
+            <h1>Não foi possível carregar avaliação</h1>
+            <p>{erro}</p>
+            <Link className="btn" href="/avaliacoes">
+              Voltar para Avaliações
+            </Link>
+          </div>
+        </section>
+      </AppShell>
+    );
+  }
+
+  if (!ficha) {
+    return (
+      <AppShell active="Avaliações" breadcrumb={`Avaliações > ${id}`}>
+        <div className="empty-state">
+          <Icon name="review" size={32} />
+          <h1>Carregando avaliação</h1>
+          <p>Buscando os dados no banco.</p>
+        </div>
+      </AppShell>
+    );
+  }
+
+  const secoes = ficha.secoes || [];
+  const secaoAtiva = secoes[Math.min(aba, Math.max(secoes.length - 1, 0))];
   const pendente = ficha.statusFeedback === STATUS_PENDENTE;
-  const secaoAtiva = secoes[aba];
-
-  async function copiarId() {
-    try {
-      await navigator.clipboard.writeText(ficha.id);
-      setCopia("ok");
-    } catch {
-      setCopia("erro");
-    }
-    clearTimeout(relogioRef.current);
-    relogioRef.current = setTimeout(() => setCopia(null), 2600);
-  }
-
-  // Setas percorrem as abas em ciclo, Home/End vão aos extremos — o teclado
-  // navega a lista de abas, não a tabulação (padrão ARIA de tablist).
-  function aoTeclarNaAba(evento, indice) {
-    const total = secoes.length;
-    let alvo = null;
-
-    if (evento.key === "ArrowRight") alvo = (indice + 1) % total;
-    else if (evento.key === "ArrowLeft") alvo = (indice - 1 + total) % total;
-    else if (evento.key === "Home") alvo = 0;
-    else if (evento.key === "End") alvo = total - 1;
-
-    if (alvo === null) return;
-    evento.preventDefault();
-    setAba(alvo);
-    abasRef.current[alvo]?.focus();
-  }
 
   const metricas = [
     { rotulo: "Cliente", valor: ficha.cliente },
@@ -86,33 +120,9 @@ export default function FichaAvaliacaoPage({ params }) {
     { rotulo: "Duração", valor: ficha.duracao },
   ];
 
-  const metadados = [
-    { rotulo: "Usuário avaliado", valor: ficha.avaliado.nome, largo: true },
-    { rotulo: "Formulário", valor: ficha.formulario, largo: true },
-    { rotulo: "Monitor", valor: ficha.avaliador.nome },
-    { rotulo: "Categoria", valor: ficha.categoria },
-    { rotulo: "Data da avaliação", valor: ficha.dataAvaliacao },
-    { rotulo: "Data do contato", valor: ficha.dataContato },
-    { rotulo: "Prazo feedback", valor: ficha.prazoFeedback },
-    { rotulo: "Prazo contestação", valor: ficha.prazoContestacao },
-  ];
-
-  const pessoas = [ficha.avaliado, ficha.avaliador, ficha.supervisor];
-
-  const conformidade = [
-    { rotulo: "Conformes", valor: ficha.resumo.conformes, tom: "success", icone: "checkCircle" },
-    { rotulo: "Não Conformes", valor: ficha.resumo.naoConformes, tom: "danger", icone: "error" },
-    { rotulo: "Não Aplicáveis", valor: ficha.resumo.naoAplicaveis, tom: "warning", icone: "info" },
-    { rotulo: "Total", valor: ficha.resumo.total, tom: "neutral", icone: "checklist" },
-  ];
-
   return (
-    <AppShell active="Dashboard" breadcrumb={`Avaliações > ${ficha.id}`}>
+    <AppShell active="Avaliações" breadcrumb={`Avaliações > ${ficha.id}`}>
       <div className={styles.ficha}>
-        {/* ------------------------------------------------------------------
-            1. Cabeçalho + faixa de métricas no mesmo cartão. Separá-los custaria
-            mais 48px de altura, e a ficha inteira precisa caber em 900px.
-           ------------------------------------------------------------------ */}
         <header className={`card ${styles.hero}`}>
           <div className={styles.heroTopo}>
             <span className="icon-badge" aria-hidden="true">
@@ -121,45 +131,34 @@ export default function FichaAvaliacaoPage({ params }) {
 
             <div className={styles.heroIdent}>
               <h1 className={styles.heroTitulo}>{ficha.formulario}</h1>
-
               <div className={styles.heroLinha}>
                 <span className={`chip ${pendente ? "warning" : "success"}`}>
                   <Icon name={pendente ? "clock" : "checkCircle"} size={13} />
                   {ficha.statusFeedback}
                 </span>
-
                 <span className={styles.heroId}>
                   ID: <strong>{ficha.id}</strong>
-                </span>
-
-                <button
-                  aria-label={`Copiar o identificador da avaliação ${ficha.id}`}
-                  className={`btn ghost ${styles.copiar}`}
-                  onClick={copiarId}
-                  type="button"
-                >
-                  <Icon name={copia === "ok" ? "check" : "checklist"} size={14} />
-                  {copia === "ok" ? "Copiado" : "Copiar ID"}
-                </button>
-
-                {/* Confirmação em texto para leitor de tela — o ícone que troca
-                    resolve só para quem enxerga. */}
-                <span className="sr-only" role="status">
-                  {copia === "ok" ? `Identificador ${ficha.id} copiado.` : null}
-                  {copia === "erro"
-                    ? "Não foi possível copiar. Selecione o identificador e copie manualmente."
-                    : null}
                 </span>
               </div>
             </div>
 
             <div className={styles.heroAcoes}>
-              {ACOES.map((acao) => (
-                <button className={`btn ${styles.acao}`} key={acao.rotulo} type="button">
-                  <Icon name={acao.icone} size={16} />
-                  {acao.rotulo}
-                </button>
-              ))}
+              <button className={`btn ${styles.acao}`} type="button" onClick={() => setPainel("historico")}>
+                <Icon name="history" size={16} />
+                Histórico
+              </button>
+              <button className={`btn ${styles.acao}`} type="button" onClick={() => setPainel("edicoes")}>
+                <Icon name="edit" size={16} />
+                Edições
+              </button>
+              <button className={`btn ${styles.acao}`} type="button" onClick={() => setPainel("feedback")}>
+                <Icon name="feedback" size={16} />
+                Feedback
+              </button>
+              <button className={`btn ${styles.acao}`} type="button" onClick={() => window.print()}>
+                <Icon name="download" size={16} />
+                Exportar PDF
+              </button>
             </div>
           </div>
 
@@ -169,10 +168,7 @@ export default function FichaAvaliacaoPage({ params }) {
                 <dt className="label-micro">{metrica.rotulo}</dt>
                 <dd>
                   {metrica.score ? (
-                    <span className={`score ${tomDoScore(metrica.valor)}`}>
-                      {metrica.valor}
-                      <span className="sr-only"> pontos</span>
-                    </span>
+                    <span className={`score ${tomDoScore(metrica.valor)}`}>{metrica.valor}</span>
                   ) : (
                     metrica.valor
                   )}
@@ -183,9 +179,6 @@ export default function FichaAvaliacaoPage({ params }) {
         </header>
 
         <div className={styles.banda}>
-          {/* --------------------------------------------------------------
-              2. Coluna de contexto: o áudio e quem está envolvido.
-             -------------------------------------------------------------- */}
           <div className={styles.coluna}>
             <section className={`card pad ${styles.cartaoDenso}`}>
               <AudioPlayer
@@ -197,12 +190,10 @@ export default function FichaAvaliacaoPage({ params }) {
               />
             </section>
 
-            <section className={`card pad ${styles.cartaoDenso}`} aria-labelledby="pessoas-titulo">
-              <h2 className={styles.tituloSecao} id="pessoas-titulo">
-                Pessoas envolvidas
-              </h2>
+            <section className={`card pad ${styles.cartaoDenso}`}>
+              <h2 className={styles.tituloSecao}>Pessoas envolvidas</h2>
               <ul className={styles.pessoas}>
-                {pessoas.map((pessoa) => (
+                {[ficha.avaliado, ficha.avaliador, ficha.supervisor].map((pessoa) => (
                   <li className={styles.pessoa} key={pessoa.papel}>
                     <span className="icon-badge sm neutral" aria-hidden="true">
                       <Icon name="user" size={15} />
@@ -210,9 +201,7 @@ export default function FichaAvaliacaoPage({ params }) {
                     <span className={styles.pessoaTexto}>
                       <span className="label-micro">{pessoa.papel}</span>
                       <strong>{pessoa.nome}</strong>
-                      <a className={styles.pessoaEmail} href={`mailto:${pessoa.email}`}>
-                        {pessoa.email}
-                      </a>
+                      <span className={styles.pessoaEmail}>{pessoa.email}</span>
                     </span>
                   </li>
                 ))}
@@ -220,168 +209,119 @@ export default function FichaAvaliacaoPage({ params }) {
             </section>
           </div>
 
-          {/* --------------------------------------------------------------
-              3. Coluna de identificação: metadados e o placar de conformidade.
-             -------------------------------------------------------------- */}
           <div className={styles.coluna}>
-            <section className={`card pad ${styles.cartaoDenso}`} aria-labelledby="metadados-titulo">
-              <h2 className={styles.tituloSecao} id="metadados-titulo">
-                Identificação da avaliação
-              </h2>
+            <section className={`card pad ${styles.cartaoDenso}`}>
+              <h2 className={styles.tituloSecao}>Identificação da avaliação</h2>
               <dl className={styles.metadados}>
-                {metadados.map((dado) => (
-                  <div key={dado.rotulo} data-largo={dado.largo ? "true" : undefined}>
-                    <dt className="label-micro">{dado.rotulo}</dt>
-                    <dd>{dado.valor}</dd>
-                  </div>
-                ))}
+                <div data-largo="true">
+                  <dt className="label-micro">Usuário avaliado</dt>
+                  <dd>{ficha.avaliado.nome}</dd>
+                </div>
+                <div data-largo="true">
+                  <dt className="label-micro">Formulário</dt>
+                  <dd>{ficha.formulario}</dd>
+                </div>
+                <div>
+                  <dt className="label-micro">Monitor</dt>
+                  <dd>{ficha.avaliador.nome}</dd>
+                </div>
+                <div>
+                  <dt className="label-micro">Categoria</dt>
+                  <dd>{ficha.categoria}</dd>
+                </div>
+                <div>
+                  <dt className="label-micro">Data da avaliação</dt>
+                  <dd>{ficha.dataAvaliacao}</dd>
+                </div>
+                <div>
+                  <dt className="label-micro">Data do contato</dt>
+                  <dd>{ficha.dataContato}</dd>
+                </div>
               </dl>
             </section>
 
-            <section className={`card pad ${styles.cartaoDenso}`} aria-labelledby="resumo-titulo">
-              <h2 className={styles.tituloSecao} id="resumo-titulo">
-                Resumo de Conformidade
-              </h2>
+            <section className={`card pad ${styles.cartaoDenso}`}>
+              <h2 className={styles.tituloSecao}>Resumo de Conformidade</h2>
               <dl className={styles.resumo}>
-                {conformidade.map((linha) => (
-                  <div className={styles.resumoItem} data-tom={linha.tom} key={linha.rotulo}>
-                    <dt>
-                      <Icon name={linha.icone} size={14} />
-                      {linha.rotulo}
-                    </dt>
-                    <dd>{linha.valor}</dd>
-                  </div>
-                ))}
+                <div className={styles.resumoItem} data-tom="success">
+                  <dt>Conformes</dt>
+                  <dd>{ficha.resumo.conformes}</dd>
+                </div>
+                <div className={styles.resumoItem} data-tom="danger">
+                  <dt>Não Conformes</dt>
+                  <dd>{ficha.resumo.naoConformes}</dd>
+                </div>
+                <div className={styles.resumoItem} data-tom="warning">
+                  <dt>Não Aplicáveis</dt>
+                  <dd>{ficha.resumo.naoAplicaveis}</dd>
+                </div>
               </dl>
             </section>
           </div>
 
-          {/* --------------------------------------------------------------
-              4. Respostas: 25 critérios divididos em abas por seção.
-             -------------------------------------------------------------- */}
-          <section className={`card pad ${styles.respostas}`} aria-labelledby="respostas-titulo">
+          <section className={`card pad ${styles.respostas}`}>
             <div className={styles.respostasHead}>
-              <h2 className={styles.tituloSecao} id="respostas-titulo">
-                Respostas e Avaliações
-              </h2>
+              <h2 className={styles.tituloSecao}>Respostas e Avaliações</h2>
               <span className="section-meta">{ficha.resumo.total} critérios</span>
             </div>
 
-            <div aria-label="Seções do formulário" className={styles.abas} role="tablist">
-              {secoes.map((secao, indice) => {
-                const { conformes, naoConformes } = contar(secao);
-                const ativa = indice === aba;
-
-                return (
-                  <button
-                    aria-controls={`painel-${secao.id}`}
-                    aria-selected={ativa}
-                    className={styles.aba}
-                    id={`aba-${secao.id}`}
-                    key={secao.id}
-                    onClick={() => setAba(indice)}
-                    onKeyDown={(evento) => aoTeclarNaAba(evento, indice)}
-                    ref={(elemento) => {
-                      abasRef.current[indice] = elemento;
-                    }}
-                    role="tab"
-                    tabIndex={ativa ? 0 : -1}
-                    type="button"
-                  >
-                    <span className={styles.abaNome}>{secao.nome}</span>
-                    <span className={styles.abaContagem} aria-hidden="true">
-                      <span className={styles.abaOk}>
-                        <Icon name="check" size={12} />
-                        {conformes}
-                      </span>
-                      {naoConformes > 0 ? (
-                        <span className={styles.abaNok}>
-                          <Icon name="close" size={12} />
-                          {naoConformes}
+            {secoes.length === 0 ? (
+              <div className="empty-state">
+                <Icon name="checklist" size={32} />
+                <h3>Nenhuma resposta registrada</h3>
+                <p>A avaliação existe, mas ainda não possui respostas vinculadas.</p>
+              </div>
+            ) : (
+              <>
+                <div className={styles.abas} role="tablist" aria-label="Seções do formulário">
+                  {secoes.map((secao, index) => {
+                    const total = contar(secao);
+                    return (
+                      <button
+                        aria-selected={index === aba}
+                        className={styles.aba}
+                        key={secao.id}
+                        onClick={() => setAba(index)}
+                        role="tab"
+                        type="button"
+                      >
+                        <span className={styles.abaNome}>{secao.nome}</span>
+                        <span className={styles.abaContagem}>
+                          <span className={styles.abaOk}>{total.conformes}</span>
+                          {total.naoConformes > 0 ? <span className={styles.abaNok}>{total.naoConformes}</span> : null}
                         </span>
-                      ) : null}
-                    </span>
-                    <span className="sr-only">
-                      {`, ${conformes} conformes e ${naoConformes} não conformes`}
-                    </span>
-                  </button>
-                );
-              })}
-            </div>
+                      </button>
+                    );
+                  })}
+                </div>
 
-            <div
-              aria-labelledby={`aba-${secaoAtiva.id}`}
-              className={styles.painel}
-              id={`painel-${secaoAtiva.id}`}
-              role="tabpanel"
-            >
-              {secaoAtiva.descricao ? (
-                <p className={styles.painelDescricao}>{secaoAtiva.descricao}</p>
-              ) : null}
-
-              <ul className={styles.criterios}>
-                {secaoAtiva.criterios.map((criterio) => {
-                  const conforme = criterio.status === "Conforme";
-
-                  return (
-                    <li className={styles.criterio} data-conforme={conforme} key={criterio.nome}>
-                      {/* O enunciado é longo (até 400 caracteres). Ele fica atrás
-                          de um disclosure para que os 25 critérios caibam na
-                          tela; o que o monitor precisa ver de relance — nome,
-                          status, resposta e peso — continua sempre visível. */}
-                      <details className={styles.disclosure}>
-                        {/* O <summary> só aceita conteúdo de frase e cabeçalho,
-                            então o layout é uma grade no próprio summary — sem
-                            <div> de apoio, que invalidaria a marcação. */}
-                        <summary className={styles.criterioTopo}>
-                          <h3 className={styles.criterioNome}>{criterio.nome}</h3>
-
-                          <span className={styles.criterioMeta}>
-                            <span>
-                              Resposta: <strong>{criterio.resposta ?? "—"}</strong>
+                <ul className={styles.criterios}>
+                  {secaoAtiva.criterios.map((criterio) => {
+                    const conforme = criterio.status === "Conforme";
+                    return (
+                      <li className={styles.criterio} data-conforme={conforme} key={criterio.nome}>
+                        <details className={styles.disclosure}>
+                          <summary className={styles.criterioTopo}>
+                            <h3 className={styles.criterioNome}>{criterio.nome}</h3>
+                            <span className={styles.criterioMeta}>
+                              Resposta: <strong>{criterio.resposta ?? "-"}</strong>
                             </span>
-                            <span aria-hidden="true">·</span>
-                            {criterio.eliminatoria ? (
-                              <span className="chip danger">
-                                <Icon name="alert" size={12} />
-                                Eliminatória
-                              </span>
-                            ) : (
-                              <span>
-                                Peso:{" "}
-                                <strong>
-                                  {criterio.peso === null || criterio.peso === undefined
-                                    ? "—"
-                                    : `${criterio.peso} pts`}
-                                </strong>
-                              </span>
-                            )}
-                          </span>
-
-                          <span className={`chip ${conforme ? "success" : "danger"}`}>
-                            <Icon name={conforme ? "check" : "close"} size={12} />
-                            {criterio.status}
-                          </span>
-
-                          <span className={styles.criterioSeta} aria-hidden="true">
-                            <Icon name="chevronDown" size={16} />
-                          </span>
-                        </summary>
-
-                        <p className={styles.criterioEnunciado}>{criterio.enunciado}</p>
-                      </details>
-
-                      {criterio.observacao ? (
-                        <div className={styles.observacao}>
-                          <p className="label-micro">Observação do Monitor</p>
-                          <p>{criterio.observacao}</p>
-                        </div>
-                      ) : null}
-                    </li>
-                  );
-                })}
-              </ul>
-            </div>
+                            <span className={`chip ${conforme ? "success" : "danger"}`}>{criterio.status}</span>
+                          </summary>
+                          <p className={styles.criterioEnunciado}>{criterio.enunciado}</p>
+                        </details>
+                        {criterio.observacao ? (
+                          <div className={styles.observacao}>
+                            <p className="label-micro">Observação do Monitor</p>
+                            <p>{criterio.observacao}</p>
+                          </div>
+                        ) : null}
+                      </li>
+                    );
+                  })}
+                </ul>
+              </>
+            )}
           </section>
         </div>
 
@@ -391,6 +331,22 @@ export default function FichaAvaliacaoPage({ params }) {
             Voltar para Avaliações
           </Link>
         </footer>
+
+        {painel ? (
+          <div className={styles.modalBackdrop} role="presentation" onClick={() => setPainel(null)}>
+            <section className={`card ${styles.modal}`} role="dialog" aria-modal="true" onClick={(event) => event.stopPropagation()}>
+              <header className={styles.modalHead}>
+                <h2>{painel === "historico" ? "Histórico" : painel === "edicoes" ? "Edições" : "Feedback"}</h2>
+                <button className="btn ghost" type="button" aria-label="Fechar painel" onClick={() => setPainel(null)}>
+                  <Icon name="close" size={16} />
+                </button>
+              </header>
+              <div className={styles.modalLista}>
+                <PainelModal ficha={ficha} tipo={painel} />
+              </div>
+            </section>
+          </div>
+        ) : null}
       </div>
     </AppShell>
   );

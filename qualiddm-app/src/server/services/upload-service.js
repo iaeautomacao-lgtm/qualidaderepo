@@ -1,6 +1,5 @@
 import { config } from "../config";
 import { badRequest } from "../errors";
-import { createReviewFromUpload } from "../repositories/reviews";
 
 function hasAllowedExtension(name) {
   const lowerName = name.toLowerCase();
@@ -34,15 +33,4 @@ export function validateUploadFiles(files) {
       size: file.size,
     };
   });
-}
-
-export async function receiveUpload({ files, userId }) {
-  const safeFiles = validateUploadFiles(files);
-  const review = await createReviewFromUpload({ files: safeFiles, userId });
-  return {
-    reviewId: review.publicId,
-    received: safeFiles,
-    storage: "mysql-metadata-cpanel-pending",
-    next: "/api/analyze",
-  };
 }

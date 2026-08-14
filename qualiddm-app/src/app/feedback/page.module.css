@@ -1,0 +1,233 @@
+/* ==========================================================================
+   Tela Lista de Feedbacks — só o que é específico desta página.
+   Tokens e primitivas (.card, .btn, .chip, .data-table.branded, .icon-tile,
+   .count-badge) vêm de globals.css.
+   ========================================================================== */
+
+/* --- painel de filtros ---------------------------------------------------- */
+
+.filtros {
+  display: grid;
+  gap: var(--sp-4);
+  padding: var(--sp-4) var(--sp-5);
+}
+
+.filtrosTopo {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--sp-4);
+}
+
+/* O gatilho do acordeão ocupa a linha do título inteiro para virar um alvo
+   grande, mas mantém a aparência de cabeçalho — não de botão. */
+.filtrosToggle {
+  display: flex;
+  align-items: center;
+  gap: var(--sp-2);
+  min-height: var(--tap-min);
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: var(--text);
+  font-size: var(--fs-400);
+  font-weight: var(--fw-semibold);
+  letter-spacing: -0.01em;
+}
+
+.filtrosToggle:hover {
+  color: var(--accent-strong);
+}
+
+.filtrosCorpo {
+  display: grid;
+  gap: var(--sp-4);
+  padding-top: var(--sp-4);
+  border-top: 1px solid var(--line);
+}
+
+/* `hidden` sozinho perde a briga com `display: grid`. */
+.filtrosCorpo[hidden] {
+  display: none;
+}
+
+.grade {
+  display: grid;
+  grid-template-columns: repeat(12, minmax(0, 1fr));
+  gap: var(--sp-4);
+}
+
+.grade > :global(.field) {
+  grid-column: span 3;
+}
+
+/* Os dois campos largos vêm DEPOIS da regra acima e com a mesma especificidade
+   (`.grade` + uma classe), então ganham por ordem de origem. É o que evita
+   `!important` num arquivo que só tem uma grade. */
+.grade > .campoLargo,
+.grade > .periodo {
+  grid-column: span 6;
+}
+
+.periodo {
+  margin: 0;
+  padding: 0;
+  border: 0;
+}
+
+.periodo legend {
+  padding: 0;
+  color: var(--text);
+  font-size: var(--fs-200);
+  font-weight: var(--fw-semibold);
+}
+
+.periodoCampos {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: var(--sp-2);
+  margin-top: var(--sp-2);
+}
+
+/* --- faixa de situações --------------------------------------------------- */
+
+/* Cinco cards que são também o filtro de status. auto-fit resolve o mobile sem
+   media query: em 1440px cabem os cinco, no celular cada um ocupa a linha. */
+.situacoes {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 200px), 1fr));
+  gap: var(--sp-4);
+}
+
+.situacoes > li {
+  display: grid;
+}
+
+.situacao {
+  display: grid;
+  align-content: start;
+  gap: var(--sp-2);
+  height: 100%;
+  padding: var(--sp-4) var(--sp-5) var(--sp-5);
+  text-align: left;
+  transition: border-color var(--dur) var(--ease), box-shadow var(--dur) var(--ease);
+}
+
+.situacao:hover {
+  border-color: var(--line-strong);
+  box-shadow: var(--shadow-md);
+}
+
+/* A situação em vigor ganha anel laranja da marca — não o roxo do QualiTalk de
+   referência. O anel é reforço: o estado real vive em aria-pressed e no chip
+   "Ativo", porque contorno colorido sozinho não informa. */
+.situacao[data-ativo="true"] {
+  border-color: var(--accent-strong);
+  box-shadow: 0 0 0 1px var(--accent-strong), var(--shadow-sm);
+}
+
+.situacaoTopo {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--sp-2);
+  min-height: 28px;
+}
+
+.situacaoRotulo {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--sp-2);
+  min-width: 0;
+  color: var(--text-soft);
+  font-size: var(--fs-200);
+  font-weight: var(--fw-semibold);
+}
+
+.situacaoIcone {
+  width: 26px;
+  height: 26px;
+}
+
+.situacaoValor {
+  font-size: var(--fs-kpi);
+  font-weight: var(--fw-bold);
+  line-height: var(--lh-tight);
+  letter-spacing: -0.02em;
+  font-variant-numeric: tabular-nums;
+}
+
+/* Reserva a altura exata do número para o card não mudar de tamanho quando o
+   valor chegar. */
+.situacaoEsqueleto {
+  width: 4ch;
+  height: var(--fs-kpi);
+}
+
+/* --- nota de limite ------------------------------------------------------- */
+
+.nota {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--sp-2);
+  color: var(--text-soft);
+  font-size: var(--fs-100);
+  line-height: var(--lh-snug);
+}
+
+.nota > svg {
+  flex: 0 0 auto;
+  margin-top: 1px;
+  color: var(--accent);
+}
+
+/* --- tabela --------------------------------------------------------------- */
+
+.tabelaHead {
+  align-items: center;
+  margin-bottom: var(--sp-4);
+}
+
+/* Nove colunas não cabem em tela estreita: abaixo desta largura o contêiner
+   .table-scroll assume a rolagem horizontal, e a página nunca rola de lado. */
+.tabela {
+  min-width: 1180px;
+}
+
+.tabela td,
+.tabela th[scope="row"] {
+  white-space: nowrap;
+}
+
+/* Campanha é o único campo longo o bastante para justificar quebra: os nomes
+   passam de 40 caracteres ("Canais Online (E-mail, Chat e WhatsApp)"). */
+.tabela td:nth-child(8) {
+  max-width: 22ch;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+@media (max-width: 1100px) {
+  .grade > :global(.field),
+  .grade > .campoLargo,
+  .grade > .periodo {
+    grid-column: span 6;
+  }
+}
+
+@media (max-width: 700px) {
+  .grade > :global(.field),
+  .grade > .campoLargo,
+  .grade > .periodo {
+    grid-column: 1 / -1;
+  }
+
+  .filtrosTopo {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .periodoCampos {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}

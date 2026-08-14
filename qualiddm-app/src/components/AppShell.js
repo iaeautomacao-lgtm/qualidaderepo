@@ -10,7 +10,7 @@ import { Icon } from "./icons";
  * Abaixo de 1024px a sidebar vira gaveta. O estado dela mora aqui porque
  * tanto o botão da topbar quanto o scrim precisam mexer nele.
  */
-export default function AppShell({ active, breadcrumb, children }) {
+export default function AppShell({ active, breadcrumb, children, topbarActions }) {
   const [drawerOpen, setDrawerOpen] = useState(false);
   const menuButtonRef = useRef(null);
 
@@ -95,27 +95,27 @@ export default function AppShell({ active, breadcrumb, children }) {
                 </nav>
               ) : null}
 
-              <span className="live-chip">
-                <Icon name="sparkles" size={12} />
-                Mock IA ativo
-              </span>
             </div>
 
             {/* Campo de busca real: antes era um <span> decorativo com
                 role="search", inalcançável pelo teclado. */}
-            <form className="search-field" role="search" onSubmit={(e) => e.preventDefault()}>
-              <Icon name="search" size={18} />
-              <label className="sr-only" htmlFor="busca-global">
-                Buscar chamada, operador ou carteira
-              </label>
-              <input
-                className="input"
-                id="busca-global"
-                name="q"
-                type="search"
-                placeholder="Buscar chamada, operador ou carteira..."
-              />
-            </form>
+            {topbarActions ? (
+              <div className="topbar-actions">{topbarActions}</div>
+            ) : (
+              <form className="search-field" role="search" onSubmit={(e) => e.preventDefault()}>
+                <Icon name="search" size={18} />
+                <label className="sr-only" htmlFor="busca-global">
+                  Buscar chamada, operador ou carteira
+                </label>
+                <input
+                  className="input"
+                  id="busca-global"
+                  name="q"
+                  type="search"
+                  placeholder="Buscar chamada, operador ou carteira..."
+                />
+              </form>
+            )}
           </div>
 
           <div className="workspace" id="conteudo">

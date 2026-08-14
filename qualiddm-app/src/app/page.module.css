@@ -17,7 +17,11 @@
   gap: var(--sp-5);
 }
 
-.faixa {
+.painel :global(.kpi-grid) {
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+}
+
+.gradePrincipal {
   display: grid;
   grid-template-columns: minmax(0, 2fr) minmax(0, 1fr);
   gap: var(--sp-5);
@@ -324,18 +328,104 @@
   align-content: start;
 }
 
+.barras {
+  display: grid;
+  align-content: start;
+  gap: var(--sp-3);
+  min-width: 0;
+}
+
+.barras li {
+  display: grid;
+  grid-template-columns: minmax(120px, 1fr) minmax(120px, 2fr) auto;
+  align-items: center;
+  gap: var(--sp-3);
+  min-width: 0;
+}
+
+.barras span:first-child {
+  overflow: hidden;
+  color: var(--text-soft);
+  font-size: var(--fs-200);
+  font-weight: var(--fw-semibold);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.trilho {
+  overflow: hidden;
+  height: 10px;
+  border-radius: var(--r-pill);
+  background: var(--surface-muted);
+}
+
+.trilho span {
+  display: block;
+  min-width: 4px;
+  height: 100%;
+  border-radius: inherit;
+  background: var(--accent);
+}
+
+.barras strong {
+  font-weight: var(--fw-bold);
+  font-variant-numeric: tabular-nums;
+}
+
+.statusGrid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: var(--sp-3);
+  margin: 0;
+}
+
+.statusGrid div {
+  display: grid;
+  gap: var(--sp-1);
+  padding: var(--sp-4);
+  border: 1px solid var(--line);
+  border-radius: var(--r-sm);
+  background: var(--surface-muted);
+}
+
+.statusGrid dt,
+.statusGrid dd {
+  margin: 0;
+}
+
+.statusGrid dt {
+  color: var(--text-soft);
+  font-size: var(--fs-200);
+  font-weight: var(--fw-semibold);
+}
+
+.statusGrid dd {
+  font-size: var(--fs-700);
+  font-weight: var(--fw-bold);
+  line-height: var(--lh-tight);
+  font-variant-numeric: tabular-nums;
+}
+
 /* ==========================================================================
    Responsivo — abaixo de 1200px a garantia de "sem rolagem" cai por terra de
    propósito: o conteúdo empilha e a página rola como qualquer outra.
    ========================================================================== */
 
 @media (max-width: 1200px) {
-  .faixa {
+  .painel :global(.kpi-grid) {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .gradePrincipal {
     grid-template-columns: minmax(0, 1fr);
   }
 }
 
 @media (max-width: 640px) {
+  .painel :global(.kpi-grid) {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
   .cartao,
   .cartaoBaixo {
     padding: var(--sp-4);
@@ -348,5 +438,10 @@
 
   .roscaLegenda {
     width: 100%;
+  }
+
+  .barras li,
+  .statusGrid {
+    grid-template-columns: minmax(0, 1fr);
   }
 }

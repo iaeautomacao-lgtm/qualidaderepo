@@ -1,0 +1,131 @@
+.painel {
+  display: grid;
+  gap: var(--sp-5);
+}
+
+.busca {
+  width: min(320px, 42vw);
+}
+
+.grade {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: var(--sp-4);
+}
+
+.monitor {
+  display: grid;
+  align-content: start;
+  justify-items: center;
+  gap: var(--sp-4);
+  padding: var(--sp-5);
+  text-align: center;
+}
+
+.avatar {
+  display: grid;
+  place-items: center;
+  width: 64px;
+  height: 64px;
+  border-radius: var(--r-md);
+  background: var(--accent-soft);
+  color: var(--accent-strong);
+}
+
+.monitorTexto {
+  display: grid;
+  justify-items: center;
+  gap: var(--sp-1);
+  min-width: 0;
+}
+
+.monitorTexto h3 {
+  font-size: var(--fs-500);
+  font-weight: var(--fw-semibold);
+  line-height: var(--lh-snug);
+}
+
+.monitorTexto p {
+  max-width: 100%;
+  overflow: hidden;
+  color: var(--text-soft);
+  font-size: var(--fs-200);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.metricas {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: var(--sp-2);
+  width: 100%;
+  margin: 0;
+}
+
+.metricas div {
+  display: grid;
+  gap: var(--sp-1);
+  min-width: 0;
+  padding: var(--sp-2);
+  border: 1px solid var(--line);
+  border-radius: var(--r-sm);
+  background: var(--surface-muted);
+}
+
+.metricas dt,
+.metricas dd {
+  min-width: 0;
+  margin: 0;
+}
+
+.metricas dt {
+  overflow: hidden;
+  color: var(--text-muted);
+  font-size: var(--fs-100);
+  font-weight: var(--fw-semibold);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.metricas dd {
+  overflow: hidden;
+  color: var(--text);
+  font-size: var(--fs-200);
+  font-weight: var(--fw-semibold);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.acoes {
+  display: grid;
+  gap: var(--sp-2);
+  width: 100%;
+}
+
+.acoesRapidas {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: var(--sp-3);
+}
+
+@media (max-width: 1180px) {
+  .grade,
+  .acoesRapidas {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 720px) {
+  .busca {
+    width: 100%;
+  }
+
+  .grade,
+  .acoesRapidas {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .metricas {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}

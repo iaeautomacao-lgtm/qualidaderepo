@@ -78,6 +78,27 @@
   --info-text: #1d4ed8;
   --info-soft: #eaeffe;
 
+  /* --- tons de categoria ----------------------------------------------
+     Pares fundo/traço dos selos quadrados de ícone (.icon-tile). São
+     DECORATIVOS: só separam visualmente famílias de atalho, e nenhuma
+     informação depende deles — o rótulo ao lado carrega o significado, e o
+     ícone entra como aria-hidden. Cada par foi escolhido acima de 3:1 porque
+     ícone é objeto gráfico (WCAG 1.4.11), não porque a cor informe algo.  */
+  --tom-blue-bg: #dbeafe;
+  --tom-blue-fg: #1d4ed8;
+  --tom-green-bg: #dcfce7;
+  --tom-green-fg: #15803d;
+  --tom-yellow-bg: #fef3c7;
+  --tom-yellow-fg: #a16207;
+  --tom-purple-bg: #ede9fe;
+  --tom-purple-fg: #6d28d9;
+  --tom-orange-bg: #ffedd5;
+  --tom-orange-fg: #c2410c;
+  --tom-red-bg: #fee2e2;
+  --tom-red-fg: #b91c1c;
+  --tom-teal-bg: #ccfbf1;
+  --tom-teal-fg: #0f766e;
+
   /* --- gráficos -------------------------------------------------------- */
   --chart-bar: var(--orange-600);      /* 4,30:1 no branco / 3,48:1 na trilha */
   --chart-bar-hover: var(--orange-800);
@@ -160,6 +181,36 @@
   --tap-min: 44px;          /* alvo mínimo de toque */
   --focus-width: 2px;
   --focus-offset: 2px;
+}
+
+:root[data-theme="escuro"] {
+  --bg: #171614;
+  --surface: #211f1c;
+  --surface-2: #191816;
+  --surface-3: #2d2a26;
+  --surface-inverse: #ffffff;
+  --line: #3b3731;
+  --line-strong: #514b43;
+  --border-control: #8f887d;
+
+  --text: #f7f4ee;
+  --text-soft: #d7d1c7;
+  --text-muted: #b9b1a6;
+  --text-on-dark: #ffffff;
+
+  --accent-soft: #32170d;
+  --accent-soft-strong: #4a2110;
+  --success-soft: #102c24;
+  --warning-soft: #33270d;
+  --danger-soft: #351715;
+  --info-soft: #14213e;
+
+  --chart-track: #38342f;
+  --chart-grid: var(--line);
+  --shadow-xs: 0 1px 2px rgb(0 0 0 / 0.24);
+  --shadow-sm: 0 1px 2px rgb(0 0 0 / 0.22), 0 2px 6px rgb(0 0 0 / 0.22);
+  --shadow-md: 0 2px 4px rgb(0 0 0 / 0.24), 0 8px 20px rgb(0 0 0 / 0.28);
+  --shadow-lg: 0 8px 16px rgb(0 0 0 / 0.28), 0 24px 48px rgb(0 0 0 / 0.34);
 }
 
 /* ==========================================================================
@@ -542,6 +593,88 @@ h3 {
   border-color: transparent;
   background: var(--danger-soft);
   color: var(--danger-text);
+}
+
+/* Selo quadrado e cheio, com tom por categoria — o marcador dos atalhos e dos
+   cartões de funcionalidade (Monitor IA, Administração, Formulários).
+   Difere de .icon-badge por ser maior, sem borda e colorido por `data-tom`. */
+.icon-tile {
+  display: inline-grid;
+  place-items: center;
+  flex: 0 0 auto;
+  width: 44px;
+  height: 44px;
+  border-radius: var(--r-md);
+  background: var(--surface-3);
+  color: var(--text-soft);
+}
+
+.icon-tile.sm {
+  width: 36px;
+  height: 36px;
+  border-radius: var(--r-sm);
+}
+
+.icon-tile[data-tom="accent"] {
+  background: var(--accent-soft-strong);
+  color: var(--accent-deep);
+}
+
+.icon-tile[data-tom="blue"] {
+  background: var(--tom-blue-bg);
+  color: var(--tom-blue-fg);
+}
+
+.icon-tile[data-tom="green"] {
+  background: var(--tom-green-bg);
+  color: var(--tom-green-fg);
+}
+
+.icon-tile[data-tom="yellow"] {
+  background: var(--tom-yellow-bg);
+  color: var(--tom-yellow-fg);
+}
+
+.icon-tile[data-tom="purple"] {
+  background: var(--tom-purple-bg);
+  color: var(--tom-purple-fg);
+}
+
+.icon-tile[data-tom="orange"] {
+  background: var(--tom-orange-bg);
+  color: var(--tom-orange-fg);
+}
+
+.icon-tile[data-tom="red"] {
+  background: var(--tom-red-bg);
+  color: var(--tom-red-fg);
+}
+
+.icon-tile[data-tom="teal"] {
+  background: var(--tom-teal-bg);
+  color: var(--tom-teal-fg);
+}
+
+/* Contador circular ao fim de uma linha — "2 itens contestados", "16 registros".
+   Sempre acompanhado de rótulo textual: o número sozinho não diz do quê. */
+.count-badge {
+  display: inline-grid;
+  place-items: center;
+  flex: 0 0 auto;
+  min-width: 26px;
+  height: 26px;
+  padding: 0 var(--sp-2);
+  border-radius: var(--r-pill);
+  background: var(--surface-3);
+  color: var(--text-soft);
+  font-size: var(--fs-100);
+  font-weight: var(--fw-bold);
+  font-variant-numeric: tabular-nums;
+}
+
+.count-badge.danger {
+  background: var(--danger-text);
+  color: var(--text-on-dark);
 }
 
 /* ==========================================================================
@@ -965,6 +1098,74 @@ a.row:hover {
   background: var(--surface-2);
 }
 
+/* Variante de marca: cabeçalho em tinta laranja, como nas listagens do
+   QualiTalk de referência.
+   O tom é --accent-strong e não o laranja puro da logo de propósito: texto
+   branco sobre #ff5106 dá 2,6:1 (reprova), sobre #c93b04 dá 5,11:1 (aprova
+   AA). Reservada para as listagens densas onde o cabeçalho precisa ancorar a
+   leitura de 9 colunas — usar em toda tabela do app anularia o destaque. */
+.data-table.branded thead th {
+  position: sticky;
+  top: 0;
+  z-index: 1;
+  padding: var(--sp-3);
+  border-bottom: 0;
+  background: var(--accent-strong);
+  color: var(--text-on-dark);
+  font-size: var(--fs-100);
+}
+
+.data-table.branded thead th:first-child {
+  border-start-start-radius: var(--r-md);
+}
+
+.data-table.branded thead th:last-child {
+  border-start-end-radius: var(--r-md);
+}
+
+.data-table.branded td {
+  padding: var(--sp-3);
+}
+
+/* Botão de copiar embutido na célula — aparece só no hover/foco da linha para
+   não poluir 200 linhas, mas nunca some para o teclado. */
+.copy-id {
+  display: inline-grid;
+  place-items: center;
+  width: 24px;
+  height: 24px;
+  border: 0;
+  border-radius: var(--r-xs);
+  background: transparent;
+  color: var(--text-muted);
+  opacity: 0;
+  transition: opacity var(--dur) var(--ease), color var(--dur) var(--ease);
+}
+
+.copy-id:hover {
+  color: var(--accent-strong);
+}
+
+tr:hover .copy-id,
+.copy-id:focus-visible {
+  opacity: 1;
+}
+
+/* Sem hover (toque) o botão fica sempre visível: não há como revelá-lo. */
+@media (hover: none) {
+  .copy-id {
+    opacity: 1;
+  }
+}
+
+.cell-id {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--sp-1);
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
 /* Bloco completo: tabela + paginação. A tabela nunca rola na vertical (quem
    página é o componente); a rolagem horizontal só existe em tela estreita. */
 .table-block {
@@ -1053,6 +1254,140 @@ a.row:hover {
   .filter-search {
     flex: 1 1 100%;
   }
+}
+
+/* ==========================================================================
+   Primitiva: abas (padrão ARIA Tabs)
+
+   Estrutura obrigatória: [role="tablist"] > button[role="tab"] e um
+   [role="tabpanel"] por aba. O painel oculto sai do DOM acessível com
+   `hidden` — não com display:none no CSS — para o leitor de tela não anunciar
+   conteúdo de aba fechada.
+   ========================================================================== */
+
+.tabs {
+  display: inline-flex;
+  gap: var(--sp-1);
+  padding: var(--sp-1);
+  border-radius: var(--r-md);
+  background: var(--surface-3);
+}
+
+.tab {
+  min-height: 36px;
+  padding: 0 var(--sp-4);
+  border: 1px solid transparent;
+  border-radius: var(--r-sm);
+  background: transparent;
+  color: var(--text-soft);
+  font-size: var(--fs-200);
+  font-weight: var(--fw-semibold);
+  transition: background var(--dur) var(--ease), color var(--dur) var(--ease);
+}
+
+.tab:hover {
+  color: var(--text);
+}
+
+/* A aba ativa ganha superfície + tinta da marca. aria-selected é a fonte da
+   verdade do estado, então o seletor é o próprio atributo. */
+.tab[aria-selected="true"] {
+  border-color: var(--line);
+  background: var(--surface);
+  color: var(--accent-strong);
+  box-shadow: var(--shadow-xs);
+}
+
+/* ==========================================================================
+   Primitiva: cartão de funcionalidade (tile)
+
+   Cartão de navegação: selo de ícone + título + descrição + chevron. Usado nos
+   painéis de Administração e nas Ações Rápidas do Monitor IA. É sempre um <a>
+   ou <button>: a área inteira é clicável e alcançável pelo teclado.
+   ========================================================================== */
+
+.tile-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(min(100%, 320px), 1fr));
+  gap: var(--sp-4);
+}
+
+.tile-grid > li {
+  display: grid;
+}
+
+.tile {
+  position: relative;
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  align-items: start;
+  gap: var(--sp-3);
+  height: 100%;
+  padding: var(--sp-4);
+  border: 1px solid var(--line);
+  border-radius: var(--r-md);
+  background: var(--surface);
+  transition: border-color var(--dur) var(--ease), background var(--dur) var(--ease),
+    box-shadow var(--dur) var(--ease);
+}
+
+.tile:hover {
+  border-color: var(--accent-soft-strong);
+  background: var(--accent-soft);
+  box-shadow: var(--shadow-sm);
+}
+
+.tile-body {
+  display: grid;
+  gap: var(--sp-1);
+  min-width: 0;
+}
+
+.tile-body strong {
+  color: var(--text);
+  font-size: var(--fs-300);
+  font-weight: var(--fw-semibold);
+  line-height: var(--lh-snug);
+}
+
+.tile-body span {
+  color: var(--text-soft);
+  font-size: var(--fs-100);
+  line-height: var(--lh-snug);
+}
+
+.tile-chevron {
+  align-self: center;
+  color: var(--text-muted);
+  transition: transform var(--dur) var(--ease), color var(--dur) var(--ease);
+}
+
+.tile:hover .tile-chevron {
+  color: var(--accent-strong);
+  transform: translateX(2px);
+}
+
+/* Selo "Novo" no canto: informação secundária, então fica fora da linha de
+   leitura do título, mas dentro do link para ser lido junto com ele. */
+.tile-flag {
+  position: absolute;
+  top: calc(var(--sp-3) * -1);
+  right: var(--sp-4);
+}
+
+/* Variante compacta e centralizada — as Ações Rápidas do Monitor IA, onde o
+   tile é só ícone + rótulo. */
+.tile.stacked {
+  grid-template-columns: minmax(0, 1fr);
+  justify-items: center;
+  align-content: center;
+  gap: var(--sp-3);
+  min-height: 116px;
+  text-align: center;
+}
+
+.tile.stacked .tile-body {
+  justify-items: center;
 }
 
 /* ==========================================================================
@@ -1164,6 +1499,19 @@ a.row:hover {
   flex: 0 1 auto;
 }
 
+.topbar-actions {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: var(--sp-2);
+  min-width: 0;
+  margin-left: auto;
+}
+
+.topbar-actions .search-field {
+  width: min(300px, 30vw);
+}
+
 /* --- sidebar ------------------------------------------------------------ */
 
 /* Sidebar fixa: nunca rola. A navegação é o único bloco elástico e ela se
@@ -1183,12 +1531,21 @@ a.row:hover {
   background: var(--surface);
 }
 
+/* A lista de navegação rola por conta própria quando não cabe em 100dvh.
+   O `.sidebar` acima usa `overflow: hidden`, então SEM esta rolagem os últimos
+   itens do menu seriam clipados em telas baixas — invisíveis e, pior,
+   inalcançáveis pelo teclado. Com 12 itens e um submenu aberto isso já ocorre
+   perto de 800px de altura. A barra só aparece quando é necessária. */
 .sidebar > nav {
   display: flex;
   min-height: 0;
   flex: 1 1 auto;
   flex-direction: column;
   gap: var(--sp-3);
+  overflow-y: auto;
+  overscroll-behavior-y: contain;
+  /* Espaço para a barra de rolagem não cobrir o indicador de item atual. */
+  scrollbar-gutter: stable;
 }
 
 /* Marca em bloco vertical: a logo do QualiDDM é larga (2,02:1) e não cabe lado
@@ -1461,6 +1818,12 @@ a.row:hover {
 .nav-subitem:hover {
   background: var(--surface-2);
   color: var(--text);
+}
+
+.nav-subitem[aria-current="page"] {
+  background: var(--accent-soft);
+  color: var(--accent-strong);
+  font-weight: var(--fw-semibold);
 }
 
 .avatar {
@@ -2141,6 +2504,10 @@ a.row:hover {
   /* A busca vira botão-ícone: o campo cheio não cabe ao lado do breadcrumb. */
   .topbar .search-field {
     display: none;
+  }
+
+  .topbar-actions {
+    gap: var(--sp-1);
   }
 
   .live-chip {

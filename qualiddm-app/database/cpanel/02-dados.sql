@@ -3,6 +3,16 @@
 --
 -- Execute DEPOIS de `01-estrutura.sql`, no mesmo banco.
 --
+-- IMPORTANTE — use a aba SQL (colar e executar), NÃO a aba Import.
+-- O importador do phpMyAdmin quebra arquivos grandes em blocos, e as variáveis
+-- de sessão (`@form`, `@s_abertura`...) se perdem entre um bloco e outro. O
+-- comando seguinte então casa com nada e grava ZERO linhas — sem reportar erro.
+-- Foi exatamente o que aconteceu no primeiro import: 23 comandos "executados",
+-- avaliação e respostas vazias.
+--
+-- Os comandos da avaliação já foram reescritos com JOIN e não dependem mais de
+-- variável. Os das seções e critérios ainda dependem, por isso o aviso.
+--
 -- Origem dos dados: transcrição dos 41 prints do QualiTalk (pasta PRINTS/).
 -- Nomes de clientes, campanhas, monitores, critérios e enunciados são REAIS,
 -- copiados literalmente.
@@ -124,8 +134,23 @@ SELECT id, 'Formulário Educacional | Cruzeiro', 'padrao', 'ativo', 1
 
 SET @form := (SELECT id FROM formularios WHERE nome = 'Formulário Educacional | Cruzeiro' LIMIT 1);
 
-INSERT INTO formulario_campanhas (formulario_id, campanha_id)
-SELECT @form, id FROM campanhas WHERE nome = 'Telefone Ativo' AND cliente_id IS NULL;
+-- COLLATE utf8mb4_bin força comparação sensível a maiúsculas. Sem isso o MySQL
+-- casa 'Telefone Ativo' com 'Telefone ativo' — e o print traz as DUAS como
+-- campanhas distintas, o que fazia a subconsulta devolver 2 linhas (erro #1242).
+--
+-- Daqui em diante o vínculo é feito por JOIN, sem variável de sessão: o
+-- phpMyAdmin quebra arquivos grandes em blocos e as variáveis `@` se perdem
+-- entre um bloco e outro, fazendo o INSERT casar com nada e gravar zero linhas
+-- SEM reportar erro.
+-- `BINARY` no lugar de `COLLATE utf8mb4_bin`, e junção por vírgula no lugar de
+-- JOIN/ON: sintaxe antiga, aceita por qualquer versão de MySQL e MariaDB. A
+-- forma moderna foi recusada pelo servidor do cPanel.
+INSERT IGNORE INTO formulario_campanhas (formulario_id, campanha_id)
+SELECT f.id, c.id
+  FROM formularios f, campanhas c
+ WHERE f.nome = 'Formulário Educacional | Cruzeiro'
+   AND BINARY c.nome = 'Telefone Ativo'
+   AND c.cliente_id IS NULL;
 
 INSERT INTO formulario_secoes (formulario_id, nome, descricao, posicao) VALUES
 (@form, 'ABERTURA', 'Avaliação da abertura do atendimento, com foco na abordagem inicial, identificação do cliente e clareza na comunicação, garantindo um início cordial, profissional e alinhado aos padrões estabelecidos.', 1),
@@ -181,58 +206,425 @@ INSERT INTO formulario_criterios (secao_id, nome, enunciado, peso_pts, eliminato
 -- Avaliação QA-26-000541 — a ficha completa do print
 -- ---------------------------------------------------------------------------
 
+-- Tudo por JOIN, sem variável de sessão: se o importador quebrar o arquivo em
+-- blocos, cada comando ainda encontra sozinho as chaves de que precisa.
 INSERT INTO avaliacoes (
   codigo, cod_gravacao, cliente_id, campanha_id, formulario_id,
   avaliado_id, avaliador_id, supervisor_id,
   categoria, origem, score, zerada, duracao_segundos,
   data_contato, data_avaliacao, status_feedback,
   total_conformes, total_nao_conformes, total_nao_aplicaveis, total_criterios
-) VALUES (
-  'QA-26-000541',
-  '04201062600',
-  (SELECT id FROM clientes WHERE slug='cruzeiro-do-sul'),
-  (SELECT id FROM campanhas WHERE nome='Telefone Ativo' AND cliente_id IS NULL),
-  @form,
-  (SELECT id FROM users WHERE email='camilly.v@grupoddm.com.br'),
-  (SELECT id FROM users WHERE email='fernandaferreira@grupoddm.com.br'),
-  (SELECT id FROM users WHERE email='fabiobatista@grupoddm.com.br'),
+)
+SELECT
+  'QA-26-000541', '04201062600',
+  cl.id, ca.id, f.id,
+  av.id, mo.id, su.id,
   'padrao', 'humana', 88.00, 0, 344,          -- 344s = 5:44
   '2026-08-03 09:40:00', '2026-08-07 09:46:00', 'pendente',
   24, 1, 0, 25
-);
-
-SET @aval := (SELECT id FROM avaliacoes WHERE codigo = 'QA-26-000541');
+FROM formularios f, clientes cl, campanhas ca, users av, users mo, users su
+WHERE f.nome = 'Formulário Educacional | Cruzeiro'
+  AND cl.slug = 'cruzeiro-do-sul'
+  AND BINARY ca.nome = 'Telefone Ativo'
+  AND ca.cliente_id IS NULL
+  AND av.email = 'camilly.v@grupoddm.com.br'
+  AND mo.email = 'fernandaferreira@grupoddm.com.br'
+  AND su.email = 'fabiobatista@grupoddm.com.br';
 
 -- Todos os 25 critérios entram como conformes...
 INSERT INTO avaliacao_respostas (avaliacao_id, criterio_id, resposta, status, peso_aplicado)
-SELECT @aval, c.id, 'sim', 'conforme', c.peso_pts
-  FROM formulario_criterios c
-  JOIN formulario_secoes s ON s.id = c.secao_id
- WHERE s.formulario_id = @form;
+SELECT a.id, c.id, 'sim', 'conforme', c.peso_pts
+  FROM avaliacoes a, formulario_secoes s, formulario_criterios c
+ WHERE a.codigo = 'QA-26-000541'
+   AND s.formulario_id = a.formulario_id
+   AND c.secao_id = s.id;
 
 -- ...menos um. Este é o único Não Conforme da ficha.
-UPDATE avaliacao_respostas r
-  JOIN formulario_criterios c ON c.id = r.criterio_id
+UPDATE avaliacao_respostas r, formulario_criterios c, avaliacoes a
    SET r.resposta = 'nao',
        r.status = 'nao_conforme',
        r.peso_aplicado = 0.00,
        r.observacao_monitor = 'A operadora realizou o fechamento da negociação, porém deixou de orientar o cliente sobre a aplicação de juros e multa em caso de inadimplência, não atendendo integralmente ao critério de fechamento da negociação.'
- WHERE r.avaliacao_id = @aval
+ WHERE c.id = r.criterio_id
+   AND a.id = r.avaliacao_id
+   AND a.codigo = 'QA-26-000541'
    AND c.nome = 'Fechamento da negociação';
 
+-- Status 'pendente' (e não 'aberto'): os estados do feedback passaram a ser
+-- os 5 dos cards da tela — Pendente, Assinatura, Concluída, Justificada e
+-- Revisão.
 INSERT INTO feedbacks (avaliacao_id, autor_id, status, mensagem)
-VALUES (
-  @aval,
-  (SELECT id FROM users WHERE email='fernandaferreira@grupoddm.com.br'),
-  'aberto',
-  'Reforçar a orientação sobre juros e multa no fechamento da negociação.'
-);
+SELECT a.id, u.id, 'pendente',
+       'Reforçar a orientação sobre juros e multa no fechamento da negociação.'
+  FROM avaliacoes a, users u
+ WHERE a.codigo = 'QA-26-000541'
+   AND u.email = 'fernandaferreira@grupoddm.com.br';
+
+-- ===========================================================================
+-- CATÁLOGOS (migration 003)
+--
+-- Tudo daqui para baixo é CATÁLOGO, não dado de operação: são as listas que
+-- as telas de Feedback, Contestações, Administração e Relatórios oferecem em
+-- dropdown. Sem estas linhas as tabelas existem mas as telas abrem vazias.
+--
+-- Os textos vêm dos prints em PRINTS/TELAS/. O que NÃO veio do print e você
+-- precisa revisar com a operação está marcado com "[REVISAR]".
+-- ===========================================================================
+
+-- ---------------------------------------------------------------------------
+-- Categorias de formulário
+--
+-- As duas que já existiam como ENUM. O `categoria_id` dos formulários é
+-- preenchido logo depois, a partir do ENUM antigo.
+-- ---------------------------------------------------------------------------
+
+INSERT INTO formulario_categorias (slug, nome, descricao, cor_hex, posicao, sistema) VALUES
+  ('padrao',      'Padrão',      'Monitoria de rotina',                       '#2563eb', 1, 1),
+  ('diagnostico', 'Diagnóstico', 'Monitoria de diagnóstico, não pontua meta', '#7c3aed', 2, 1);
+
+UPDATE formularios f, formulario_categorias c
+   SET f.categoria_id = c.id
+ WHERE c.slug = f.categoria;
+
+UPDATE avaliacoes a, formulario_categorias c
+   SET a.categoria_id = c.id
+ WHERE c.slug = a.categoria;
+
+-- ---------------------------------------------------------------------------
+-- Cores e prazos dos status de feedback
+--
+-- Labels e cores conferem com os badges do print de Feedback. [REVISAR] os
+-- prazos em dias: o print não mostra o número, só o status.
+-- ---------------------------------------------------------------------------
+
+INSERT INTO feedback_status_configuracoes (status, label, prazo_dias, cor_hex, cor_texto_hex, posicao) VALUES
+  ('pendente',    'Feedback Pendente', 5,    '#2563eb', '#ffffff', 1),
+  ('assinatura',  'Assinatura',        3,    '#f59e0b', '#ffffff', 2),
+  ('concluida',   'Concluída',         NULL, '#16a34a', '#ffffff', 3),
+  ('justificada', 'Justificada',       NULL, '#0891b2', '#ffffff', 4),
+  ('revisao',     'Revisão',           2,    '#dc2626', '#ffffff', 5),
+  ('dispensado',  'Dispensado',        NULL, '#6b7280', '#ffffff', 6);
+
+-- ---------------------------------------------------------------------------
+-- Motivos de justificativa
+--
+-- [REVISAR] a lista inteira: o print mostra que a tela existe, não quais
+-- motivos a DDM usa. Estes são os motivos usuais de operação de call center.
+-- ---------------------------------------------------------------------------
+
+INSERT INTO justificativa_motivos (escopo, slug, nome, exige_texto, posicao, sistema) VALUES
+  ('ausencia_monitoria', 'ferias',            'Férias',                          0, 1, 0),
+  ('ausencia_monitoria', 'afastamento',       'Afastamento médico',              0, 2, 0),
+  ('ausencia_monitoria', 'desligamento',      'Desligamento no período',         0, 3, 0),
+  ('ausencia_monitoria', 'admissao-recente',  'Admissão recente',                0, 4, 0),
+  ('ausencia_monitoria', 'sem-gravacao',      'Sem gravação disponível',         1, 5, 0),
+  ('ausencia_monitoria', 'troca-campanha',    'Troca de campanha no período',    0, 6, 0),
+  ('ausencia_monitoria', 'outro',             'Outro motivo',                    1, 7, 0),
+  ('ausencia_feedback',  'operador-ausente',  'Operador ausente',                0, 1, 0),
+  ('ausencia_feedback',  'agenda-superior',   'Indisponibilidade do superior',   0, 2, 0),
+  ('ausencia_feedback',  'desligamento',      'Desligamento antes do feedback',  0, 3, 0),
+  ('ausencia_feedback',  'prazo-expirado',    'Prazo expirado',                  1, 4, 0),
+  ('ausencia_feedback',  'outro',             'Outro motivo',                    1, 5, 0),
+  ('exclusao_ficha',     'duplicada',         'Ficha duplicada',                 0, 1, 0),
+  ('exclusao_ficha',     'audio-errado',      'Áudio de outro operador',         1, 2, 0),
+  ('exclusao_ficha',     'formulario-errado', 'Formulário aplicado incorreto',   1, 3, 0),
+  ('exclusao_ficha',     'teste',             'Ficha de teste',                  0, 4, 0),
+  ('contestacao',        'criterio-indevido', 'Critério avaliado indevidamente', 1, 1, 0),
+  ('contestacao',        'audio-divergente',  'Áudio não corresponde à ficha',   1, 2, 0),
+  ('contestacao',        'peso-incorreto',    'Peso aplicado incorretamente',    1, 3, 0);
+
+-- ---------------------------------------------------------------------------
+-- Faixas de performance
+--
+-- [REVISAR] as faixas e os prazos: o print só mostra que a tela existe. Os
+-- quadrantes 1Q..5Q batem com o ENUM de `avaliacoes.quadrante`.
+-- ---------------------------------------------------------------------------
+
+INSERT INTO faixa_conjuntos (nome, descricao, padrao) VALUES
+  ('Padrão DDM', 'Conjunto usado por campanha que não tem conjunto próprio', 1);
+
+INSERT INTO faixas_performance
+  (conjunto_id, nome, score_min, score_max, cor_hex, prazo_feedback_dias, quadrante, posicao)
+SELECT c.id, f.nome, f.score_min, f.score_max, f.cor_hex, f.prazo, f.quadrante, f.posicao
+  FROM faixa_conjuntos c,
+       (
+         SELECT 'Crítico'      AS nome,  0.00 AS score_min,  59.99 AS score_max, '#dc2626' AS cor_hex, 1 AS prazo, '5Q' AS quadrante, 1 AS posicao
+         UNION ALL SELECT 'Insuficiente', 60.00,  69.99, '#f97316', 2, '4Q', 2
+         UNION ALL SELECT 'Regular',      70.00,  84.99, '#f59e0b', 3, '3Q', 3
+         UNION ALL SELECT 'Bom',          85.00,  94.99, '#16a34a', 5, '2Q', 4
+         UNION ALL SELECT 'Excelente',    95.00, 100.00, '#0891b2', 7, '1Q', 5
+       ) f
+ WHERE c.nome = 'Padrão DDM';
+
+-- ---------------------------------------------------------------------------
+-- Cargos
+--
+-- 11 cargos, como no card "Cargos Cadastrados" do print. [REVISAR] os nomes
+-- com a estrutura real da DDM: o print mostra a contagem, não a lista.
+-- `role_base` é o papel que as rotas checam.
+-- ---------------------------------------------------------------------------
+
+INSERT INTO cargos (slug, nome, descricao, role_base, nivel, sistema) VALUES
+  ('administrador',        'Administrador',              'Acesso total ao sistema',                    'administrador', 100, 1),
+  ('gestor-qualidade',     'Gestor de Qualidade',        'Gestão da operação de monitoria',            'administrador',  90, 1),
+  ('coordenador',          'Coordenador',                'Coordena supervisores e monitores',          'supervisor',     80, 1),
+  ('supervisor',           'Supervisor',                 'Aplica feedback e julga contestação',        'supervisor',     70, 1),
+  ('monitor-senior',       'Monitor Sênior',             'Monitoria e calibração',                     'monitor',        60, 1),
+  ('monitor',              'Monitor',                    'Realiza monitorias',                         'monitor',        50, 1),
+  -- Usuário técnico sob o qual as avaliações de origem = 'ia' são gravadas:
+  -- `avaliacoes.avaliador_id` é NOT NULL, então a ficha automática precisa de
+  -- um usuário responsável mesmo sem monitor humano.
+  ('monitor-ia',           'Monitor IA',                 'Responsável técnico das avaliações por IA',  'monitor',        45, 1),
+  ('analista-qualidade',   'Analista de Qualidade',      'Relatórios e análises',                      'viewer',         40, 1),
+  ('operador',             'Operador',                   'Avaliado; assina e contesta feedback',       'operador',       20, 1),
+  ('auditor',              'Auditor',                    'Leitura de trilha de auditoria (compliance)','viewer',         30, 1),
+  ('visualizador',         'Visualizador',               'Somente leitura',                            'viewer',         10, 1);
+
+-- Amarra os usuários do seed aos cargos, pelo papel que já tinham.
+UPDATE users u, cargos c
+   SET u.cargo_id = c.id
+ WHERE c.slug = 'administrador' AND u.role = 'administrador';
+
+UPDATE users u, cargos c
+   SET u.cargo_id = c.id
+ WHERE c.slug = 'supervisor' AND u.role = 'supervisor';
+
+UPDATE users u, cargos c
+   SET u.cargo_id = c.id
+ WHERE c.slug = 'monitor' AND u.role = 'monitor';
+
+UPDATE users u, cargos c
+   SET u.cargo_id = c.id
+ WHERE c.slug = 'operador' AND u.role = 'operador';
+
+-- Todo mundo do seed nasce com a mesma senha; a troca é obrigatória.
+UPDATE users SET trocar_senha = 1;
+
+-- ---------------------------------------------------------------------------
+-- Catálogo de permissões
+--
+-- 68 permissões: os módulos do menu lateral x as ações que cada um oferece.
+--
+-- O print do QualiTalk mostra "71 Permissões no Catálogo". O número aqui é
+-- menor de propósito: as 7 permissões de gestão de personas de IA
+-- (monitor_ia.*) saíram junto com a tela Monitor IA, e no lugar entrou uma só
+-- (monitoria.avaliacao.avaliar_ia) para a avaliação automática, que continua
+-- existindo. O card da tela vai mostrar 68 — é o catálogo real do QualiDDM,
+-- não o do sistema de origem.
+--
+-- [REVISAR] contra a matriz real de acesso antes de ligar a checagem por
+-- permissão nas rotas.
+-- ---------------------------------------------------------------------------
+
+INSERT INTO permissoes (slug, modulo, recurso, acao, nome) VALUES
+  ('dashboard.painel.ver',            'dashboard',     'painel',        'ver',        'Ver dashboard'),
+  ('dashboard.painel.exportar',       'dashboard',     'painel',        'exportar',   'Exportar dashboard'),
+  ('clientes.cliente.listar',         'clientes',      'cliente',       'listar',     'Listar clientes'),
+  ('clientes.cliente.ver',            'clientes',      'cliente',       'ver',        'Ver cliente'),
+  ('clientes.cliente.criar',          'clientes',      'cliente',       'criar',      'Criar cliente'),
+  ('clientes.cliente.editar',         'clientes',      'cliente',       'editar',     'Editar cliente'),
+  ('clientes.cliente.inativar',       'clientes',      'cliente',       'inativar',   'Inativar cliente'),
+  ('clientes.campanha.listar',        'clientes',      'campanha',      'listar',     'Listar campanhas'),
+  ('clientes.campanha.criar',         'clientes',      'campanha',      'criar',      'Criar campanha'),
+  ('clientes.campanha.editar',        'clientes',      'campanha',      'editar',     'Editar campanha'),
+  ('clientes.campanha.inativar',      'clientes',      'campanha',      'inativar',   'Inativar campanha'),
+  ('formularios.formulario.listar',   'formularios',   'formulario',    'listar',     'Listar formulários'),
+  ('formularios.formulario.ver',      'formularios',   'formulario',    'ver',        'Ver formulário'),
+  ('formularios.formulario.criar',    'formularios',   'formulario',    'criar',      'Criar formulário'),
+  ('formularios.formulario.editar',   'formularios',   'formulario',    'editar',     'Editar formulário'),
+  ('formularios.formulario.publicar', 'formularios',   'formulario',    'publicar',   'Publicar formulário'),
+  ('formularios.formulario.versionar','formularios',   'formulario',    'versionar',  'Versionar formulário'),
+  ('formularios.criterio.editar',     'formularios',   'criterio',      'editar',     'Editar critérios'),
+  ('formularios.categoria.gerenciar', 'formularios',   'categoria',     'gerenciar',  'Gerenciar categorias'),
+  ('monitoria.avaliacao.listar',      'monitoria',     'avaliacao',     'listar',     'Listar avaliações'),
+  ('monitoria.avaliacao.ver',         'monitoria',     'avaliacao',     'ver',        'Ver avaliação'),
+  ('monitoria.avaliacao.criar',       'monitoria',     'avaliacao',     'criar',      'Criar avaliação'),
+  ('monitoria.avaliacao.editar',      'monitoria',     'avaliacao',     'editar',     'Editar avaliação'),
+  ('monitoria.avaliacao.excluir',     'monitoria',     'avaliacao',     'excluir',    'Excluir avaliação'),
+  ('monitoria.avaliacao.ver_todas',   'monitoria',     'avaliacao',     'ver_todas',  'Ver avaliações de todos os avaliados'),
+  ('monitoria.avaliacao.ouvir_audio', 'monitoria',     'avaliacao',     'ouvir_audio','Ouvir áudio da avaliação'),
+  ('monitoria.justificativa.registrar','monitoria',    'justificativa', 'registrar',  'Registrar justificativa de ausência'),
+  ('feedback.feedback.listar',        'feedback',      'feedback',      'listar',     'Listar feedbacks'),
+  ('feedback.feedback.ver',           'feedback',      'feedback',      'ver',        'Ver feedback'),
+  ('feedback.feedback.aplicar',       'feedback',      'feedback',      'aplicar',    'Aplicar feedback'),
+  ('feedback.feedback.assinar',       'feedback',      'feedback',      'assinar',    'Assinar feedback'),
+  ('feedback.feedback.justificar',    'feedback',      'feedback',      'justificar', 'Justificar ausência de feedback'),
+  ('feedback.feedback.solicitar_revisao','feedback',   'feedback',      'solicitar_revisao','Solicitar revisão de feedback'),
+  ('feedback.feedback.reabrir',       'feedback',      'feedback',      'reabrir',    'Reabrir feedback'),
+  ('feedback.pesquisa.responder',     'feedback',      'pesquisa',      'responder',  'Responder pesquisa de satisfação'),
+  ('contestacao.contestacao.listar',  'contestacao',   'contestacao',   'listar',     'Listar contestações'),
+  ('contestacao.contestacao.ver',     'contestacao',   'contestacao',   'ver',        'Ver contestação'),
+  ('contestacao.contestacao.abrir',   'contestacao',   'contestacao',   'abrir',      'Abrir contestação'),
+  ('contestacao.contestacao.julgar',  'contestacao',   'contestacao',   'julgar',     'Julgar contestação'),
+  ('contestacao.contestacao.cancelar','contestacao',   'contestacao',   'cancelar',   'Cancelar contestação'),
+  ('contestacao.sla.gerenciar',       'contestacao',   'sla',           'gerenciar',  'Configurar SLA de contestações'),
+  -- A gestão de personas de IA saiu do escopo do projeto; a AVALIAÇÃO por IA
+  -- continua (rotas /api/avaliar e /api/analyze), e é o que esta permissão
+  -- cobre.
+  ('monitoria.avaliacao.avaliar_ia',  'monitoria',     'avaliacao',     'avaliar_ia', 'Disparar avaliação automática por IA'),
+  ('transcricao.gravacao.listar',     'transcricao',   'gravacao',      'listar',     'Listar gravações'),
+  ('transcricao.gravacao.enviar',     'transcricao',   'gravacao',      'enviar',     'Enviar gravação'),
+  ('transcricao.gravacao.excluir',    'transcricao',   'gravacao',      'excluir',    'Excluir gravação'),
+  ('transcricao.transcricao.ver',     'transcricao',   'transcricao',   'ver',        'Ver transcrição'),
+  ('transcricao.transcricao.gerar',   'transcricao',   'transcricao',   'gerar',      'Gerar transcrição'),
+  ('transcricao.transcricao.exportar','transcricao',   'transcricao',   'exportar',   'Exportar transcrição em JSON'),
+  ('relatorio.relatorio.listar',      'relatorio',     'relatorio',     'listar',     'Listar relatórios'),
+  ('relatorio.relatorio.executar',    'relatorio',     'relatorio',     'executar',   'Executar relatório'),
+  ('relatorio.relatorio.exportar',    'relatorio',     'relatorio',     'exportar',   'Exportar relatório'),
+  ('relatorio.relatorio.carregar_tudo','relatorio',    'relatorio',     'carregar_tudo','Carregar base inteira sem filtro'),
+  ('relatorio.relatorio.ia',          'relatorio',     'relatorio',     'ia',         'Executar análise com IA'),
+  ('admin.usuario.listar',            'admin',         'usuario',       'listar',     'Listar usuários'),
+  ('admin.usuario.convidar',          'admin',         'usuario',       'convidar',   'Convidar usuário'),
+  ('admin.usuario.editar',            'admin',         'usuario',       'editar',     'Editar usuário'),
+  ('admin.usuario.inativar',          'admin',         'usuario',       'inativar',   'Inativar usuário'),
+  ('admin.usuario.redefinir_senha',   'admin',         'usuario',       'redefinir_senha','Redefinir senha de usuário'),
+  ('admin.cargo.gerenciar',           'admin',         'cargo',         'gerenciar',  'Gerenciar cargos e permissões'),
+  ('admin.sessao.listar',             'admin',         'sessao',        'listar',     'Ver sessões e presença'),
+  ('admin.sessao.revogar',            'admin',         'sessao',        'revogar',    'Revogar sessão'),
+  ('admin.auditoria.ver',             'admin',         'auditoria',     'ver',        'Ver trilha de auditoria'),
+  ('admin.automacao.gerenciar',       'admin',         'automacao',     'gerenciar',  'Gerenciar automações'),
+  ('admin.faixa.gerenciar',           'admin',         'faixa',         'gerenciar',  'Gerenciar faixas de performance'),
+  ('admin.meta.gerenciar',            'admin',         'meta',          'gerenciar',  'Gerenciar metas mensais'),
+  ('admin.turno.gerenciar',           'admin',         'turno',         'gerenciar',  'Gerenciar turnos'),
+  ('admin.workflow.ver',              'admin',         'workflow',      'ver',        'Ver workflow ativo'),
+  ('admin.bug_report.ver',            'admin',         'bug_report',    'ver',        'Ver bug reports');
+
+-- Administrador e Gestor de Qualidade recebem o catálogo inteiro.
+INSERT INTO cargo_permissoes (cargo_id, permissao_id)
+SELECT c.id, p.id
+  FROM cargos c, permissoes p
+ WHERE c.slug IN ('administrador', 'gestor-qualidade');
+
+-- Visualizador e Auditor: só leitura.
+INSERT INTO cargo_permissoes (cargo_id, permissao_id)
+SELECT c.id, p.id
+  FROM cargos c, permissoes p
+ WHERE c.slug = 'visualizador'
+   AND p.acao IN ('listar', 'ver');
+
+INSERT INTO cargo_permissoes (cargo_id, permissao_id)
+SELECT c.id, p.id
+  FROM cargos c, permissoes p
+ WHERE c.slug = 'auditor'
+   AND (p.acao IN ('listar', 'ver') OR p.slug = 'admin.auditoria.ver');
+
+-- Operador: vê a própria ficha, assina o feedback e contesta.
+INSERT INTO cargo_permissoes (cargo_id, permissao_id)
+SELECT c.id, p.id
+  FROM cargos c, permissoes p
+ WHERE c.slug = 'operador'
+   AND p.slug IN (
+     'monitoria.avaliacao.ver',
+     'feedback.feedback.ver',
+     'feedback.feedback.assinar',
+     'feedback.feedback.solicitar_revisao',
+     'feedback.pesquisa.responder',
+     'contestacao.contestacao.abrir',
+     'contestacao.contestacao.ver'
+   );
+
+-- [REVISAR] as demais amarrações cargo x permissão com a operação. Monitor,
+-- Supervisor e Coordenador ficaram sem linha aqui de propósito: definir isso
+-- por chute travaria gente em produção.
+
+-- ---------------------------------------------------------------------------
+-- Turnos — [REVISAR] com a escala real da operação.
+-- ---------------------------------------------------------------------------
+
+INSERT INTO turnos (nome, hora_inicio, hora_fim, dias_semana) VALUES
+  ('Manhã',       '08:00:00', '14:00:00', 'seg,ter,qua,qui,sex'),
+  ('Tarde',       '14:00:00', '20:00:00', 'seg,ter,qua,qui,sex'),
+  ('Integral',    '09:00:00', '18:00:00', 'seg,ter,qua,qui,sex'),
+  ('Sábado',      '08:00:00', '14:00:00', 'sab');
+
+-- ---------------------------------------------------------------------------
+-- Tipos de relatório
+--
+-- Os 14 "Sistema" e as 4 análises com IA, na ordem e com a descrição do print
+-- de Relatórios. `permissao_slug` liga o relatório à permissão que ele exige.
+-- ---------------------------------------------------------------------------
+
+INSERT INTO relatorio_tipos (slug, nome, descricao, grupo, permissao_slug, posicao) VALUES
+  ('base-monitoria',       'Base de Monitoria',          'Relatório completo de avaliações com todos os campos',                            'sistema', 'monitoria.avaliacao.listar',  1),
+  ('base-monitoria-ia',    'Base de Monitoria IA',       'Monitorias realizadas pelo Monitor IA (avaliações automáticas via IA)',           'sistema', 'monitoria.avaliacao.listar',  2),
+  ('usuarios',             'Usuários',                   'Listagem completa de usuários',                                                   'sistema', 'admin.usuario.listar',       3),
+  ('fichas-avaliacao',     'Fichas de Avaliação',        'Detalhamento de avaliações por critério',                                         'sistema', 'monitoria.avaliacao.listar',  4),
+  ('contestacoes',         'Contestações',               'Relatório de contestações abertas e resolvidas',                                  'sistema', 'contestacao.contestacao.listar', 5),
+  ('monitoria-analitico',  'Monitoria Analítico',        'Consolidado de monitorias por período',                                           'sistema', 'monitoria.avaliacao.listar',  6),
+  ('analitico-calibracao', 'Analítico de Calibração',    'Dados de sessões de calibração',                                                  'sistema', NULL,                         7),
+  ('pesquisa-satisfacao',  'Pesquisa de Satisfação',     'Respostas dos operadores sobre feedbacks',                                        'sistema', 'feedback.feedback.listar',    8),
+  ('justificativas',       'Justificativas de Avaliação','Critérios com justificativas do monitor',                                         'sistema', 'monitoria.avaliacao.listar',  9),
+  ('fichas-excluidas',     'Fichas Excluídas/Avulsas',   'Auditoria de exclusões com autor, data, motivo e dados da avaliação',             'sistema', 'admin.auditoria.ver',        10),
+  ('ausencia-monitoria',   'Ausência de Monitoria',      'Justificativas de por que operadores não foram avaliados no período',             'sistema', 'monitoria.justificativa.registrar', 11),
+  ('monitoria-editada',    'Monitoria Editada',          'Trilha de auditoria de edições realizadas em avaliações',                         'sistema', 'admin.auditoria.ver',        12),
+  ('extracao-campanhas',   'Extração de Campanhas',      'Listagem de todos os clientes e campanhas (ativos e inativos)',                   'sistema', 'clientes.campanha.listar',   13),
+  ('monitoria-detalhada',  'Monitoria Detalhada',        'Consolidado detalhado por avaliação e critério',                                  'sistema', 'monitoria.avaliacao.listar', 14),
+  ('ia-resumo-executivo',  'Resumo Executivo',           'Síntese do período em linguagem natural, com o que mudou e por quê',              'ia',      'relatorio.relatorio.ia',     15),
+  ('ia-analise-ofensores', 'Análise de Ofensores',       'Critérios que mais reprovam, agrupados por causa provável',                       'ia',      'relatorio.relatorio.ia',     16),
+  ('ia-plano-coaching',    'Plano de Coaching',          'Ações recomendadas por operador, priorizadas por impacto',                        'ia',      'relatorio.relatorio.ia',     17),
+  ('ia-risco-ncg',         'Risco de NCG',               'Operadores e campanhas com maior chance de falha eliminatória',                   'ia',      'relatorio.relatorio.ia',     18);
+
+-- As 4 estrelas marcadas no print, na conta da administradora. Favorito é por
+-- usuário: quem logar depois começa sem estrela nenhuma.
+INSERT INTO relatorio_favoritos (user_id, relatorio_tipo_id)
+SELECT u.id, t.id
+  FROM users u, relatorio_tipos t
+ WHERE u.email = 'gisele.oliveira@grupoddm.com.br'
+   AND t.slug IN ('base-monitoria', 'usuarios', 'monitoria-analitico', 'ausencia-monitoria', 'monitoria-detalhada');
+
+-- ---------------------------------------------------------------------------
+-- Workflow ativo
+--
+-- É o que a tela "Ver meu Workflow" exibe. [REVISAR] os prazos de cada etapa.
+-- ---------------------------------------------------------------------------
+
+INSERT INTO workflows (slug, nome, descricao, versao, ativo) VALUES
+  ('monitoria-padrao', 'Monitoria padrão', 'Da gravação ao encerramento da contestação', 1, 1);
+
+-- `cargo_id` fica NULL de propósito: qual cargo responde por cada etapa é
+-- [REVISAR] com a operação, e chutar isso trava gente em produção.
+INSERT INTO workflow_etapas (workflow_id, chave, nome, descricao, ordem, prazo_dias, obrigatoria)
+SELECT w.id, e.chave, e.nome, e.descricao, e.ordem, e.prazo, e.obrigatoria
+  FROM workflows w,
+       (
+         SELECT 'gravacao'  AS chave, 'Gravação recebida' AS nome, 'Áudio disponível para monitoria' AS descricao, 1 AS ordem, NULL AS prazo, 1 AS obrigatoria
+         UNION ALL SELECT 'monitoria',  'Monitoria realizada',   'Monitor aplica a ficha e fecha a nota',      2, 3,    1
+         UNION ALL SELECT 'feedback',   'Feedback aplicado',     'Superior aplica o feedback ao operado',      3, 5,    1
+         UNION ALL SELECT 'assinatura', 'Assinatura do operado', 'Operado dá ciência do feedback',             4, 3,    1
+         UNION ALL SELECT 'contestacao','Prazo de contestação',  'Janela em que o operado pode contestar',     5, 5,    0
+         UNION ALL SELECT 'julgamento', 'Julgamento',            'ADM julga item por item e recalcula a nota', 6, 5,    0
+         UNION ALL SELECT 'encerrada',  'Encerrada',             'Ciclo concluído',                           7, NULL, 1
+       ) e
+ WHERE w.slug = 'monitoria-padrao';
+
+-- ---------------------------------------------------------------------------
+-- Templates de automação — [REVISAR] os textos com quem escreve a comunicação
+-- oficial. Estes são só o esqueleto para a tela não abrir vazia.
+-- ---------------------------------------------------------------------------
+
+INSERT INTO automacao_templates (slug, nome, canal, assunto, corpo, variaveis_json) VALUES
+  ('feedback-pendente', 'Aviso de feedback pendente', 'email',
+   'Você tem feedback pendente ({{codigo}})',
+   'Olá, {{avaliado}}.\n\nA monitoria {{codigo}} da campanha {{campanha}} está aguardando feedback. O prazo é {{prazo}}.\n\nQualiDDM',
+   '["avaliado","codigo","campanha","prazo"]'),
+  ('feedback-assinatura', 'Feedback aguardando assinatura', 'email',
+   'Assine o feedback da monitoria {{codigo}}',
+   'Olá, {{avaliado}}.\n\nO feedback da monitoria {{codigo}} foi aplicado por {{superior}} e aguarda sua ciência até {{prazo}}.\n\nQualiDDM',
+   '["avaliado","codigo","superior","prazo"]'),
+  ('contestacao-aberta', 'Contestação aberta', 'email',
+   'Nova contestação na monitoria {{codigo}}',
+   'A monitoria {{codigo}} recebeu contestação de {{avaliado}} em {{itens}} item(ns). Prazo para julgar: {{prazo}}.\n\nQualiDDM',
+   '["codigo","avaliado","itens","prazo"]'),
+  ('transcricao-erro', 'Falha na transcrição', 'interno',
+   'Falha ao transcrever gravação',
+   'A gravação {{arquivo}} falhou na transcrição depois de {{tentativas}} tentativa(s). Erro: {{erro}}',
+   '["arquivo","tentativas","erro"]');
 
 -- ---------------------------------------------------------------------------
 -- Conferência — o resultado esperado está no comentário de cada linha
 -- ---------------------------------------------------------------------------
 
-SELECT 'usuarios'   AS tabela, COUNT(*) AS total FROM users               -- 26
+SELECT 'usuarios'   AS tabela, COUNT(*) AS total FROM users               -- 24
 UNION ALL SELECT 'clientes',   COUNT(*) FROM clientes                     -- 12
 UNION ALL SELECT 'campanhas',  COUNT(*) FROM campanhas                    -- 26
 UNION ALL SELECT 'formularios', COUNT(*) FROM formularios                 --  1
@@ -240,7 +632,24 @@ UNION ALL SELECT 'secoes',     COUNT(*) FROM formulario_secoes            --  4
 UNION ALL SELECT 'criterios',  COUNT(*) FROM formulario_criterios         -- 25
 UNION ALL SELECT 'avaliacoes', COUNT(*) FROM avaliacoes                   --  1
 UNION ALL SELECT 'respostas',  COUNT(*) FROM avaliacao_respostas          -- 25
-UNION ALL SELECT 'feedbacks',  COUNT(*) FROM feedbacks;                   --  1
+UNION ALL SELECT 'feedbacks',  COUNT(*) FROM feedbacks                    --  1
+-- Catálogos da migration 003
+UNION ALL SELECT 'cargos',            COUNT(*) FROM cargos                -- 11
+UNION ALL SELECT 'permissoes',        COUNT(*) FROM permissoes            -- 68
+UNION ALL SELECT 'cargo_permissoes',  COUNT(*) FROM cargo_permissoes      -- ~190
+UNION ALL SELECT 'turnos',            COUNT(*) FROM turnos                --  4
+UNION ALL SELECT 'categorias_form',   COUNT(*) FROM formulario_categorias --  2
+UNION ALL SELECT 'faixas',            COUNT(*) FROM faixas_performance    --  5
+UNION ALL SELECT 'motivos_justif',    COUNT(*) FROM justificativa_motivos -- 19
+UNION ALL SELECT 'status_feedback',   COUNT(*) FROM feedback_status_configuracoes -- 6
+UNION ALL SELECT 'relatorio_tipos',   COUNT(*) FROM relatorio_tipos       -- 18
+UNION ALL SELECT 'workflow_etapas',   COUNT(*) FROM workflow_etapas       --  7
+UNION ALL SELECT 'templates_autom',   COUNT(*) FROM automacao_templates;  --  4
+
+-- `cargo_permissoes` = 68 x 2 (administrador + gestor) + leitura do
+-- visualizador + leitura/auditoria do auditor + 7 do operador. O número exato
+-- depende de quantas permissões têm ação 'listar'/'ver'; não precisa fechar
+-- na régua, só não pode ser zero.
 
 -- ===========================================================================
 -- ACESSO INICIAL

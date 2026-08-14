@@ -9,15 +9,32 @@
   width: min(320px, 46vw);
 }
 
+.buscaLonga {
+  width: min(100%, 720px);
+}
+
+.tituloComIcone {
+  display: flex;
+  align-items: center;
+  gap: var(--sp-3);
+}
+
 /* --- KPIs ---------------------------------------------------------------- */
 
 /* O valor vem primeiro no DOM e é o elemento mais pesado do card; o título
    explica o número e o detalhe qualifica. Três pesos, uma leitura só. */
+.kpiGrid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: var(--sp-5);
+}
+
 .kpi {
   display: grid;
   align-content: start;
-  gap: var(--sp-1);
-  padding: var(--sp-5);
+  gap: var(--sp-4);
+  padding: var(--sp-6);
+  min-height: 188px;
 }
 
 .kpiTopo {
@@ -31,6 +48,53 @@
   color: var(--text);
   font-size: var(--fs-300);
   font-weight: var(--fw-semibold);
+}
+
+.kpiIcone,
+.acaoIcone,
+.formIcone {
+  display: inline-grid;
+  place-items: center;
+  border-radius: var(--r-md);
+  color: var(--text);
+}
+
+.kpiIcone,
+.acaoIcone {
+  width: 44px;
+  height: 44px;
+}
+
+/* Os pares fundo/traço são os tokens --tom-* de globals.css — a mesma paleta
+   usada por .icon-tile no Monitor IA e na Administração. Antes os hexes viviam
+   aqui em cópia, e cada tela repetia um tom levemente diferente do mesmo azul. */
+.kpiIcone[data-tom="blue"],
+.acaoIcone[data-tom="blue"],
+.formIcone {
+  background: var(--tom-blue-bg);
+  color: var(--tom-blue-fg);
+}
+
+.kpiIcone[data-tom="green"],
+.acaoIcone[data-tom="green"] {
+  background: var(--tom-green-bg);
+  color: var(--tom-green-fg);
+}
+
+.kpiIcone[data-tom="yellow"] {
+  background: var(--tom-yellow-bg);
+  color: var(--tom-yellow-fg);
+}
+
+.kpiIcone[data-tom="purple"],
+.acaoIcone[data-tom="purple"] {
+  background: var(--tom-purple-bg);
+  color: var(--tom-purple-fg);
+}
+
+.acaoIcone[data-tom="orange"] {
+  background: var(--tom-orange-bg);
+  color: var(--tom-orange-fg);
 }
 
 /* --- Ações Rápidas ------------------------------------------------------- */
@@ -49,13 +113,16 @@
 
 .acao {
   display: grid;
-  align-content: start;
-  gap: var(--sp-2);
+  place-items: center;
+  align-content: center;
+  gap: var(--sp-4);
+  min-height: 194px;
   height: 100%;
-  padding: var(--sp-4);
+  padding: var(--sp-5);
   border: 1px solid var(--line);
   border-radius: var(--r-md);
   background: var(--surface-2);
+  text-align: center;
   transition: background var(--dur) var(--ease), border-color var(--dur) var(--ease);
 }
 
@@ -70,9 +137,8 @@
 }
 
 .acaoTopo {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
+  display: grid;
+  place-items: center;
 }
 
 .acaoDetalhe {
@@ -105,4 +171,131 @@
   align-items: center;
   gap: var(--sp-3);
   color: var(--text-muted);
+}
+
+.formList {
+  display: grid;
+  gap: var(--sp-3);
+}
+
+.formRow {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  align-items: center;
+  gap: var(--sp-3);
+  padding: var(--sp-3);
+  border: 1px solid var(--line);
+  border-radius: var(--r-md);
+  background: var(--surface-2);
+}
+
+.formRow:hover {
+  border-color: var(--accent-soft-strong);
+  background: var(--accent-soft);
+}
+
+.formIcone {
+  width: 44px;
+  height: 44px;
+}
+
+.formMain {
+  display: grid;
+  gap: var(--sp-2);
+  min-width: 0;
+}
+
+.formMain strong {
+  overflow: hidden;
+  color: var(--text);
+  font-size: var(--fs-200);
+  font-weight: var(--fw-semibold);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.formMain > span {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--sp-3);
+  color: var(--text-soft);
+  font-size: var(--fs-100);
+}
+
+.formPanel {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: var(--sp-4);
+  max-width: 820px;
+}
+
+.formPanel :global(.btn-row),
+.formPanel :global(.alert) {
+  grid-column: 1 / -1;
+}
+
+.justificativaItem {
+  display: grid;
+  gap: var(--sp-2);
+  padding: var(--sp-4);
+  border: 1px solid var(--line);
+  border-radius: var(--r-md);
+  background: var(--surface-2);
+}
+
+.justificativaItem strong {
+  font-weight: var(--fw-semibold);
+}
+
+.justificativaItem span {
+  color: var(--text-soft);
+  font-size: var(--fs-100);
+}
+
+.justificativaItem p {
+  color: var(--text);
+  line-height: var(--lh-normal);
+}
+
+.tabelaWrap {
+  overflow-x: auto;
+}
+
+.tabela {
+  width: 100%;
+  min-width: 860px;
+  border-collapse: collapse;
+  font-size: var(--fs-200);
+}
+
+.tabela th,
+.tabela td {
+  padding: var(--sp-3);
+  border-bottom: 1px solid var(--line);
+  text-align: left;
+  vertical-align: top;
+}
+
+.tabela th {
+  color: var(--text);
+  font-weight: var(--fw-semibold);
+}
+
+@media (max-width: 1100px) {
+  .kpiGrid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 720px) {
+  .kpiGrid,
+  .formRow,
+  .formPanel {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .linhaFim {
+    justify-content: space-between;
+  }
 }

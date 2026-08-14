@@ -19,6 +19,65 @@
   width: min(260px, 38vw);
 }
 
+.tema {
+  position: relative;
+}
+
+.menuTema {
+  position: absolute;
+  z-index: 20;
+  top: calc(100% + var(--sp-2));
+  right: 0;
+  display: grid;
+  width: 260px;
+  padding: var(--sp-1);
+  border: 1px solid var(--line-strong);
+  border-radius: var(--r-sm);
+  background: var(--surface);
+  box-shadow: var(--shadow-lg);
+}
+
+.temaItem {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  align-items: center;
+  gap: var(--sp-3);
+  padding: var(--sp-3);
+  border: 0;
+  border-radius: var(--r-xs);
+  background: transparent;
+  color: var(--text);
+  text-align: left;
+  cursor: pointer;
+}
+
+.temaItem:hover,
+.temaItem:focus-visible {
+  background: var(--surface-3);
+}
+
+.temaItem strong,
+.temaItem small {
+  display: block;
+}
+
+.temaItem strong {
+  font-size: var(--fs-200);
+  font-weight: var(--fw-semibold);
+}
+
+.temaItem small {
+  color: var(--text-muted);
+  font-size: var(--fs-100);
+}
+
+.ponto {
+  width: 8px;
+  height: 8px;
+  border-radius: var(--r-pill);
+  background: var(--accent-strong);
+}
+
 .tituloSecao {
   margin-bottom: var(--sp-2);
   font-size: var(--fs-500);
@@ -145,6 +204,50 @@
   padding-inline: 0;
 }
 
+.modalFundo {
+  position: fixed;
+  z-index: 60;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  padding: var(--sp-5);
+  background: rgb(0 0 0 / 42%);
+}
+
+.modal {
+  display: grid;
+  gap: var(--sp-5);
+  width: min(420px, 100%);
+  padding: var(--sp-6);
+  border: 1px solid var(--line);
+  border-radius: var(--r-md);
+  background: var(--surface);
+  box-shadow: var(--shadow-lg);
+}
+
+.modalTopo {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--sp-3);
+}
+
+.modalTopo h2 {
+  font-size: var(--fs-600);
+  font-weight: var(--fw-semibold);
+}
+
+.statusSelect {
+  width: max-content;
+  min-width: 96px;
+}
+
+.modalAcoes {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  gap: var(--sp-3);
+}
+
 @media (max-width: 700px) {
   .acoes .btn.icon-only {
     width: var(--tap-min);
@@ -175,5 +278,15 @@
 @media (max-width: 640px) {
   .busca {
     width: 100%;
+  }
+
+  .menuTema {
+    right: auto;
+    left: 0;
+    width: min(260px, 90vw);
+  }
+
+  .modalAcoes {
+    grid-template-columns: minmax(0, 1fr);
   }
 }

@@ -1,0 +1,191 @@
+/* ==========================================================================
+   Tela Transcrições — só o que é específico desta página.
+   Tokens e primitivas (.card, .btn, .chip, .data-table, .field, .empty-state)
+   vêm de globals.css.
+   ========================================================================== */
+
+/* --- envio ---------------------------------------------------------------- */
+
+/* Uma linha: arquivos, opção e ação. `align-items: end` alinha o botão pela base
+   dos campos, que carregam rótulo em cima. */
+.formEnvio {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto auto;
+  align-items: end;
+  gap: var(--sp-4);
+}
+
+/* O input de arquivo nativo não aceita estilização do botão interno em todos os
+   navegadores. Em vez de escondê-lo atrás de um label falso, mantemos o controle
+   real e só emolduramos a caixa: o teclado e o leitor de tela ganham o
+   comportamento nativo de graça. */
+.inputArquivo {
+  width: 100%;
+  min-height: var(--tap-min);
+  padding: var(--sp-2) var(--sp-3);
+  border: 1px solid var(--border-control);
+  border-radius: var(--r-md);
+  background: var(--surface);
+  color: var(--text);
+  font-size: var(--fs-200);
+}
+
+.inputArquivo::file-selector-button {
+  min-height: 32px;
+  margin-right: var(--sp-3);
+  padding: 0 var(--sp-4);
+  border: 1px solid var(--line-strong);
+  border-radius: var(--r-sm);
+  background: var(--surface-2);
+  color: var(--text);
+  font: inherit;
+  font-weight: var(--fw-semibold);
+  cursor: pointer;
+}
+
+.inputArquivo::file-selector-button:hover {
+  border-color: var(--border-control);
+  background: var(--surface-3);
+}
+
+/* Caixa de seleção com rótulo em duas linhas: a marca fica alinhada com a
+   primeira linha do texto, não com o centro do bloco. */
+.checkboxCampo {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  align-items: start;
+  gap: var(--sp-3);
+  min-height: var(--tap-min);
+  padding-top: var(--sp-2);
+}
+
+.checkboxCampo input {
+  width: 20px;
+  height: 20px;
+  margin: 0;
+  accent-color: var(--accent-strong);
+}
+
+.checkboxCampo label {
+  display: grid;
+  gap: 2px;
+  color: var(--text);
+  font-size: var(--fs-200);
+  font-weight: var(--fw-semibold);
+  cursor: pointer;
+}
+
+/* Reserva a linha do aviso desde o início para o card não crescer de repente
+   quando o resultado do envio chegar. */
+.avisoArea {
+  display: grid;
+  gap: var(--sp-3);
+  margin-top: var(--sp-4);
+  min-height: var(--sp-2);
+}
+
+.avisoArea:empty {
+  min-height: 0;
+  margin-top: 0;
+}
+
+/* --- listagem ------------------------------------------------------------- */
+
+.listaHead {
+  align-items: center;
+  margin-bottom: var(--sp-4);
+}
+
+.listaHead h2 {
+  display: flex;
+  align-items: center;
+  gap: var(--sp-2);
+}
+
+.barraFiltros {
+  display: grid;
+  grid-template-columns: minmax(0, 2fr) minmax(0, 1fr) auto;
+  align-items: end;
+  gap: var(--sp-4);
+  margin-bottom: var(--sp-5);
+}
+
+.botaoAtualizar {
+  min-width: 148px;
+}
+
+.tabela {
+  min-width: 900px;
+}
+
+.tabela td,
+.tabela th[scope="row"] {
+  vertical-align: middle;
+}
+
+/* Nome de arquivo é o campo longo desta tabela e o único que pode truncar: os
+   outros cinco são curtos e nunca disputam espaço. */
+.celulaArquivo {
+  max-width: 34ch;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.acoes {
+  display: flex;
+  align-items: center;
+  gap: var(--sp-2);
+}
+
+/* Ações dentro da célula não devem inflar a linha para 44px + padding. */
+.acoes :global(.btn) {
+  min-height: 34px;
+  padding-inline: var(--sp-3);
+  font-size: var(--fs-100);
+}
+
+/* --- texto expandido ------------------------------------------------------ */
+
+.transcricao {
+  display: grid;
+  gap: var(--sp-2);
+  padding: var(--sp-4);
+  border-left: 3px solid var(--accent);
+  border-radius: var(--r-sm);
+  background: var(--surface-2);
+}
+
+/* Medida de leitura: linha muito longa faz o olho perder a volta. */
+.transcricaoTexto {
+  max-width: 88ch;
+  color: var(--text);
+  font-size: var(--fs-200);
+  line-height: var(--lh-normal);
+  white-space: pre-wrap;
+}
+
+.transcricaoAviso {
+  display: flex;
+  align-items: center;
+  gap: var(--sp-2);
+  color: var(--text-soft);
+  font-size: var(--fs-200);
+}
+
+@media (max-width: 1000px) {
+  .formEnvio,
+  .barraFiltros {
+    grid-template-columns: minmax(0, 1fr);
+    align-items: stretch;
+  }
+
+  .listaHead {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .botaoAtualizar {
+    min-width: 0;
+  }
+}

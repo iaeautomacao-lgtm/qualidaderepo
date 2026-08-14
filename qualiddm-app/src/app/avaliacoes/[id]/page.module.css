@@ -547,6 +547,99 @@
   gap: var(--sp-3);
 }
 
+.fallback {
+  color: var(--warning-text);
+  font-size: var(--fs-100);
+}
+
+.modalBackdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 80;
+  display: grid;
+  place-items: center;
+  padding: var(--sp-5);
+  background: rgba(20, 20, 20, 0.35);
+}
+
+.modal {
+  display: grid;
+  gap: var(--sp-4);
+  width: min(100%, 640px);
+  max-height: min(720px, calc(100dvh - 48px));
+  padding: var(--sp-5);
+  overflow: hidden;
+}
+
+.modalHead {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--sp-3);
+}
+
+.modalHead h2 {
+  font-size: var(--fs-500);
+  font-weight: var(--fw-semibold);
+}
+
+.modalLista {
+  display: grid;
+  gap: var(--sp-3);
+  min-height: 0;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+}
+
+.modalItem {
+  display: grid;
+  gap: var(--sp-1);
+  padding: var(--sp-3);
+  border: 1px solid var(--line);
+  border-radius: var(--r-md);
+  background: var(--surface-2);
+}
+
+.modalItem strong {
+  font-size: var(--fs-200);
+  font-weight: var(--fw-semibold);
+}
+
+.modalItem p {
+  color: var(--text);
+  font-size: var(--fs-200);
+  line-height: var(--lh-normal);
+}
+
+.modalItem span,
+.modalVazio {
+  color: var(--text-soft);
+  font-size: var(--fs-100);
+  line-height: var(--lh-normal);
+}
+
+@media print {
+  .heroAcoes,
+  .rodape,
+  .modalBackdrop {
+    display: none !important;
+  }
+
+  .ficha {
+    height: auto;
+    min-height: 0;
+  }
+
+  .banda {
+    grid-template-columns: 1fr;
+  }
+
+  .coluna,
+  .painel {
+    overflow: visible;
+  }
+}
+
 /* ==========================================================================
    Responsivo — abaixo do desktop a altura travada perde o sentido e a página
    volta a rolar normalmente.

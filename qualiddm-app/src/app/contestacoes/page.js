@@ -1,21 +1,16 @@
-import ModuloEmConstrucao from "@/components/ModuloEmConstrucao";
+import { redirect } from "next/navigation";
 
+/**
+ * `/contestacoes` não tem tela própria: é o pai do submenu.
+ *
+ * Antes esta rota era um aviso de "módulo em construção", o que passou a mentir
+ * quando a Gestão ADM ficou pronta. Encaminhar para a tela que existe evita o
+ * beco sem saída e faz o clique no item pai do menu abrir o painel de trabalho
+ * — mesmo comportamento do item Formulários, cujo pai abre o Painel.
+ *
+ * Se um dia houver um painel consolidado de Contestações, ele substitui este
+ * redirecionamento sem mudar nada no menu.
+ */
 export default function ContestacoesPage() {
-  return (
-    <ModuloEmConstrucao
-      active="Contestações"
-      breadcrumb="Qualidade > Contestações"
-      titulo="Contestações"
-      proposito="Pedidos de revisão abertos pelos operadores sobre critérios avaliados."
-      icone="alert"
-      disponivel="será aqui que você recebe a contestação, analisa o critério questionado e responde mantendo ou ajustando a nota."
-      atalho={{
-        href: "/relatorios",
-        rotulo: "Ver relatórios",
-        icone: "metrics",
-        motivo:
-          "O relatório “Contestações” lista as contestações abertas e resolvidas por período.",
-      }}
-    />
-  );
+  redirect("/contestacoes/gestao-adm");
 }

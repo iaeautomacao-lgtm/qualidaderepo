@@ -1,0 +1,165 @@
+/* ==========================================================================
+   Tela Administração L1 — só o que é específico desta página.
+   Tokens e primitivas (.card, .btn, .chip, .tabs, .tab, .tile-grid, .tile,
+   .icon-tile, .list) vêm de globals.css.
+   ========================================================================== */
+
+.tituloComIcone {
+  display: flex;
+  align-items: center;
+  gap: var(--sp-3);
+}
+
+/* --- barra de abas -------------------------------------------------------- */
+
+.abasHead {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--sp-4);
+  margin-bottom: var(--sp-5);
+  padding-bottom: var(--sp-4);
+  border-bottom: 1px solid var(--line);
+}
+
+/* Rótulo do bloco, não título da página: fica um degrau abaixo do h1 e não
+   compete com ele. */
+.abasTitulo {
+  font-size: var(--fs-400);
+  font-weight: var(--fw-semibold);
+}
+
+.painel {
+  display: grid;
+  gap: var(--sp-6);
+}
+
+/* `hidden` sozinho perde a briga com `display: grid`. */
+.painel[hidden] {
+  display: none;
+}
+
+/* O painel é focável (tabIndex 0) para o teclado sair do tablist direto no
+   conteúdo. O anel de foco global de :focus-visible fica — só ganha recuo para
+   não colar na borda do card. Suprimir o anel aqui deixaria quem navega por
+   teclado sem saber onde está (WCAG 2.4.7); o de antes era exatamente isso. */
+.painel:focus-visible {
+  outline-offset: calc(var(--sp-1) * -1);
+  border-radius: var(--r-sm);
+}
+
+.painel h3 {
+  display: flex;
+  align-items: center;
+  gap: var(--sp-2);
+  font-size: var(--fs-400);
+}
+
+/* Contagem real do cadastro, abaixo da descrição do cartão. Fica em laranja e
+   em versalete para se distinguir da descrição sem virar um terceiro título. */
+.tileContagem {
+  margin-top: var(--sp-1);
+  color: var(--accent-strong);
+  font-size: var(--fs-100);
+  font-weight: var(--fw-semibold);
+  font-variant-numeric: tabular-nums;
+}
+
+/* --- Status do RBAC ------------------------------------------------------- */
+
+.rbac,
+.atividade {
+  padding: var(--sp-5);
+  background: var(--surface-2);
+}
+
+.metricas {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 180px), 1fr));
+  gap: var(--sp-4);
+}
+
+.metrica {
+  display: grid;
+  justify-items: center;
+  gap: var(--sp-2);
+  padding: var(--sp-4) var(--sp-2);
+  text-align: center;
+}
+
+.metricaValor {
+  font-size: var(--fs-700);
+  font-weight: var(--fw-bold);
+  line-height: var(--lh-tight);
+  letter-spacing: -0.02em;
+  font-variant-numeric: tabular-nums;
+}
+
+.metricaRotulo {
+  color: var(--text-soft);
+  font-size: var(--fs-200);
+}
+
+/* Reserva a altura exata do número para o bloco não pular ao carregar. */
+.metricaEsqueleto {
+  width: 3ch;
+  height: var(--fs-700);
+}
+
+/* --- Atividade Recente --------------------------------------------------- */
+
+.atividadeItem {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  align-items: center;
+  gap: var(--sp-3);
+  padding: var(--sp-3) 0;
+}
+
+.atividadeCorpo {
+  display: grid;
+  gap: 2px;
+  min-width: 0;
+}
+
+/* Autor e ação na mesma linha, quebrando junto quando não couberem: o e-mail é
+   longo e a ação é curta, e separá-los em duas linhas dobraria a altura da lista. */
+.atividadeLinha {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: var(--sp-2);
+  min-width: 0;
+  font-size: var(--fs-200);
+}
+
+.atividadeLinha strong {
+  color: var(--text);
+  font-weight: var(--fw-semibold);
+}
+
+.atividadeLinha > span {
+  color: var(--text-soft);
+}
+
+.esqueletoAvatar {
+  width: 36px;
+  height: 36px;
+  border-radius: var(--r-sm);
+}
+
+.esqueletoTexto {
+  width: min(100%, 420px);
+  height: 16px;
+}
+
+@media (max-width: 640px) {
+  .abasHead {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .tituloComIcone {
+    flex-wrap: wrap;
+  }
+}

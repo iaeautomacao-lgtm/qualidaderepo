@@ -482,6 +482,37 @@
   gap: var(--sp-2);
 }
 
+/* Placeholder de um item da lista de tipos, na primeira carga do catálogo.
+   Mesma altura do botão real, para a coluna não encolher e crescer de novo. */
+.esqueletoTipo {
+  display: block;
+  height: 62px;
+  border-radius: var(--r-md);
+}
+
+/* --- tabela de resultados ------------------------------------------------- */
+
+/* A tabela é a única parte da tela que pode ficar maior que a viewport, então o
+   bloco tem altura máxima e rolagem própria. Sem isso a paginação e o rodapé do
+   card sairiam da tela em consultas grandes. */
+.tabelaBloco {
+  display: grid;
+  gap: var(--sp-3);
+  min-height: 0;
+}
+
+.tabelaBloco :global(.table-scroll) {
+  max-height: 52vh;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+}
+
+.resultadoMeta {
+  color: var(--text-soft);
+  font-size: var(--fs-100);
+  font-variant-numeric: tabular-nums;
+}
+
 /* Sem caixa tracejada em volta: o card já é o contêiner. Caixa dentro de caixa
    só rouba altura numa tela que não tem altura sobrando. */
 .vazio {

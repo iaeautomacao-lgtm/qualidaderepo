@@ -1,6 +1,6 @@
 "use client";
 
-import { useId, useRef, useState } from "react";
+import { useEffect, useId, useRef, useState } from "react";
 import Link from "next/link";
 import AppShell from "@/components/AppShell";
 import { Icon } from "@/components/icons";
@@ -28,8 +28,23 @@ export default function UploadPage() {
   const [dragging, setDragging] = useState(false);
   // idle | sending | done | error
   const [status, setStatus] = useState("idle");
+  const [progress, setProgress] = useState(0);
   const [result, setResult] = useState(null);
   const [error, setError] = useState("");
+
+  useEffect(() => {
+    if (status !== "sending") return undefined;
+
+    const timer = setInterval(() => {
+      setProgress((current) => {
+        if (current >= 92) return current;
+        const step = current < 55 ? 7 : current < 80 ? 4 : 2;
+        return Math.min(92, current + step);
+      });
+    }, 700);
+
+    return () => clearInterval(timer);
+  }, [status]);
 
   function addFiles(fileList) {
     const chosen = Array.from(fileList ?? []);
@@ -40,6 +55,7 @@ export default function UploadPage() {
       return [...current, ...chosen.filter((f) => !seen.has(`${f.name}-${f.size}`))];
     });
     setStatus("idle");
+    setProgress(0);
     setError("");
     setResult(null);
   }
@@ -58,11 +74,13 @@ export default function UploadPage() {
     event.preventDefault();
     if (files.length === 0) {
       setError("Selecione ao menos um arquivo antes de enviar.");
+      setProgress(0);
       setStatus("error");
       return;
     }
 
     setStatus("sending");
+    setProgress(8);
     setError("");
 
     try {
@@ -75,6 +93,7 @@ export default function UploadPage() {
       const avaliado = await readApiResponse(resposta);
 
       setResult(avaliado);
+      setProgress(100);
       setStatus("done");
     } catch (cause) {
       setError(
@@ -82,11 +101,13 @@ export default function UploadPage() {
           ? cause.message
           : "Não foi possível concluir o envio. Tente novamente."
       );
+      setProgress(0);
       setStatus("error");
     }
   }
 
   const sending = status === "sending";
+  const resultadoHref = result?.avaliacao?.href || "#";
 
   return (
     <AppShell active="Upload" breadcrumb="Overview > Upload">
@@ -104,12 +125,10 @@ export default function UploadPage() {
             <Icon name="chevronLeft" size={17} />
             Voltar
           </Link>
-          {/* Aponta para a ficha do mock: o `reviewId` devolvido pela API não
-              existe na amostra de `src/data/avaliacoes.js` e levaria a um 404. */}
           <Link
             className="btn primary"
-            href="/avaliacoes/QA-26-000541"
-            aria-disabled={sending}
+            href={resultadoHref}
+            aria-disabled={sending || !result?.avaliacao?.href}
           >
             <Icon name="review" size={17} />
             Abrir resultado
@@ -138,8 +157,8 @@ export default function UploadPage() {
 
               <h2>{dragging ? "Solte para adicionar" : "Arraste arquivos aqui"}</h2>
               <p>
-                Áudios MP3, WAV ou M4A e documentos PDF. Nesta primeira versão a análise
-                responde com dados simulados para validar interface e jornada.
+                Áudios MP3, WAV ou M4A e documentos PDF. Envie para análise e acompanhe o
+                processamento nesta fila.
               </p>
 
               <input
@@ -194,6 +213,7 @@ export default function UploadPage() {
                   </strong>
                   <span>
                     {`Nota ${result.resumo.score} — ${result.resumo.conforme} conformes, ${result.resumo.nao_conforme} não conformes, ${result.resumo.nao_aplicavel} não aplicáveis.`}
+                    {result.avaliacao?.id ? ` ID ${result.avaliacao.id}.` : ""}
                   </span>
                 </span>
               </p>
@@ -247,26 +267,25 @@ export default function UploadPage() {
           ) : (
             <div className="progress-list">
               {files.map((file) => {
-                const value = status === "done" ? 100 : sending ? null : 0;
+                const value = status === "done" ? 100 : sending ? progress : 0;
 
                 return (
                   <div className="progress-item" key={`fila-${file.name}-${file.size}`}>
                     <div className="progress-label">
                       <span>{file.name}</span>
-                      <span>{value === null ? "..." : `${value}%`}</span>
+                      <span>{`${value}%`}</span>
                     </div>
                     <div
                       className="progress-track"
                       role="progressbar"
                       aria-label={`Processamento de ${file.name}`}
-                      aria-valuenow={value ?? undefined}
+                      aria-valuenow={value}
                       aria-valuemin={0}
                       aria-valuemax={100}
-                      aria-valuetext={value === null ? "Em andamento" : undefined}
                     >
                       <div
-                        className={`progress-bar ${value === null ? "indeterminate" : ""} ${value === 100 ? "success" : ""}`}
-                        style={value === null ? undefined : { "--w": `${value}%` }}
+                        className={`progress-bar ${sending ? "active" : ""} ${value === 100 ? "success" : ""}`}
+                        style={{ "--w": `${value}%` }}
                       />
                     </div>
                     <span className="subtle-text">
@@ -381,7 +400,7 @@ export default function UploadPage() {
 
             <p className="subtle-text">
               Ficha gerada por IA a partir do arquivo enviado. Revise antes de aplicar o
-              feedback. Nada foi gravado no banco — este resultado existe só nesta tela.
+              feedback.
             </p>
           </section>
         ) : null}
