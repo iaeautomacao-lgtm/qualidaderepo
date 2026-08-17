@@ -8,7 +8,7 @@ import {
   readSearchParam,
 } from "@/server/validation";
 import { badRequest } from "@/server/errors";
-import { one } from "@/server/db";
+import { one, query } from "@/server/db";
 import { FILTRO_STATUS, ORIGENS, listarGravacoes } from "@/server/repositories/transcricoes";
 import { receberGravacoes } from "@/server/services/transcricao-service";
 
@@ -93,6 +93,16 @@ function idNumerico(valor) {
   return /^\d{1,20}$/.test(id) && id !== "0" ? id : null;
 }
 
+function slug(valor) {
+  return texto(valor)
+    .normalize("NFD")
+    .replace(/\p{Diacritic}/gu, "")
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/^-|-$/g, "")
+    .slice(0, 110);
+}
+
 async function resolverClienteId(valor, nome) {
   const numerico = idNumerico(valor);
   if (numerico) return numerico;
@@ -100,21 +110,33 @@ async function resolverClienteId(valor, nome) {
   const referencia = texto(valor);
   const nomeCliente = texto(nome);
   if (!referencia && !nomeCliente) return null;
+  const slugReferencia = slug(referencia);
+  const slugNome = slug(nomeCliente);
 
   const cliente = await one(
     `SELECT id
        FROM clientes
-      WHERE slug IN (:referencia, :nomeCliente)
+      WHERE slug IN (:referencia, :nomeCliente, :slugReferencia, :slugNome)
          OR nome IN (:referencia, :nomeCliente)
       LIMIT 1`,
-    { referencia, nomeCliente },
+    { referencia, nomeCliente, slugReferencia, slugNome },
   );
 
-  if (!cliente) {
+  if (cliente) return String(cliente.id);
+
+  const nomeFinal = nomeCliente || referencia;
+  const slugFinal = slugNome || slugReferencia;
+  if (!nomeFinal || !slugFinal) {
     throw badRequest("Carteira selecionada nao foi encontrada no banco.");
   }
 
-  return String(cliente.id);
+  const resultado = await query(
+    `INSERT INTO clientes (slug, nome, ativo)
+     VALUES (:slug, :nome, 1)`,
+    { slug: slugFinal, nome: nomeFinal },
+  );
+
+  return String(resultado.insertId);
 }
 
 async function resolverCampanhaId(valor, nome, clienteId) {
@@ -135,5 +157,16 @@ async function resolverCampanhaId(valor, nome, clienteId) {
     { referencia, nomeCampanha, clienteId },
   );
 
-  return campanha ? String(campanha.id) : null;
+  if (campanha) return String(campanha.id);
+
+  const nomeFinal = nomeCampanha || referencia;
+  if (!nomeFinal || !clienteId) return null;
+
+  const resultado = await query(
+    `INSERT INTO campanhas (cliente_id, nome, canal, ativa)
+     VALUES (:clienteId, :nome, 'outro', 1)`,
+    { clienteId, nome: nomeFinal },
+  );
+
+  return String(resultado.insertId);
 }
