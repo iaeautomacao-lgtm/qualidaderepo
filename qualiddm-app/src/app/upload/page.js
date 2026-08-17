@@ -232,7 +232,8 @@ export default function UploadPage() {
   }
 
   const sending = status === "sending";
-  const resultadoHref = result?.avaliacao?.href || "#";
+  const resultadoHref = result?.avaliacao?.href || (result?.tipo === "gravacoes" ? "/transcricoes" : "#");
+  const resultadoDisponivel = Boolean(result?.avaliacao?.href || result?.tipo === "gravacoes");
 
   return (
     <AppShell active="Upload" breadcrumb="Overview > Upload">
@@ -253,10 +254,10 @@ export default function UploadPage() {
           <Link
             className="btn primary"
             href={resultadoHref}
-            aria-disabled={sending || !result?.avaliacao?.href}
+            aria-disabled={sending || !resultadoDisponivel}
           >
             <Icon name="review" size={17} />
-            Abrir resultado
+            {result?.tipo === "gravacoes" ? "Abrir transcrições" : "Abrir resultado"}
           </Link>
         </div>
       </section>
