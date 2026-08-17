@@ -216,7 +216,7 @@ export default function UploadPage() {
 
         const resposta = await fetch("/api/transcricoes", { method: "POST", body });
         const gravacoes = await readApiResponse(resposta);
-        setResult({ tipo: "gravacoes", ...gravacoes });
+        setResult({ tipo: "gravacoes", busca: files[0]?.name || "", ...gravacoes });
       }
       setProgress(100);
       setStatus("done");
@@ -232,7 +232,11 @@ export default function UploadPage() {
   }
 
   const sending = status === "sending";
-  const resultadoHref = result?.avaliacao?.href || (result?.tipo === "gravacoes" ? "/transcricoes" : "#");
+  const resultadoHref =
+    result?.avaliacao?.href ||
+    (result?.tipo === "gravacoes"
+      ? `/transcricoes${result.busca ? `?busca=${encodeURIComponent(result.busca)}` : ""}`
+      : "#");
   const resultadoDisponivel = Boolean(result?.avaliacao?.href || result?.tipo === "gravacoes");
 
   return (

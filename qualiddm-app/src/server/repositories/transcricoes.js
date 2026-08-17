@@ -323,3 +323,63 @@ export async function registrarGravacoes({
 
   return resultados;
 }
+
+export async function concluirAnaliseGravacao({ gravacaoId, texto, modelo = null, confianca = null }) {
+  await transaction(async (connection) => {
+    const [transcricoes] = await connection.execute(
+      `SELECT id
+         FROM transcricoes
+        WHERE gravacao_id = :gravacaoId
+        ORDER BY id DESC
+        LIMIT 1`,
+      { gravacaoId },
+    );
+
+    if (transcricoes.length > 0) {
+      await connection.execute(
+        `UPDATE transcricoes
+            SET modelo = :modelo,
+                texto = :texto,
+                confianca = :confianca,
+                status = 'concluida',
+                erro_mensagem = NULL
+          WHERE id = :id`,
+        {
+          id: transcricoes[0].id,
+          modelo,
+          texto,
+          confianca,
+        },
+      );
+    } else {
+      await connection.execute(
+        `INSERT INTO transcricoes (gravacao_id, modelo, texto, confianca, status)
+         VALUES (:gravacaoId, :modelo, :texto, :confianca, 'concluida')`,
+        { gravacaoId, modelo, texto, confianca },
+      );
+    }
+
+    await connection.execute(
+      `UPDATE gravacoes
+          SET status_transcricao = 'concluida'
+        WHERE id = :gravacaoId`,
+      { gravacaoId },
+    );
+  });
+}
+
+export async function registrarErroAnaliseGravacao({ gravacaoId, erro }) {
+  await transaction(async (connection) => {
+    await connection.execute(
+      `INSERT INTO transcricoes (gravacao_id, status, erro_mensagem)
+       VALUES (:gravacaoId, 'erro', :erro)`,
+      { gravacaoId, erro: String(erro || "Erro ao processar arquivo.").slice(0, 500) },
+    );
+    await connection.execute(
+      `UPDATE gravacoes
+          SET status_transcricao = 'erro'
+        WHERE id = :gravacaoId`,
+      { gravacaoId },
+    );
+  });
+}

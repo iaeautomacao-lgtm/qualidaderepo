@@ -1,7 +1,12 @@
 import { createHash } from "crypto";
 import { badRequest } from "../errors";
 import { saveUploadFile, validateUploadFiles } from "./upload-service";
-import { registrarGravacoes } from "../repositories/transcricoes";
+import { analisarArquivoLivre } from "./avaliacao-ia";
+import {
+  concluirAnaliseGravacao,
+  registrarErroAnaliseGravacao,
+  registrarGravacoes,
+} from "../repositories/transcricoes";
 
 // Teto de arquivos por requisição. Cada arquivo é lido inteiro na memória para
 // o SHA-256, e o limite por arquivo já é de 50 MB (UPLOAD_MAX_FILE_BYTES):
@@ -22,6 +27,7 @@ export async function receberGravacoes({
   clienteId = null,
   campanhaId = null,
   avaliadoId = null,
+  contexto = {},
 }) {
   if (Array.isArray(files) && files.length > MAX_ARQUIVOS_POR_ENVIO) {
     throw badRequest(`Envie no máximo ${MAX_ARQUIVOS_POR_ENVIO} arquivos por vez.`);
@@ -43,6 +49,7 @@ export async function receberGravacoes({
       mimeType: meta.type,
       tamanho: meta.size,
       hash: createHash("sha256").update(conteudo).digest("hex"),
+      base64: conteudo.toString("base64"),
       // Duração só sai da decodificação do áudio, que não é feita aqui; o
       // transcritor preenche quando processa.
       duracaoSegundos: null,
@@ -59,6 +66,38 @@ export async function receberGravacoes({
     campanhaId,
     avaliadoId,
   });
+
+  if (transcreverAutomatico) {
+    for (const registrada of registradas) {
+      if (registrada.duplicada) continue;
+      const arquivo = arquivos.find((item) => item.nome === registrada.arquivo);
+      if (!arquivo) continue;
+
+      try {
+        const analise = await analisarArquivoLivre({
+          nome: arquivo.nome,
+          mimeType: arquivo.mimeType || "application/octet-stream",
+          base64: arquivo.base64,
+          tamanho: arquivo.tamanho,
+          contexto,
+        });
+
+        await concluirAnaliseGravacao({
+          gravacaoId: registrada.id,
+          texto: analise.texto,
+          modelo: analise.modelo,
+          confianca: null,
+        });
+        registrada.status = "concluida";
+      } catch (error) {
+        await registrarErroAnaliseGravacao({
+          gravacaoId: registrada.id,
+          erro: error instanceof Error ? error.message : "Erro ao analisar arquivo.",
+        });
+        registrada.status = "erro";
+      }
+    }
+  }
 
   return {
     recebidas: registradas.filter((item) => !item.duplicada).length,

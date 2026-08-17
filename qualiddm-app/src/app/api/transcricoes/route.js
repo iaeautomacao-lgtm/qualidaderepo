@@ -54,6 +54,8 @@ export async function POST(request) {
     const formData = await request.formData();
     const files = formData.getAll("files");
     const arquivos = files.length > 0 ? files : formData.getAll("arquivos");
+    const clienteNome = texto(formData.get("clienteNome"));
+    const campanhaNome = texto(formData.get("campanhaNome"));
     const clienteId = await resolverClienteId(formData.get("clienteId"), formData.get("clienteNome"));
     const campanhaId = await resolverCampanhaId(formData.get("campanhaId"), formData.get("campanhaNome"), clienteId);
 
@@ -64,6 +66,10 @@ export async function POST(request) {
       clienteId,
       campanhaId,
       avaliadoId: lerId(formData.get("avaliadoId"), "avaliadoId"),
+      contexto: {
+        cliente: clienteNome,
+        campanha: campanhaNome,
+      },
     });
 
     return created(resultado);

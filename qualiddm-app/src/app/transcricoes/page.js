@@ -1,6 +1,6 @@
 "use client";
 
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import AppShell from "@/components/AppShell";
 import EsqueletoTabela from "@/components/EsqueletoTabela";
 import { Icon } from "@/components/icons";
@@ -67,6 +67,12 @@ export default function TranscricoesPage() {
   const paginaAtual = Math.min(pagina, paginas - 1);
   const primeiraCarga = carregando && !dados;
   const temRecorte = busca.trim() !== "" || status !== "";
+
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    const buscaInicial = params.get("busca");
+    if (buscaInicial) setBusca(buscaInicial);
+  }, []);
 
   async function enviar(evento) {
     evento.preventDefault();
