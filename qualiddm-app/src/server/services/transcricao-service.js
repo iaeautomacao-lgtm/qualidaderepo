@@ -1,7 +1,7 @@
 import { createHash } from "crypto";
 import { badRequest } from "../errors";
 import { saveUploadFile, validateUploadFiles } from "./upload-service";
-import { analisarArquivoLivre } from "./avaliacao-ia";
+import { analisarArquivoLivreEstruturado } from "./avaliacao-ia";
 import {
   concluirAnaliseGravacao,
   registrarErroAnaliseGravacao,
@@ -74,7 +74,7 @@ export async function receberGravacoes({
       if (!arquivo) continue;
 
       try {
-        const analise = await analisarArquivoLivre({
+        const analise = await analisarArquivoLivreEstruturado({
           nome: arquivo.nome,
           mimeType: arquivo.mimeType || "application/octet-stream",
           base64: arquivo.base64,
@@ -86,7 +86,17 @@ export async function receberGravacoes({
           gravacaoId: registrada.id,
           texto: analise.texto,
           modelo: analise.modelo,
-          confianca: null,
+          confianca: analise.confianca,
+          segmentosJson: JSON.stringify({
+            ...analise.bruto,
+            arquivo: {
+              nome: arquivo.nome,
+              mimeType: arquivo.mimeType || "application/octet-stream",
+              tamanho: arquivo.tamanho,
+            },
+            modelo: analise.modelo,
+            geradoEm: analise.geradoEm,
+          }),
         });
         registrada.status = "concluida";
       } catch (error) {

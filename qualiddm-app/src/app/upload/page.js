@@ -216,7 +216,16 @@ export default function UploadPage() {
 
         const resposta = await fetch("/api/transcricoes", { method: "POST", body });
         const gravacoes = await readApiResponse(resposta);
-        setResult({ tipo: "gravacoes", busca: files[0]?.name || "", ...gravacoes });
+        const primeiraGravacao =
+          gravacoes?.gravacoes?.find((gravacao) => !gravacao.duplicada) ||
+          gravacoes?.gravacoes?.[0] ||
+          null;
+        setResult({
+          tipo: "gravacoes",
+          busca: files[0]?.name || "",
+          href: primeiraGravacao?.id ? `/transcricoes/${primeiraGravacao.id}` : null,
+          ...gravacoes,
+        });
       }
       setProgress(100);
       setStatus("done");
@@ -234,6 +243,7 @@ export default function UploadPage() {
   const sending = status === "sending";
   const resultadoHref =
     result?.avaliacao?.href ||
+    result?.href ||
     (result?.tipo === "gravacoes"
       ? `/transcricoes${result.busca ? `?busca=${encodeURIComponent(result.busca)}` : ""}`
       : "#");
@@ -261,7 +271,7 @@ export default function UploadPage() {
             aria-disabled={sending || !resultadoDisponivel}
           >
             <Icon name="review" size={17} />
-            {result?.tipo === "gravacoes" ? "Abrir transcrições" : "Abrir resultado"}
+            Abrir resultado
           </Link>
         </div>
       </section>

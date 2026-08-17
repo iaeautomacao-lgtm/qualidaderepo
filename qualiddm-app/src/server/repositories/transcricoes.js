@@ -184,11 +184,15 @@ export async function listarGravacoes({ filtros = {}, limit = 50, offset = 0 } =
 export async function obterTranscricao(gravacaoId) {
   const gravacao = await one(
     `SELECT g.id, g.nome_arquivo, g.duracao_segundos, g.origem,
-            g.status_transcricao, g.created_at,
+            g.status_transcricao, g.created_at, g.storage_path,
+            cl.nome AS cliente,
+            ca.nome AS campanha,
             t.id AS transcricao_id, t.provedor, t.modelo, t.idioma,
             t.texto, t.segmentos_json, t.confianca, t.status AS transcricao_status,
             t.erro_mensagem, t.created_at AS transcricao_em
        FROM gravacoes g
+       LEFT JOIN clientes cl ON cl.id = g.cliente_id
+       LEFT JOIN campanhas ca ON ca.id = g.campanha_id
        ${JOIN_TRANSCRICAO_CORRENTE}
       WHERE g.id = :gravacaoId
       LIMIT 1`,
@@ -202,8 +206,12 @@ export async function obterTranscricao(gravacaoId) {
     arquivo: gravacao.nome_arquivo,
     enviadaEm: formatarDataHora(gravacao.created_at),
     duracao: formatarDuracao(gravacao.duracao_segundos),
+    duracaoSegundos: gravacao.duracao_segundos == null ? null : inteiro(gravacao.duracao_segundos),
     origem: gravacao.origem,
     status: gravacao.status_transcricao,
+    cliente: gravacao.cliente || null,
+    campanha: gravacao.campanha || null,
+    armazenada: Boolean(gravacao.storage_path),
     transcricao: gravacao.transcricao_id
       ? {
           id: String(gravacao.transcricao_id),
@@ -224,12 +232,12 @@ export async function obterTranscricao(gravacaoId) {
 // Segmento gravado é texto (LONGTEXT, por compatibilidade com o MySQL do
 // cPanel). JSON quebrado não pode derrubar a listagem: devolve vazio.
 function parseSegmentos(valor) {
-  if (!valor) return [];
+  if (!valor) return null;
   try {
     const dados = JSON.parse(valor);
-    return Array.isArray(dados) ? dados : [];
+    return dados && typeof dados === "object" ? dados : null;
   } catch {
-    return [];
+    return null;
   }
 }
 
@@ -324,7 +332,13 @@ export async function registrarGravacoes({
   return resultados;
 }
 
-export async function concluirAnaliseGravacao({ gravacaoId, texto, modelo = null, confianca = null }) {
+export async function concluirAnaliseGravacao({
+  gravacaoId,
+  texto,
+  modelo = null,
+  confianca = null,
+  segmentosJson = null,
+}) {
   await transaction(async (connection) => {
     const [transcricoes] = await connection.execute(
       `SELECT id
@@ -340,6 +354,7 @@ export async function concluirAnaliseGravacao({ gravacaoId, texto, modelo = null
         `UPDATE transcricoes
             SET modelo = :modelo,
                 texto = :texto,
+                segmentos_json = :segmentosJson,
                 confianca = :confianca,
                 status = 'concluida',
                 erro_mensagem = NULL
@@ -348,14 +363,15 @@ export async function concluirAnaliseGravacao({ gravacaoId, texto, modelo = null
           id: transcricoes[0].id,
           modelo,
           texto,
+          segmentosJson,
           confianca,
         },
       );
     } else {
       await connection.execute(
-        `INSERT INTO transcricoes (gravacao_id, modelo, texto, confianca, status)
-         VALUES (:gravacaoId, :modelo, :texto, :confianca, 'concluida')`,
-        { gravacaoId, modelo, texto, confianca },
+        `INSERT INTO transcricoes (gravacao_id, modelo, texto, segmentos_json, confianca, status)
+         VALUES (:gravacaoId, :modelo, :texto, :segmentosJson, :confianca, 'concluida')`,
+        { gravacaoId, modelo, texto, segmentosJson, confianca },
       );
     }
 

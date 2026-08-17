@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
+import Link from "next/link";
 import AppShell from "@/components/AppShell";
 import EsqueletoTabela from "@/components/EsqueletoTabela";
 import { Icon } from "@/components/icons";
@@ -467,6 +468,13 @@ export default function TranscricoesPage() {
                           <div className={styles.acoes}>
                             {/* Sem texto não há o que expandir. Botão que abre uma
                                 gaveta vazia é pior do que botão ausente. */}
+                            {temTexto ? (
+                              <Link className="btn ghost" href={`/transcricoes/${item.id}`}>
+                                <Icon name="review" size={15} />
+                                Ver análise
+                              </Link>
+                            ) : null}
+
                             {temTexto ? (
                               <button
                                 className="btn ghost"
