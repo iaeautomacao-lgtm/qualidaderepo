@@ -161,6 +161,16 @@ export default function UploadPage() {
     });
   }, [campanhaId, clienteId, formularios, opcoes.campanhas, opcoes.clientes]);
 
+  const clienteSelecionado = useMemo(
+    () => opcoes.clientes.find((cliente) => cliente.id === clienteId) || null,
+    [clienteId, opcoes.clientes],
+  );
+
+  const campanhaSelecionada = useMemo(
+    () => opcoes.campanhas.find((campanha) => campanha.id === campanhaId) || null,
+    [campanhaId, opcoes.campanhas],
+  );
+
   async function onSubmit(event) {
     event.preventDefault();
     if (files.length === 0) {
@@ -189,7 +199,9 @@ export default function UploadPage() {
         body.append("arquivo", files[0]);
         body.append("formularioId", formularioId);
         body.append("clienteId", clienteId);
+        if (clienteSelecionado?.nome) body.append("clienteNome", clienteSelecionado.nome);
         if (campanhaId) body.append("campanhaId", campanhaId);
+        if (campanhaSelecionada?.nome) body.append("campanhaNome", campanhaSelecionada.nome);
 
         const resposta = await fetch("/api/avaliar", { method: "POST", body });
         const avaliado = await readApiResponse(resposta);
@@ -197,7 +209,9 @@ export default function UploadPage() {
       } else {
         files.forEach((file) => body.append("files", file));
         body.append("clienteId", clienteId);
+        if (clienteSelecionado?.nome) body.append("clienteNome", clienteSelecionado.nome);
         if (campanhaId) body.append("campanhaId", campanhaId);
+        if (campanhaSelecionada?.nome) body.append("campanhaNome", campanhaSelecionada.nome);
         body.append("transcrever", "true");
 
         const resposta = await fetch("/api/transcricoes", { method: "POST", body });

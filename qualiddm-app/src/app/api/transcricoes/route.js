@@ -8,6 +8,7 @@ import {
   readSearchParam,
 } from "@/server/validation";
 import { badRequest } from "@/server/errors";
+import { one } from "@/server/db";
 import { FILTRO_STATUS, ORIGENS, listarGravacoes } from "@/server/repositories/transcricoes";
 import { receberGravacoes } from "@/server/services/transcricao-service";
 
@@ -53,13 +54,15 @@ export async function POST(request) {
     const formData = await request.formData();
     const files = formData.getAll("files");
     const arquivos = files.length > 0 ? files : formData.getAll("arquivos");
+    const clienteId = await resolverClienteId(formData.get("clienteId"), formData.get("clienteNome"));
+    const campanhaId = await resolverCampanhaId(formData.get("campanhaId"), formData.get("campanhaNome"), clienteId);
 
     const resultado = await receberGravacoes({
       files: arquivos,
       userId: session.user.id,
       transcreverAutomatico: lerBooleano(formData.get("transcrever"), true),
-      clienteId: lerId(formData.get("clienteId"), "clienteId"),
-      campanhaId: lerId(formData.get("campanhaId"), "campanhaId"),
+      clienteId,
+      campanhaId,
       avaliadoId: lerId(formData.get("avaliadoId"), "avaliadoId"),
     });
 
@@ -79,4 +82,58 @@ function lerId(valor, campo) {
     throw badRequest(`Campo ${campo} deve ser um identificador numérico.`);
   }
   return texto;
+}
+
+function texto(valor) {
+  return String(valor || "").trim();
+}
+
+function idNumerico(valor) {
+  const id = texto(valor);
+  return /^\d{1,20}$/.test(id) && id !== "0" ? id : null;
+}
+
+async function resolverClienteId(valor, nome) {
+  const numerico = idNumerico(valor);
+  if (numerico) return numerico;
+
+  const referencia = texto(valor);
+  const nomeCliente = texto(nome);
+  if (!referencia && !nomeCliente) return null;
+
+  const cliente = await one(
+    `SELECT id
+       FROM clientes
+      WHERE slug IN (:referencia, :nomeCliente)
+         OR nome IN (:referencia, :nomeCliente)
+      LIMIT 1`,
+    { referencia, nomeCliente },
+  );
+
+  if (!cliente) {
+    throw badRequest("Carteira selecionada nao foi encontrada no banco.");
+  }
+
+  return String(cliente.id);
+}
+
+async function resolverCampanhaId(valor, nome, clienteId) {
+  const numerico = idNumerico(valor);
+  if (numerico) return numerico;
+
+  const referencia = texto(valor);
+  const nomeCampanha = texto(nome);
+  if (!referencia && !nomeCampanha) return null;
+
+  const campanha = await one(
+    `SELECT id
+       FROM campanhas
+      WHERE (nome IN (:referencia, :nomeCampanha))
+        AND (:clienteId IS NULL OR cliente_id = :clienteId OR cliente_id IS NULL)
+      ORDER BY cliente_id = :clienteId DESC, id
+      LIMIT 1`,
+    { referencia, nomeCampanha, clienteId },
+  );
+
+  return campanha ? String(campanha.id) : null;
 }
