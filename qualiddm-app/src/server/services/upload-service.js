@@ -1,5 +1,7 @@
 import { config } from "../config";
 import { badRequest } from "../errors";
+import { mkdir, writeFile } from "fs/promises";
+import { extname, isAbsolute, join, resolve } from "path";
 
 function hasAllowedExtension(name) {
   const lowerName = name.toLowerCase();
@@ -33,4 +35,47 @@ export function validateUploadFiles(files) {
       size: file.size,
     };
   });
+}
+
+function safeBaseName(name) {
+  const extension = extname(name).toLowerCase();
+  const base = String(name || "arquivo")
+    .slice(0, 140)
+    .normalize("NFD")
+    .replace(/\p{Diacritic}/gu, "")
+    .replace(extension, "")
+    .replace(/[^a-zA-Z0-9._-]+/g, "-")
+    .replace(/^-+|-+$/g, "")
+    .slice(0, 90) || "arquivo";
+
+  return { base, extension };
+}
+
+function storageRoot() {
+  return isAbsolute(config.upload.storageDir)
+    ? config.upload.storageDir
+    : resolve(/* turbopackIgnore: true */ process.cwd(), config.upload.storageDir);
+}
+
+export async function saveUploadFile({ file, bytes, prefix = "avaliacao" }) {
+  const now = new Date();
+  const year = String(now.getFullYear());
+  const month = String(now.getMonth() + 1).padStart(2, "0");
+  const day = String(now.getDate()).padStart(2, "0");
+  const folderRelative = join(/* turbopackIgnore: true */ prefix, year, month, day);
+  const folderAbsolute = join(/* turbopackIgnore: true */ storageRoot(), folderRelative);
+  await mkdir(folderAbsolute, { recursive: true });
+
+  const { base, extension } = safeBaseName(file.name);
+  const stamp = `${now.toISOString().replace(/[-:.TZ]/g, "")}-${Math.random().toString(36).slice(2, 8)}`;
+  const fileName = `${stamp}-${base}${extension}`;
+  const absolutePath = join(folderAbsolute, fileName);
+  await writeFile(absolutePath, bytes);
+
+  return {
+    nome: file.name,
+    mimeType: file.type || "application/octet-stream",
+    tamanho: bytes.length,
+    storagePath: join(folderRelative, fileName).replace(/\\/g, "/"),
+  };
 }

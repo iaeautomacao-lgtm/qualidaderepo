@@ -50,6 +50,7 @@ export const config = {
   },
   upload: {
     maxFileBytes: readInt("UPLOAD_MAX_FILE_BYTES", 50 * 1024 * 1024),
+    storageDir: process.env.UPLOAD_STORAGE_DIR || "storage/uploads",
     allowedMimeTypes: (
       process.env.UPLOAD_ALLOWED_MIME_TYPES ||
       "audio/mpeg,audio/mp3,audio/wav,audio/x-wav,audio/mp4,audio/m4a,application/pdf"

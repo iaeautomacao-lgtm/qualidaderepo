@@ -45,3 +45,6 @@ next-env.d.ts
 next-dev.log
 next-dev.err.log
 .next-dev.pid
+
+# arquivos enviados pelos usuários ficam no servidor, não no Git
+/storage/

@@ -1,7 +1,7 @@
 import { ok, route } from "@/server/http";
 import { requireRole } from "@/server/security/sessions";
 import { badRequest, conflict } from "@/server/errors";
-import { validateUploadFiles } from "@/server/services/upload-service";
+import { saveUploadFile, validateUploadFiles } from "@/server/services/upload-service";
 import { avaliarArquivo } from "@/server/services/avaliacao-ia";
 import { createAvaliacaoFromIa, getFormularioParaAvaliacaoIa } from "@/server/repositories/catalog";
 
@@ -30,6 +30,7 @@ export async function POST(request) {
     }
 
     const bytes = Buffer.from(await arquivo.arrayBuffer());
+    const arquivoSalvo = await saveUploadFile({ file: arquivo, bytes });
     const resultado = await avaliarArquivo({
       nome: arquivo.name,
       mimeType: arquivo.type || "application/octet-stream",
@@ -46,7 +47,7 @@ export async function POST(request) {
     const registro = await createAvaliacaoFromIa({
       formulario,
       resultado,
-      arquivo: { nome: arquivo.name },
+      arquivo: arquivoSalvo,
       avaliadorId: session.user.id,
     });
 

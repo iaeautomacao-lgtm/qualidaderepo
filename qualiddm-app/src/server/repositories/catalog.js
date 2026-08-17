@@ -339,7 +339,7 @@ export async function createAvaliacaoFromIa({ formulario, resultado, arquivo, av
         categoria: formulario.categoria || "padrao",
         score: resultado.resumo.score,
         zerada: resultado.resumo.zerada ? 1 : 0,
-        audioPath: arquivo?.nome || null,
+        audioPath: arquivo?.storagePath || arquivo?.nome || null,
         conformes: resultado.resumo.conforme,
         naoConformes: resultado.resumo.nao_conforme,
         naoAplicaveis: resultado.resumo.nao_aplicavel,
