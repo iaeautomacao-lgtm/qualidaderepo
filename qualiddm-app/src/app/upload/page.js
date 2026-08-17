@@ -1,11 +1,11 @@
 "use client";
 
-import { useEffect, useId, useRef, useState } from "react";
+import { useEffect, useId, useMemo, useRef, useState } from "react";
 import Link from "next/link";
 import AppShell from "@/components/AppShell";
 import { Icon } from "@/components/icons";
 
-const ACCEPT = ".mp3,.mpeg,.wav,.m4a,.mp4,.pdf,audio/*,application/pdf";
+const ACCEPT = ".mp3,.mpeg,.wav,.m4a,.mp4,.pdf,.txt,.csv,.xls,.xlsx,audio/*,application/pdf,text/plain,text/csv,application/vnd.ms-excel,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet";
 
 async function readApiResponse(response) {
   const payload = await response.json();
@@ -25,6 +25,9 @@ export default function UploadPage() {
   const inputRef = useRef(null);
   const inputId = useId();
   const [files, setFiles] = useState([]);
+  const [opcoes, setOpcoes] = useState({ clientes: [], campanhas: [] });
+  const [clienteId, setClienteId] = useState("");
+  const [campanhaId, setCampanhaId] = useState("");
   const [formularios, setFormularios] = useState([]);
   const [formularioId, setFormularioId] = useState("");
   const [dragging, setDragging] = useState(false);
@@ -38,21 +41,51 @@ export default function UploadPage() {
   useEffect(() => {
     let ativo = true;
 
-    async function carregarFormularios() {
+    async function carregarDados() {
       try {
-        const resposta = await fetch("/api/formularios", { cache: "no-store" });
-        const payload = await resposta.json().catch(() => null);
-        if (!resposta.ok || !payload?.ok) {
-          throw new Error(payload?.error?.message || "Nao foi possivel carregar formularios.");
+        const [respostaFormularios, respostaOpcoes] = await Promise.all([
+          fetch("/api/formularios", { cache: "no-store" }),
+          fetch("/api/relatorios/opcoes", { cache: "no-store" }),
+        ]);
+
+        const payloadFormularios = await respostaFormularios.json().catch(() => null);
+        const payloadOpcoes = await respostaOpcoes.json().catch(() => null);
+
+        if (!respostaFormularios.ok || !payloadFormularios?.ok) {
+          throw new Error(payloadFormularios?.error?.message || "Nao foi possivel carregar formularios.");
         }
 
         if (!ativo) return;
-        const lista = (payload.data?.recentes || []).filter(
+        const lista = (payloadFormularios.data?.recentes || []).filter(
           (formulario) =>
             ["ativo", "desenvolvimento"].includes(formulario.status) &&
             Number(formulario.questoes ?? 0) > 0,
         );
         setFormularios(lista);
+
+        if (respostaOpcoes.ok && payloadOpcoes?.ok) {
+          const opcoesApi = {
+            clientes: payloadOpcoes.data?.clientes || [],
+            campanhas: payloadOpcoes.data?.campanhas || [],
+          };
+          setOpcoes(opcoesApi);
+
+          const parametros = new URLSearchParams(window.location.search);
+          const clientePreSelecionado = parametros.get("clienteId");
+          const campanhaPreSelecionada = parametros.get("campanhaId");
+          const clienteNome = parametros.get("cliente");
+          const campanhaNome = parametros.get("campanha");
+
+          const clienteEncontrado =
+            opcoesApi.clientes.find((cliente) => cliente.id === clientePreSelecionado) ||
+            opcoesApi.clientes.find((cliente) => cliente.nome === clienteNome);
+          const campanhaEncontrada =
+            opcoesApi.campanhas.find((campanha) => campanha.id === campanhaPreSelecionada) ||
+            opcoesApi.campanhas.find((campanha) => campanha.nome === campanhaNome);
+
+          if (clienteEncontrado) setClienteId(clienteEncontrado.id);
+          if (campanhaEncontrada) setCampanhaId(campanhaEncontrada.id);
+        }
 
         const preSelecionado = new URLSearchParams(window.location.search).get("formularioId");
         if (preSelecionado && lista.some((formulario) => formulario.id === preSelecionado)) {
@@ -65,7 +98,7 @@ export default function UploadPage() {
       }
     }
 
-    carregarFormularios();
+    carregarDados();
 
     return () => {
       ativo = false;
@@ -110,6 +143,24 @@ export default function UploadPage() {
     addFiles(event.dataTransfer?.files);
   }
 
+  const campanhasDisponiveis = useMemo(
+    () =>
+      opcoes.campanhas.filter(
+        (campanha) => !clienteId || !campanha.clienteId || campanha.clienteId === clienteId,
+      ),
+    [clienteId, opcoes.campanhas],
+  );
+
+  const formulariosDisponiveis = useMemo(() => {
+    const clienteSelecionado = opcoes.clientes.find((cliente) => cliente.id === clienteId);
+    const campanhaSelecionada = opcoes.campanhas.find((campanha) => campanha.id === campanhaId);
+    return formularios.filter((formulario) => {
+      if (clienteSelecionado && formulario.cliente && formulario.cliente !== clienteSelecionado.nome) return false;
+      if (campanhaSelecionada && formulario.campanha && !formulario.campanha.includes(campanhaSelecionada.nome)) return false;
+      return true;
+    });
+  }, [campanhaId, clienteId, formularios, opcoes.campanhas, opcoes.clientes]);
+
   async function onSubmit(event) {
     event.preventDefault();
     if (files.length === 0) {
@@ -119,8 +170,8 @@ export default function UploadPage() {
       return;
     }
 
-    if (!formularioId) {
-      setError("Selecione o formulario que corresponde ao arquivo enviado.");
+    if (!clienteId) {
+      setError("Selecione a carteira/cliente antes de enviar.");
       setProgress(0);
       setStatus("error");
       return;
@@ -134,13 +185,25 @@ export default function UploadPage() {
       // Um arquivo por vez: a avaliação é de UM atendimento contra a ficha.
       // Mandar vários de uma vez misturaria chamadas diferentes numa nota só.
       const body = new FormData();
-      body.append("arquivo", files[0]);
-      body.append("formularioId", formularioId);
+      if (formularioId) {
+        body.append("arquivo", files[0]);
+        body.append("formularioId", formularioId);
+        body.append("clienteId", clienteId);
+        if (campanhaId) body.append("campanhaId", campanhaId);
 
-      const resposta = await fetch("/api/avaliar", { method: "POST", body });
-      const avaliado = await readApiResponse(resposta);
+        const resposta = await fetch("/api/avaliar", { method: "POST", body });
+        const avaliado = await readApiResponse(resposta);
+        setResult({ tipo: "avaliacao", ...avaliado });
+      } else {
+        files.forEach((file) => body.append("files", file));
+        body.append("clienteId", clienteId);
+        if (campanhaId) body.append("campanhaId", campanhaId);
+        body.append("transcrever", "true");
 
-      setResult(avaliado);
+        const resposta = await fetch("/api/transcricoes", { method: "POST", body });
+        const gravacoes = await readApiResponse(resposta);
+        setResult({ tipo: "gravacoes", ...gravacoes });
+      }
       setProgress(100);
       setStatus("done");
     } catch (cause) {
@@ -186,29 +249,78 @@ export default function UploadPage() {
 
       <section className="upload-board">
         <form className="card pad upload-primary" onSubmit={onSubmit}>
-          <div className="field">
-            <label htmlFor="formulario-upload">Formulario da avaliacao</label>
-            <select
-              className="select"
-              id="formulario-upload"
-              value={formularioId}
-              onChange={(evento) => {
-                setFormularioId(evento.target.value);
-                setStatus("idle");
-                setError("");
-                setResult(null);
-              }}
-            >
-              <option value="">Selecione a ficha correta</option>
-              {formularios.map((formulario) => (
-                <option key={formulario.id} value={formulario.id}>
-                  {[formulario.nome, formulario.cliente, formulario.campanha].filter(Boolean).join(" - ")}
-                </option>
-              ))}
-            </select>
-            <span className="field-hint">
-              A IA usa esta ficha para avaliar o arquivo. Confira o cliente antes de enviar.
-            </span>
+          <div style={{ display: "grid", gap: "var(--sp-4)" }}>
+            <div className="field">
+              <label htmlFor="cliente-upload">Carteira / Monitor IA</label>
+              <select
+                className="select"
+                id="cliente-upload"
+                value={clienteId}
+                onChange={(evento) => {
+                  setClienteId(evento.target.value);
+                  setCampanhaId("");
+                  setFormularioId("");
+                  setStatus("idle");
+                  setError("");
+                  setResult(null);
+                }}
+              >
+                <option value="">Selecione a carteira</option>
+                {opcoes.clientes.map((cliente) => (
+                  <option key={cliente.id} value={cliente.id}>
+                    {cliente.nome}
+                  </option>
+                ))}
+              </select>
+            </div>
+
+            <div className="field">
+              <label htmlFor="campanha-upload">Campanha / operação</label>
+              <select
+                className="select"
+                id="campanha-upload"
+                value={campanhaId}
+                onChange={(evento) => {
+                  setCampanhaId(evento.target.value);
+                  setFormularioId("");
+                  setStatus("idle");
+                  setError("");
+                  setResult(null);
+                }}
+              >
+                <option value="">Todas as campanhas da carteira</option>
+                {campanhasDisponiveis.map((campanha) => (
+                  <option key={campanha.id} value={campanha.id}>
+                    {campanha.nome}
+                  </option>
+                ))}
+              </select>
+            </div>
+
+            <div className="field">
+              <label htmlFor="formulario-upload">Ficha de avaliacao opcional</label>
+              <select
+                className="select"
+                id="formulario-upload"
+                value={formularioId}
+                onChange={(evento) => {
+                  setFormularioId(evento.target.value);
+                  setStatus("idle");
+                  setError("");
+                  setResult(null);
+                }}
+              >
+                <option value="">Sem ficha - apenas subir para fila</option>
+                {formulariosDisponiveis.map((formulario) => (
+                  <option key={formulario.id} value={formulario.id}>
+                    {[formulario.nome, formulario.cliente, formulario.campanha].filter(Boolean).join(" - ")}
+                  </option>
+                ))}
+              </select>
+              <span className="field-hint">
+                Com ficha, a IA gera avaliacao. Sem ficha, o arquivo fica salvo na fila da carteira.
+              </span>
+            </div>
           </div>
 
           {formError ? (
@@ -260,10 +372,10 @@ export default function UploadPage() {
                 <button
                   className="btn"
                   type="submit"
-                  disabled={sending || files.length === 0 || !formularioId}
+                  disabled={sending || files.length === 0 || !clienteId}
                 >
                   <Icon name={sending ? "spinner" : "sparkles"} size={17} className={sending ? "spinning" : undefined} />
-                  {sending ? "Enviando..." : "Enviar para a IA"}
+                  {sending ? "Enviando..." : formularioId ? "Enviar para a IA" : "Subir para a fila"}
                 </button>
               </div>
             </div>
@@ -281,7 +393,7 @@ export default function UploadPage() {
               </p>
             ) : null}
 
-            {status === "done" && result ? (
+            {status === "done" && result?.tipo === "avaliacao" ? (
               <p className={`alert ${result.resumo.zerada ? "danger" : "success"}`}>
                 <Icon name={result.resumo.zerada ? "error" : "checkCircle"} size={18} />
                 <span className="alert-body">
@@ -293,6 +405,19 @@ export default function UploadPage() {
                   <span>
                     {`Nota ${result.resumo.score} — ${result.resumo.conforme} conformes, ${result.resumo.nao_conforme} não conformes, ${result.resumo.nao_aplicavel} não aplicáveis.`}
                     {result.avaliacao?.id ? ` ID ${result.avaliacao.id}.` : ""}
+                  </span>
+                </span>
+              </p>
+            ) : null}
+
+            {status === "done" && result?.tipo === "gravacoes" ? (
+              <p className="alert success">
+                <Icon name="checkCircle" size={18} />
+                <span className="alert-body">
+                  <strong>Arquivo salvo na fila</strong>
+                  <span>
+                    {`${result.recebidas ?? 0} novo(s) arquivo(s) registrado(s).`}
+                    {result.duplicadas ? ` ${result.duplicadas} duplicado(s) já existiam.` : ""}
                   </span>
                 </span>
               </p>
@@ -381,7 +506,7 @@ export default function UploadPage() {
           )}
         </section>
 
-        {status === "done" && result ? (
+        {status === "done" && result?.tipo === "avaliacao" ? (
           <section className="card pad" aria-labelledby="ficha-ia">
             <div className="section-head">
               <div>

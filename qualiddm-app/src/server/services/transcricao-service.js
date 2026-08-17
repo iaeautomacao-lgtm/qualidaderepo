@@ -1,6 +1,6 @@
 import { createHash } from "crypto";
 import { badRequest } from "../errors";
-import { validateUploadFiles } from "./upload-service";
+import { saveUploadFile, validateUploadFiles } from "./upload-service";
 import { registrarGravacoes } from "../repositories/transcricoes";
 
 // Teto de arquivos por requisição. Cada arquivo é lido inteiro na memória para
@@ -36,6 +36,7 @@ export async function receberGravacoes({
     const meta = validados[indice];
     const original = files[indice];
     const conteudo = Buffer.from(await original.arrayBuffer());
+    const arquivoSalvo = await saveUploadFile({ file: original, bytes: conteudo });
 
     arquivos.push({
       nome: meta.name,
@@ -45,10 +46,8 @@ export async function receberGravacoes({
       // Duração só sai da decodificação do áudio, que não é feita aqui; o
       // transcritor preenche quando processa.
       duracaoSegundos: null,
-      // A gravação física ainda não é persistida em disco/objeto — o mesmo
-      // ponto pendente do upload de áudio existente. Quando o storage entrar,
-      // é este campo que recebe o caminho.
-      storagePath: null,
+      // Caminho físico persistido para consulta e reprocessamento posterior.
+      storagePath: arquivoSalvo.storagePath,
     });
   }
 
@@ -65,6 +64,6 @@ export async function receberGravacoes({
     recebidas: registradas.filter((item) => !item.duplicada).length,
     duplicadas: registradas.filter((item) => item.duplicada).length,
     gravacoes: registradas,
-    armazenamento: "metadados-no-mysql-arquivo-pendente",
+    armazenamento: "arquivo-e-metadados",
   };
 }

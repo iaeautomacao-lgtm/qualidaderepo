@@ -28,6 +28,17 @@ function formatarData(valor) {
   }).format(data);
 }
 
+function uploadHref(monitor) {
+  const params = new URLSearchParams();
+  if (monitor?.cliente && monitor.cliente !== "Sem cliente vinculado") {
+    params.set("cliente", monitor.cliente.split(",")[0].trim());
+  }
+  const campanha = String(monitor?.campanhasNomes || "").split(",")[0].trim();
+  if (campanha) params.set("campanha", campanha);
+  const query = params.toString();
+  return query ? `/upload?${query}` : "/upload";
+}
+
 export default function MonitorIaPage() {
   const [dados, setDados] = useState(null);
   const [erro, setErro] = useState("");
@@ -201,7 +212,7 @@ export default function MonitorIaPage() {
                       <Icon name="settings" size={15} />
                       Configurar
                     </Link>
-                    <Link className="btn" href="/upload">
+                    <Link className="btn" href={uploadHref(monitor)}>
                       <Icon name="upload" size={15} />
                       Subir Gravação
                     </Link>

@@ -53,13 +53,13 @@ export const config = {
     storageDir: process.env.UPLOAD_STORAGE_DIR || "storage/uploads",
     allowedMimeTypes: (
       process.env.UPLOAD_ALLOWED_MIME_TYPES ||
-      "audio/mpeg,audio/mp3,audio/wav,audio/x-wav,audio/mp4,audio/m4a,application/pdf"
+      "audio/mpeg,audio/mp3,audio/wav,audio/x-wav,audio/mp4,audio/m4a,application/pdf,text/plain,text/csv,application/csv,application/vnd.ms-excel,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
     )
       .split(",")
       .map((item) => item.trim())
       .filter(Boolean),
     allowedExtensions: (
-      process.env.UPLOAD_ALLOWED_EXTENSIONS || ".mp3,.mpeg,.wav,.m4a,.mp4,.pdf"
+      process.env.UPLOAD_ALLOWED_EXTENSIONS || ".mp3,.mpeg,.wav,.m4a,.mp4,.pdf,.txt,.csv,.xls,.xlsx"
     )
       .split(",")
       .map((item) => item.trim().toLowerCase())
