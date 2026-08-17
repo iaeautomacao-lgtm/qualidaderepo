@@ -183,13 +183,41 @@ export async function getFormulariosOverview() {
   }
 }
 
-export async function createFormulario({ clienteId, nome, categoria = "padrao", status = "rascunho" }) {
+function normalizarSecoesFormulario(secoes) {
+  return (Array.isArray(secoes) ? secoes : [])
+    .map((secao, secaoIndice) => ({
+      nome: String(secao?.nome || "").trim(),
+      descricao: String(secao?.descricao || "").trim() || null,
+      posicao: secaoIndice + 1,
+      criterios: (Array.isArray(secao?.criterios) ? secao.criterios : [])
+        .map((criterio, criterioIndice) => {
+          const eliminatoria = Boolean(criterio?.eliminatoria);
+          const peso = Number(criterio?.peso ?? 0);
+          return {
+            nome: String(criterio?.nome || "").trim(),
+            enunciado: String(criterio?.enunciado || "").trim(),
+            eliminatoria,
+            peso: eliminatoria ? null : Number.isFinite(peso) && peso >= 0 ? peso : 0,
+            posicao: criterioIndice + 1,
+          };
+        })
+        .filter((criterio) => criterio.nome && criterio.enunciado),
+    }))
+    .filter((secao) => secao.nome && secao.criterios.length > 0);
+}
+
+export async function createFormulario({ clienteId, nome, categoria = "padrao", status = "rascunho", secoes = [] }) {
   const cliente = await one(
     "SELECT id FROM clientes WHERE id = :clienteId OR slug = :clienteId LIMIT 1",
     { clienteId }
   );
   if (!cliente) {
     throw new Error("Cliente não encontrado.");
+  }
+
+  const secoesValidas = normalizarSecoesFormulario(secoes);
+  if (secoesValidas.length === 0) {
+    throw new Error("Cadastre ao menos uma secao com um criterio para gerar o formulario.");
   }
 
   const versao = await one(
@@ -200,17 +228,47 @@ export async function createFormulario({ clienteId, nome, categoria = "padrao", 
     { clienteId: cliente.id, nome }
   );
 
-  await query(
-    `INSERT INTO formularios (cliente_id, nome, categoria, status, versao)
-     VALUES (:clienteId, :nome, :categoria, :status, :versao)`,
-    {
-      clienteId: cliente.id,
-      nome,
-      categoria,
-      status,
-      versao: Number(versao?.proxima ?? 1),
+  await transaction(async (connection) => {
+    const [insertFormulario] = await connection.execute(
+      `INSERT INTO formularios (cliente_id, nome, categoria, status, versao)
+       VALUES (:clienteId, :nome, :categoria, :status, :versao)`,
+      {
+        clienteId: cliente.id,
+        nome,
+        categoria,
+        status,
+        versao: Number(versao?.proxima ?? 1),
+      }
+    );
+
+    for (const secao of secoesValidas) {
+      const [insertSecao] = await connection.execute(
+        `INSERT INTO formulario_secoes (formulario_id, nome, descricao, posicao)
+         VALUES (:formularioId, :nome, :descricao, :posicao)`,
+        {
+          formularioId: insertFormulario.insertId,
+          nome: secao.nome,
+          descricao: secao.descricao,
+          posicao: secao.posicao,
+        }
+      );
+
+      for (const criterio of secao.criterios) {
+        await connection.execute(
+          `INSERT INTO formulario_criterios (secao_id, nome, enunciado, peso_pts, eliminatoria, posicao)
+           VALUES (:secaoId, :nome, :enunciado, :peso, :eliminatoria, :posicao)`,
+          {
+            secaoId: insertSecao.insertId,
+            nome: criterio.nome,
+            enunciado: criterio.enunciado,
+            peso: criterio.peso,
+            eliminatoria: criterio.eliminatoria ? 1 : 0,
+            posicao: criterio.posicao,
+          }
+        );
+      }
     }
-  );
+  });
 
   return getFormulariosOverview();
 }

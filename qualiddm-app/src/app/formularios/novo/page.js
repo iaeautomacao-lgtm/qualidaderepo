@@ -6,9 +6,18 @@ import AppShell from "@/components/AppShell";
 import { Icon } from "@/components/icons";
 import styles from "../page.module.css";
 
+function novaSecao() {
+  return {
+    nome: "Geral",
+    descricao: "",
+    criterios: [{ nome: "", enunciado: "", peso: "10", eliminatoria: false }],
+  };
+}
+
 export default function NovoFormularioPage() {
   const [clientes, setClientes] = useState([]);
-  const [form, setForm] = useState({ nome: "", clienteId: "", categoria: "padrao", status: "rascunho" });
+  const [form, setForm] = useState({ nome: "", clienteId: "", categoria: "padrao", status: "ativo" });
+  const [secoes, setSecoes] = useState([novaSecao()]);
   const [status, setStatus] = useState("idle");
   const [mensagem, setMensagem] = useState("");
 
@@ -33,10 +42,23 @@ export default function NovoFormularioPage() {
     setMensagem("");
 
     try {
+      const secoesValidas = secoes
+        .map((secao) => ({
+          ...secao,
+          criterios: secao.criterios.filter(
+            (criterio) => criterio.nome.trim() && criterio.enunciado.trim(),
+          ),
+        }))
+        .filter((secao) => secao.nome.trim() && secao.criterios.length > 0);
+
+      if (secoesValidas.length === 0) {
+        throw new Error("Cadastre ao menos uma secao com um criterio.");
+      }
+
       const resposta = await fetch("/api/formularios", {
         method: "POST",
         headers: { "content-type": "application/json" },
-        body: JSON.stringify(form),
+        body: JSON.stringify({ ...form, secoes: secoesValidas }),
       });
       const payload = await resposta.json().catch(() => null);
       if (!resposta.ok || !payload?.ok) {
@@ -44,11 +66,65 @@ export default function NovoFormularioPage() {
       }
       setStatus("done");
       setMensagem("Formulário cadastrado.");
-      setForm({ nome: "", clienteId: "", categoria: "padrao", status: "rascunho" });
+      setForm({ nome: "", clienteId: "", categoria: "padrao", status: "ativo" });
+      setSecoes([novaSecao()]);
     } catch (error) {
       setStatus("error");
       setMensagem(error.message);
     }
+  }
+
+  function alterarSecao(indice, campo, valor) {
+    setSecoes((atuais) =>
+      atuais.map((secao, atualIndice) => (atualIndice === indice ? { ...secao, [campo]: valor } : secao)),
+    );
+  }
+
+  function adicionarSecao() {
+    setSecoes((atuais) => [...atuais, novaSecao()]);
+  }
+
+  function removerSecao(indice) {
+    setSecoes((atuais) => (atuais.length === 1 ? atuais : atuais.filter((_, atualIndice) => atualIndice !== indice)));
+  }
+
+  function alterarCriterio(secaoIndice, criterioIndice, campo, valor) {
+    setSecoes((atuais) =>
+      atuais.map((secao, atualSecaoIndice) => {
+        if (atualSecaoIndice !== secaoIndice) return secao;
+        return {
+          ...secao,
+          criterios: secao.criterios.map((criterio, atualCriterioIndice) =>
+            atualCriterioIndice === criterioIndice ? { ...criterio, [campo]: valor } : criterio,
+          ),
+        };
+      }),
+    );
+  }
+
+  function adicionarCriterio(secaoIndice) {
+    setSecoes((atuais) =>
+      atuais.map((secao, atualSecaoIndice) =>
+        atualSecaoIndice === secaoIndice
+          ? {
+              ...secao,
+              criterios: [...secao.criterios, { nome: "", enunciado: "", peso: "10", eliminatoria: false }],
+            }
+          : secao,
+      ),
+    );
+  }
+
+  function removerCriterio(secaoIndice, criterioIndice) {
+    setSecoes((atuais) =>
+      atuais.map((secao, atualSecaoIndice) => {
+        if (atualSecaoIndice !== secaoIndice || secao.criterios.length === 1) return secao;
+        return {
+          ...secao,
+          criterios: secao.criterios.filter((_, atualCriterioIndice) => atualCriterioIndice !== criterioIndice),
+        };
+      }),
+    );
   }
 
   return (
@@ -123,6 +199,131 @@ export default function NovoFormularioPage() {
             <option value="inativo">Inativo</option>
           </select>
         </div>
+
+        <section className={styles.builder} aria-labelledby="criterios-formulario">
+          <div className="section-head">
+            <div>
+              <h2 id="criterios-formulario">Seções e critérios</h2>
+              <p>Cadastre os itens que a IA deve avaliar neste formulário.</p>
+            </div>
+            <button className="btn" type="button" onClick={adicionarSecao}>
+              <Icon name="plus" size={16} />
+              Adicionar seção
+            </button>
+          </div>
+
+          {secoes.map((secao, secaoIndice) => (
+            <div className={styles.secaoEditor} key={`secao-${secaoIndice}`}>
+              <div className={styles.secaoTopo}>
+                <div className="field">
+                  <label htmlFor={`secao-${secaoIndice}`}>Nome da seção</label>
+                  <input
+                    className="input"
+                    id={`secao-${secaoIndice}`}
+                    value={secao.nome}
+                    onChange={(evento) => alterarSecao(secaoIndice, "nome", evento.target.value)}
+                    required
+                  />
+                </div>
+                <button
+                  className="btn danger icon-only"
+                  type="button"
+                  onClick={() => removerSecao(secaoIndice)}
+                  disabled={secoes.length === 1}
+                >
+                  <Icon name="trash" size={16} label="Remover seção" />
+                </button>
+              </div>
+
+              <div className="field">
+                <label htmlFor={`secao-desc-${secaoIndice}`}>Descrição da seção</label>
+                <textarea
+                  className="input"
+                  id={`secao-desc-${secaoIndice}`}
+                  value={secao.descricao}
+                  onChange={(evento) => alterarSecao(secaoIndice, "descricao", evento.target.value)}
+                  rows={2}
+                />
+              </div>
+
+              <div className={styles.criteriosList}>
+                {secao.criterios.map((criterio, criterioIndice) => (
+                  <div className={styles.criterioEditor} key={`criterio-${secaoIndice}-${criterioIndice}`}>
+                    <div className={styles.criterioGrid}>
+                      <div className="field">
+                        <label htmlFor={`criterio-nome-${secaoIndice}-${criterioIndice}`}>Critério</label>
+                        <input
+                          className="input"
+                          id={`criterio-nome-${secaoIndice}-${criterioIndice}`}
+                          value={criterio.nome}
+                          onChange={(evento) =>
+                            alterarCriterio(secaoIndice, criterioIndice, "nome", evento.target.value)
+                          }
+                          required
+                        />
+                      </div>
+
+                      <div className="field">
+                        <label htmlFor={`criterio-peso-${secaoIndice}-${criterioIndice}`}>Peso</label>
+                        <input
+                          className="input"
+                          disabled={criterio.eliminatoria}
+                          id={`criterio-peso-${secaoIndice}-${criterioIndice}`}
+                          min="0"
+                          step="0.01"
+                          type="number"
+                          value={criterio.peso}
+                          onChange={(evento) =>
+                            alterarCriterio(secaoIndice, criterioIndice, "peso", evento.target.value)
+                          }
+                        />
+                      </div>
+
+                      <label className={styles.checkboxLinha}>
+                        <input
+                          checked={criterio.eliminatoria}
+                          type="checkbox"
+                          onChange={(evento) =>
+                            alterarCriterio(secaoIndice, criterioIndice, "eliminatoria", evento.target.checked)
+                          }
+                        />
+                        Eliminatório
+                      </label>
+
+                      <button
+                        className="btn danger icon-only"
+                        type="button"
+                        onClick={() => removerCriterio(secaoIndice, criterioIndice)}
+                        disabled={secao.criterios.length === 1}
+                      >
+                        <Icon name="trash" size={16} label="Remover critério" />
+                      </button>
+                    </div>
+
+                    <div className="field">
+                      <label htmlFor={`criterio-enunciado-${secaoIndice}-${criterioIndice}`}>O que avaliar</label>
+                      <textarea
+                        className="input"
+                        id={`criterio-enunciado-${secaoIndice}-${criterioIndice}`}
+                        value={criterio.enunciado}
+                        onChange={(evento) =>
+                          alterarCriterio(secaoIndice, criterioIndice, "enunciado", evento.target.value)
+                        }
+                        required
+                        rows={3}
+                      />
+                    </div>
+                  </div>
+                ))}
+              </div>
+
+              <button className="btn" type="button" onClick={() => adicionarCriterio(secaoIndice)}>
+                <Icon name="plus" size={16} />
+                Adicionar critério
+              </button>
+            </div>
+          ))}
+        </section>
 
         <div className="btn-row">
           <button className="btn primary" disabled={status === "saving"} type="submit">

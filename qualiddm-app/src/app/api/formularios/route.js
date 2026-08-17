@@ -24,6 +24,6 @@ export async function POST(request) {
     if (!nome) throw badRequest("Informe o nome do formulário.");
     if (!clienteId) throw badRequest("Selecione um cliente válido.");
 
-    return ok(await createFormulario({ clienteId, nome, categoria, status }));
+    return ok(await createFormulario({ clienteId, nome, categoria, status, secoes: body?.secoes }));
   });
 }
