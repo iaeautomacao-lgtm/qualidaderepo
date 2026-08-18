@@ -481,7 +481,7 @@ function FichaConteudo({ id }) {
             <FeedbackGlobal codigo={ficha.id} onAtualizada={setFichaSalva} />
           </div>
 
-          <aside className={styles.trilha}>
+          <aside className={`sticky-rail ${styles.trilha}`}>
             {/* A navegação lista as mesmas seções que estão renderizadas: com o
                 filtro ligado, âncora para seção oculta não levaria a lugar algum. */}
             {criteriosVisiveis.length > 0 ? (

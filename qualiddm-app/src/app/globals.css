@@ -177,6 +177,13 @@
 
   /* --- layout ----------------------------------------------------------- */
   --sidebar-w: 264px;
+  /* Altura da topbar fixa. Existe como token porque TRÊS coisas dependem dela:
+     o `padding-top` do `.main`, o `top` de tudo que gruda na rolagem e a
+     `scroll-margin-top` das âncoras. Antes cada lugar repetia 64px/88px na mão
+     e o celular (topbar de 56px) ficava com a conta errada — barra de abas
+     grudando 8px abaixo do lugar e âncora parando atrás da topbar. */
+  --topbar-h: 64px;
+  --sticky-top: calc(var(--topbar-h) + var(--sp-3));
   --content-max: 1560px;
   --tap-min: 44px;          /* alvo mínimo de toque */
   --focus-width: 2px;
@@ -486,6 +493,18 @@ h3 {
   background: var(--danger-soft);
 }
 
+/* Botão de alternância (período do dashboard, "só não conformes", filtros da
+   lista de feedback) precisa MOSTRAR que está ligado. `aria-pressed` já dizia
+   isso para o leitor de tela, mas não existia estilo nenhum: na tela, os dois
+   botões de período ficavam idênticos e ninguém sabia qual recorte estava
+   valendo. Tinta de marca + peso, com 6,4:1 de texto e 5,1:1 de borda. */
+.btn[aria-pressed="true"] {
+  border-color: var(--accent-strong);
+  background: var(--accent-soft);
+  color: var(--accent-deep);
+  font-weight: var(--fw-semibold);
+}
+
 .btn:disabled,
 .btn[aria-disabled="true"] {
   border-color: var(--line);
@@ -664,6 +683,10 @@ h3 {
   min-width: 26px;
   height: 26px;
   padding: 0 var(--sp-2);
+  /* A pastilha cinza sobre cartão branco tinha 1,14:1 de contorno — lia como
+     mancha, não como objeto. A borda de controle dá 3,68:1 e cumpre o mínimo de
+     objeto gráfico (WCAG 1.4.11). O texto dentro já tinha 6,64:1. */
+  border: 1px solid var(--border-control);
   border-radius: var(--r-pill);
   background: var(--surface-3);
   color: var(--text-soft);
@@ -673,6 +696,7 @@ h3 {
 }
 
 .count-badge.danger {
+  border-color: var(--danger-text);
   background: var(--danger-text);
   color: var(--text-on-dark);
 }
@@ -1298,6 +1322,171 @@ tr:hover .copy-id,
   box-shadow: var(--shadow-xs);
 }
 
+/* Contador dentro da aba — "Critérios 24", "Não conformes 4". Número na aba
+   evita abrir o painel só para descobrir se tem algo lá dentro. */
+.tab-count {
+  display: inline-grid;
+  place-items: center;
+  min-width: 20px;
+  height: 20px;
+  margin-left: var(--sp-2);
+  padding: 0 5px;
+  border-radius: var(--r-pill);
+  background: var(--surface);
+  color: var(--text-soft);
+  font-size: var(--fs-100);
+  font-weight: var(--fw-bold);
+  font-variant-numeric: tabular-nums;
+}
+
+.tab[aria-selected="true"] .tab-count {
+  background: var(--accent-soft-strong);
+  color: var(--accent-deep);
+}
+
+/* Contador de falha: fundo sólido porque é o número que decide se o supervisor
+   abre a ficha ou não. */
+.tab-count.danger {
+  background: var(--danger-text);
+  color: var(--text-on-dark);
+}
+
+/* --------------------------------------------------------------------------
+   Barra de abas de tela inteira
+
+   `.tabs` sozinha é a variante compacta, para 2–3 abas dentro de um card.
+   `.tab-bar` é o índice da TELA: gruda embaixo da topbar enquanto o painel
+   rola, para trocar de bloco sem voltar ao topo — o que resolve a ficha de
+   monitoria, que empilhava 8 cartões e obrigava a rolar a página inteira.
+
+   Rola na horizontal em vez de quebrar em duas linhas: barra que muda de
+   altura faz o conteúdo pular na troca de aba.
+   -------------------------------------------------------------------------- */
+.tab-bar {
+  position: sticky;
+  top: var(--topbar-h);
+  z-index: var(--z-sticky);
+  display: flex;
+  align-items: center;
+  gap: var(--sp-3);
+  padding: var(--sp-2);
+  border: 1px solid var(--line);
+  border-radius: var(--r-lg);
+  background: color-mix(in srgb, var(--surface) 92%, transparent);
+  backdrop-filter: blur(8px);
+  box-shadow: var(--shadow-sm);
+}
+
+.tab-bar > [role="tablist"] {
+  min-width: 0;
+  flex: 1 1 auto;
+  overflow-x: auto;
+  overscroll-behavior-x: contain;
+  scrollbar-width: thin;
+  /* A barra JÁ é a superfície do grupo: manter o fundo cinza da `.tabs` aqui
+     dentro criaria caixa dentro de caixa, e o cinza esticado por toda a largura
+     lia como faixa decorativa em vez de grupo de botões. */
+  padding: 0;
+  background: none;
+}
+
+.tab-bar .tab {
+  flex: 0 0 auto;
+  min-height: var(--tap-min);
+}
+
+.tab-bar-actions {
+  display: flex;
+  flex: 0 0 auto;
+  align-items: center;
+  gap: var(--sp-2);
+}
+
+/* --------------------------------------------------------------------------
+   Chips de salto (índice horizontal)
+
+   Substitui a coluna lateral de âncoras onde ela não caberia. Cada chip pula
+   para uma seção do painel e mostra quantos itens ela tem.
+   -------------------------------------------------------------------------- */
+.jump-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--sp-2);
+}
+
+.jump-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--sp-2);
+  min-height: 36px;
+  padding: 0 var(--sp-3);
+  border: 1px solid var(--border-control);
+  border-radius: var(--r-pill);
+  background: var(--surface);
+  color: var(--text);
+  font-size: var(--fs-200);
+  font-weight: var(--fw-medium);
+  transition: border-color var(--dur) var(--ease), background var(--dur) var(--ease),
+    color var(--dur) var(--ease);
+}
+
+.jump-chip:hover {
+  border-color: var(--accent-mid);
+  background: var(--accent-soft);
+  color: var(--accent-deep);
+}
+
+.jump-chip[aria-pressed="true"] {
+  border-color: var(--accent-strong);
+  background: var(--accent-strong);
+  color: var(--text-on-dark);
+}
+
+/* Número dentro do chip: herda a tinta do chip para não virar terceira cor. */
+.jump-chip > span:last-child {
+  padding: 0 5px;
+  border-radius: var(--r-pill);
+  background: var(--surface-3);
+  color: var(--text-soft);
+  font-size: var(--fs-100);
+  font-weight: var(--fw-bold);
+  font-variant-numeric: tabular-nums;
+}
+
+.jump-chip[data-falha="true"] > span:last-child {
+  background: var(--danger-text);
+  color: var(--text-on-dark);
+}
+
+/* --------------------------------------------------------------------------
+   Coluna lateral que acompanha a rolagem
+
+   Aplique na COLUNA, nunca num cartão solto dentro dela. Cartão grudado é
+   elemento posicionado: ele sobe por cima dos irmãos estáticos da mesma coluna
+   e cobre o conteúdo — foi exatamente o que acontecia com o cartão "Seções"
+   passando na frente de "Leitura da IA". Com a coluna inteira grudada existe um
+   só bloco posicionado, e o que está dentro dela continua em fluxo normal.
+   -------------------------------------------------------------------------- */
+.sticky-rail {
+  position: sticky;
+  top: var(--sticky-top);
+  max-height: calc(100dvh - var(--sticky-top) - var(--sp-4));
+  overflow-y: auto;
+  overscroll-behavior-y: contain;
+  scrollbar-gutter: stable;
+  /* Respiro para o anel de foco dos links internos não ser cortado pela
+     própria caixa de rolagem. */
+  padding: 2px;
+}
+
+@media (max-width: 1200px) {
+  .sticky-rail {
+    position: static;
+    max-height: none;
+    overflow: visible;
+  }
+}
+
 /* ==========================================================================
    Primitiva: cartão de funcionalidade (tile)
 
@@ -1413,7 +1602,7 @@ tr:hover .copy-id,
   display: flex;
   min-width: 0;
   flex-direction: column;
-  padding-top: 64px;
+  padding-top: var(--topbar-h);
 }
 
 .workspace {
@@ -1438,7 +1627,7 @@ tr:hover .copy-id,
   align-items: center;
   justify-content: space-between;
   gap: var(--sp-4);
-  min-height: 64px;
+  min-height: var(--topbar-h);
   padding: var(--sp-3) var(--sp-6);
   border-bottom: 1px solid var(--line);
   background: color-mix(in srgb, var(--surface) 88%, transparent);
@@ -2478,12 +2667,10 @@ tr:hover .copy-id,
 
 /* Celular. */
 @media (max-width: 640px) {
-  .topbar {
-    min-height: 56px;
-  }
-
-  .main {
-    padding-top: 56px;
+  /* Redefinir o token no :root faz a topbar, o `padding-top` do main, o `top`
+     das barras grudadas e as âncoras acompanharem de uma vez. */
+  :root {
+    --topbar-h: 56px;
   }
 
   /* A busca vira botão-ícone: o campo cheio não cabe ao lado do breadcrumb. */
@@ -2710,8 +2897,21 @@ tr:hover .copy-id,
   /* Contêiner com rolagem precisa se abrir no papel, senão a folha mostra só a
      primeira tela do conteúdo. */
   .scroll-x,
-  .table-scroll {
+  .table-scroll,
+  .sticky-rail {
+    max-height: none;
     overflow: visible;
+  }
+
+  /* Barra de abas é navegação: sai. E o papel imprime TODAS as abas — a ficha
+     impressa é documento de monitoria, não pode sair com três quartos do
+     conteúdo de fora só porque a tela estava numa aba. */
+  .tab-bar {
+    display: none !important;
+  }
+
+  [role="tabpanel"][hidden] {
+    display: block !important;
   }
 
   .btn {

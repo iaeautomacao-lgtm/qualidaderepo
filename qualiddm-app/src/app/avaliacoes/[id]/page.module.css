@@ -225,11 +225,14 @@
 }
 
 /* A navegação de seções acompanha a rolagem: a ficha tem 30 critérios e sem
-   isso o monitor precisa voltar ao topo para trocar de seção. 88px = topbar
-   fixa (64px) + respiro. */
+   isso o monitor precisa voltar ao topo para trocar de seção.
+
+   Quem gruda é a COLUNA (`.trilha` recebe `.sticky-rail` no JSX), não este
+   cartão. Cartão grudado é elemento posicionado: ele passava por cima do
+   "Leitura da IA" e do chat, que são irmãos estáticos da mesma coluna — era o
+   bug de sobreposição relatado na ficha IA. Aqui sobra só o alinhamento. */
 .navSecoes {
-  position: sticky;
-  top: 88px;
+  flex: 0 0 auto;
 }
 
 .navSecoes ul {
@@ -551,11 +554,6 @@
     grid-template-columns: minmax(0, 1fr);
   }
 
-  /* Sem coluna lateral a navegação não pode continuar colada no topo: ela
-     passa a ser um bloco normal antes do chat. */
-  .navSecoes {
-    position: static;
-  }
 }
 
 @media (max-width: 640px) {
