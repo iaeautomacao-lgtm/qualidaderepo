@@ -118,6 +118,17 @@
   min-width: 900px;
 }
 
+.linkId {
+  color: var(--accent-strong);
+  font-weight: var(--fw-semibold);
+  text-decoration: none;
+  white-space: nowrap;
+}
+
+.linkId:hover {
+  text-decoration: underline;
+}
+
 .tabela td,
 .tabela th[scope="row"] {
   vertical-align: middle;

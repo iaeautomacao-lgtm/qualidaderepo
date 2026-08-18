@@ -428,6 +428,7 @@ export default function TranscricoesPage() {
                 </caption>
                 <thead>
                   <tr>
+                    <th scope="col">ID</th>
                     <th scope="col">Arquivo</th>
                     <th scope="col">Enviada em</th>
                     <th className="num" scope="col">
@@ -448,6 +449,11 @@ export default function TranscricoesPage() {
 
                     return [
                       <tr key={item.id}>
+                        <td>
+                          <Link className={styles.linkId} href={`/transcricoes/${item.id}`}>
+                            ID {item.id}
+                          </Link>
+                        </td>
                         <th className={styles.celulaArquivo} scope="row">
                           {item.arquivo || SEM_VALOR}
                         </th>
@@ -466,14 +472,10 @@ export default function TranscricoesPage() {
                         </td>
                         <td>
                           <div className={styles.acoes}>
-                            {/* Sem texto não há o que expandir. Botão que abre uma
-                                gaveta vazia é pior do que botão ausente. */}
-                            {temTexto ? (
-                              <Link className="btn ghost" href={`/transcricoes/${item.id}`}>
-                                <Icon name="review" size={15} />
-                                Ver análise
-                              </Link>
-                            ) : null}
+                            <Link className="btn ghost" href={`/transcricoes/${item.id}`}>
+                              <Icon name="review" size={15} />
+                              Abrir analise
+                            </Link>
 
                             {temTexto ? (
                               <button
@@ -516,7 +518,7 @@ export default function TranscricoesPage() {
                          outras linhas da tabela. */
                       aberta ? (
                         <tr key={`${item.id}-texto`}>
-                          <td colSpan={6} id={`transcricao-${item.id}`}>
+                          <td colSpan={7} id={`transcricao-${item.id}`}>
                             <div className={styles.transcricao}>
                               <p className="label-micro">Transcrição de {item.arquivo}</p>
 
