@@ -35,6 +35,46 @@ function textoLegado(texto) {
     .trim();
 }
 
+function listaTexto(valor) {
+  return Array.isArray(valor) ? valor.filter(Boolean).map((item) => String(item).trim()).filter(Boolean) : [];
+}
+
+function resumoConformidade(analise, secoes) {
+  const resumo = analise?.resumoConformidade || {};
+  const criterios = secoes.flatMap((secao) => secao.criterios || []);
+  const conformes =
+    resumo.conformes != null
+      ? Number(resumo.conformes) || 0
+      : criterios.filter((item) => item.statusChave === "conforme").length;
+  const naoConformes =
+    resumo.naoConformes != null
+      ? Number(resumo.naoConformes) || 0
+      : criterios.filter((item) => item.statusChave === "nao_conforme").length;
+  const naoAplicaveis =
+    resumo.naoAplicaveis != null
+      ? Number(resumo.naoAplicaveis) || 0
+      : criterios.filter((item) => item.statusChave === "nao_aplicavel").length;
+  const total = resumo.total != null ? Number(resumo.total) || 0 : criterios.length;
+  return { conformes, naoConformes, naoAplicaveis, total };
+}
+
+function quadranteDaNota(valor) {
+  const score = Number(valor);
+  if (!Number.isFinite(score)) return "Sem nota";
+  if (score >= 90) return "Excelencia operacional";
+  if (score >= 80) return "Conforme";
+  if (score >= 70) return "Atencao";
+  return "Critico";
+}
+
+function nivelConfianca(valor) {
+  const numero = Number(valor);
+  if (!Number.isFinite(numero)) return "Nao medida";
+  if (numero >= 0.85) return "Alta";
+  if (numero >= 0.7) return "Media";
+  return "Baixa";
+}
+
 export default function ResultadoTranscricaoPage() {
   const params = useParams();
   const id = params?.id;
@@ -135,6 +175,23 @@ export default function ResultadoTranscricaoPage() {
   const duracao = analise?.duracao || gravacao?.duracao;
   const totalNaoConformes = secoes.reduce((soma, secao) => soma + secao.naoConformes, 0);
   const confiancaBaixa = Number(confianca ?? 0) > 0 && Number(confianca ?? 0) < 0.7;
+  const criterios = secoes.flatMap((secao) => secao.criterios || []);
+  const resumo = resumoConformidade(analise, secoes);
+  const scoreNumerico = Number(analise?.nota);
+  const quadrante = quadranteDaNota(analise?.nota);
+  const pontosFortes = criterios.filter((item) => item.statusChave === "conforme").slice(0, 4);
+  const falhasCriticas = criterios.filter((item) => item.statusChave === "nao_conforme").slice(0, 5);
+  const insights = listaTexto(analise?.insights);
+  const riscos = listaTexto(analise?.riscos);
+  const proximosPassos = listaTexto(analise?.proximosPassos);
+  const leituraExecutiva = [
+    Number.isFinite(scoreNumerico) ? `Nota ${nota(scoreNumerico)} em quadrante ${quadrante}.` : null,
+    resumo.total > 0
+      ? `${resumo.conformes} conforme(s), ${resumo.naoConformes} nao conforme(s) e ${resumo.naoAplicaveis} nao aplicavel(is).`
+      : null,
+    riscos[0] ? `Risco principal: ${riscos[0]}` : null,
+    proximosPassos[0] ? `Acao recomendada: ${proximosPassos[0]}` : null,
+  ].filter(Boolean);
 
   // `audioUrl` já vem `null` quando o arquivo saiu do armazenamento — a tela
   // não monta a rota por conta própria para não exibir um player que não toca.
@@ -226,6 +283,52 @@ export default function ResultadoTranscricaoPage() {
               </span>
             </span>
           </p>
+        ) : null}
+
+        {analise ? (
+          <section className={`card pad ${styles.executivo}`} aria-labelledby="leitura-executiva">
+            <div className="section-head">
+              <div>
+                <h2 id="leitura-executiva">Leitura executiva da monitoria</h2>
+                <p>Resumo para supervisor, qualidade e treinamento.</p>
+              </div>
+              <span className={`chip ${confiancaBaixa ? "warning" : "success"}`}>
+                Confianca {nivelConfianca(confianca)}
+              </span>
+            </div>
+
+            <div className={styles.gradeExecutiva}>
+              <article>
+                <span className="icon-badge" aria-hidden="true">
+                  <Icon name="gauge" size={18} />
+                </span>
+                <h3>Resultado</h3>
+                <p>{leituraExecutiva[0] || "Sem nota estruturada."}</p>
+              </article>
+              <article>
+                <span className="icon-badge warning" aria-hidden="true">
+                  <Icon name="alert" size={18} />
+                </span>
+                <h3>Risco operacional</h3>
+                <p>{riscos[0] || "Nenhum risco estruturado foi retornado pela IA."}</p>
+              </article>
+              <article>
+                <span className="icon-badge success" aria-hidden="true">
+                  <Icon name="checkCircle" size={18} />
+                </span>
+                <h3>Proxima acao</h3>
+                <p>{proximosPassos[0] || "Revisar evidencias e liberar feedback quando aplicavel."}</p>
+              </article>
+            </div>
+
+            {leituraExecutiva.length > 1 ? (
+              <ul className={styles.resumoExecutivo}>
+                {leituraExecutiva.slice(1).map((item) => (
+                  <li key={item}>{item}</li>
+                ))}
+              </ul>
+            ) : null}
+          </section>
         ) : null}
 
         {!analise ? (
@@ -326,6 +429,49 @@ export default function ResultadoTranscricaoPage() {
             ) : null}
 
             <ResumoConformidade resumo={analise?.resumoConformidade} />
+
+            {analise ? (
+              <section className="card pad">
+                <div className="section-head">
+                  <div>
+                    <h2>Gestão da avaliação</h2>
+                    <p>O que deve virar feedback, calibragem ou treinamento.</p>
+                  </div>
+                </div>
+                <div className={styles.gradeGestao}>
+                  <PainelAchados
+                    titulo="Falhas que precisam de ação"
+                    icone="alert"
+                    itens={falhasCriticas.map((item) => ({
+                      titulo: item.nome,
+                      texto: item.raciocinio || item.evidencia || "Sem raciocinio estruturado.",
+                    }))}
+                    vazio="Nenhuma falha estruturada na análise."
+                    tom="danger"
+                  />
+                  <PainelAchados
+                    titulo="Pontos fortes para reconhecer"
+                    icone="checkCircle"
+                    itens={pontosFortes.map((item) => ({
+                      titulo: item.nome,
+                      texto: item.evidencia || item.raciocinio || "Conformidade identificada pela IA.",
+                    }))}
+                    vazio="Nenhum ponto forte estruturado na análise."
+                    tom="success"
+                  />
+                  <PainelAchados
+                    titulo="Próximos passos"
+                    icone="workflow"
+                    itens={proximosPassos.map((item, indice) => ({
+                      titulo: `Ação ${indice + 1}`,
+                      texto: item,
+                    }))}
+                    vazio="A IA não retornou plano de ação estruturado."
+                    tom="warning"
+                  />
+                </div>
+              </section>
+            ) : null}
 
             <section className="card pad">
               <div className="section-head">
@@ -437,6 +583,31 @@ export default function ResultadoTranscricaoPage() {
         </footer>
       </div>
     </AppShell>
+  );
+}
+
+function PainelAchados({ titulo, icone, itens, vazio, tom }) {
+  const lista = Array.isArray(itens) ? itens.filter((item) => item?.titulo || item?.texto) : [];
+
+  return (
+    <article className={`${styles.achados} ${styles[`achados${tom || "default"}`] || ""}`}>
+      <h3>
+        <Icon name={icone} size={17} />
+        {titulo}
+      </h3>
+      {lista.length === 0 ? (
+        <p>{vazio}</p>
+      ) : (
+        <ul>
+          {lista.slice(0, 4).map((item, indice) => (
+            <li key={`${titulo}-${indice}`}>
+              <strong>{item.titulo}</strong>
+              <span>{item.texto}</span>
+            </li>
+          ))}
+        </ul>
+      )}
+    </article>
   );
 }
 

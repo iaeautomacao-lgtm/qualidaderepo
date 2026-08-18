@@ -147,6 +147,7 @@ function agregarAnalisesIa(rows = []) {
 
     const item = {
       public_id: analise.codigo || `MIA-${row.id}`,
+      href: `/transcricoes/${row.id}`,
       score: hasScore ? score : 0,
       status: falhas > 0 ? "revisao" : "concluida",
       created_at: row.created_at,
@@ -303,6 +304,7 @@ export async function getDashboardOverview({ period }) {
       query(
         `SELECT
             a.codigo AS public_id,
+            CONCAT('/avaliacoes/', a.codigo) AS href,
             a.score,
             a.status_feedback AS status,
             a.data_avaliacao AS created_at,
@@ -321,6 +323,7 @@ export async function getDashboardOverview({ period }) {
       query(
         `SELECT
             a.codigo AS public_id,
+            CONCAT('/avaliacoes/', a.codigo) AS href,
             a.score,
             a.status_feedback AS status,
             a.total_nao_conformes AS non_conformities,

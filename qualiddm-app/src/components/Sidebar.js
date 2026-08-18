@@ -51,16 +51,6 @@ const menu = [
   { label: "Monitor IA", href: "/monitor-ia", icon: "sparkles" },
   { label: "Transcrições", href: "/transcricoes", icon: "waveform" },
   { label: "Feedback", href: "/feedback", icon: "feedback" },
-  {
-    label: "Contestações",
-    href: "/contestacoes",
-    icon: "alert",
-    filhos: [
-      { label: "Avaliações Candidatas", href: "/contestacoes/avaliacoes-candidatas" },
-      { label: "Gestão ADM", href: "/contestacoes/gestao-adm" },
-    ],
-  },
-  { label: "Relatórios", href: "/relatorios", icon: "metrics" },
   { label: "Administração", href: "/administracao", icon: "settings", filhos: [] },
 ];
 

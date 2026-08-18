@@ -63,7 +63,6 @@ function ou(valor) {
  */
 const RETORNOS = {
   feedback: { href: "/feedback", rotulo: "Voltar para Feedbacks" },
-  contestacoes: { href: "/contestacoes/gestao-adm", rotulo: "Voltar para Contestações" },
 };
 
 const RETORNO_PADRAO = { href: "/avaliacoes", rotulo: "Voltar para Avaliações" };
@@ -520,10 +519,6 @@ function FichaConteudo({ id }) {
         </div>
 
         <footer className={styles.rodape}>
-          <Link className="btn danger" href={`/contestacoes?avaliacao=${encodeURIComponent(ficha.id)}`}>
-            <Icon name="alert" size={16} />
-            Contestar Avaliação
-          </Link>
           <Link className="btn" href={retorno.href}>
             <Icon name="chevronLeft" size={16} />
             {retorno.rotulo}

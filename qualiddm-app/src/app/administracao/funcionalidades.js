@@ -57,17 +57,6 @@ export const OPERACAO = [
     tom: "blue",
   },
   {
-    id: "sla-contestacoes",
-    contador: "slaContestacoes",
-    rotulo: "SLA de Contestações",
-    detalhe: "Configurar prazos de resposta (SLA) para contestações por campanha",
-    proposito: "Prazo máximo para julgar uma contestação, por campanha.",
-    disponivel: "será aqui que você define o SLA de cada campanha e vê quais contestações estão fora do prazo.",
-    icone: "clock",
-    tom: "red",
-    novo: true,
-  },
-  {
     id: "metas-monitoria",
     contador: "metas",
     rotulo: "Metas Mensais de Monitoria",
@@ -142,15 +131,6 @@ export const USUARIOS = [
     disponivel: "será aqui que você convida usuários, ativa e desativa acessos e redefine senhas.",
     icone: "users",
     tom: "blue",
-  },
-  {
-    id: "relatorios-admin",
-    rotulo: "Relatórios Admin",
-    detalhe: "Relatórios executivos e auditoria de acesso",
-    icone: "metrics",
-    tom: "blue",
-    // A tela de Relatórios já reúne os relatórios de sistema.
-    href: "/relatorios",
   },
   {
     id: "sessoes-presenca",

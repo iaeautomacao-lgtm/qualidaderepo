@@ -11,6 +11,7 @@ import {
 import {
   formatarBytes,
   formatarCategoria,
+  codigoAnaliseIa,
   formatarDataHora,
   formatarDataIso,
   formatarDuracao,
@@ -35,6 +36,8 @@ const STATUS_CRITERIO = {
   nao_conforme: "Não Conforme",
   nao_aplicavel: "Não Aplicável",
 };
+
+const FORMULARIO_IA_LIVRE = "Ficha genérica de atendimento (análise livre)";
 
 /**
  * Rótulos legíveis das respostas que o sistema já conhece.
@@ -205,28 +208,13 @@ export async function listarAvaliacoes({ limit = 100, offset = 0 } = {}) {
     return [];
   }
 
-  return rows.map((row) => ({
-    id: row.codigo,
-    avaliado: row.avaliado,
-    avaliador: row.avaliador,
-    supervisor: row.supervisor || "N/A",
-    campanha: row.campanha || "Sem campanha",
-    departamento: row.cliente,
-    categoria: formatarCategoria(row.categoria),
-    score: formatarScore(row.score),
-    data: formatarDataIso(row.data_avaliacao),
-    hora: formatarHora(row.data_avaliacao),
-    dataContato: formatarDataIso(row.data_contato),
-    horaContato: formatarHora(row.data_contato),
-    duracao: formatarDuracao(row.duracao_segundos),
-    duracaoAudio: formatarDuracao(row.duracao_segundos),
-    codGravacao: row.cod_gravacao || "N/A",
-    campos: Number(row.total_criterios ?? 0),
-    statusFeedback: STATUS_FEEDBACK[row.status_feedback] || row.status_feedback,
-    formulario: row.formulario,
-    cliente: row.cliente,
-    dataFormatada: formatarDataHora(row.data_avaliacao),
-  }));
+  const oficiais = rows.map(mapearAvaliacaoOficial);
+  const iaLivres = await listarAvaliacoesIaLivres({ limit });
+
+  return [...iaLivres, ...oficiais]
+    .sort((a, b) => b.ordenacao - a.ordenacao)
+    .slice(0, limit)
+    .map(({ ordenacao: _ordenacao, ...item }) => item);
 }
 
 // Colunas da migration 004. Ausentes num banco antigo: cada uma entra no
@@ -261,6 +249,127 @@ function numeroOuNulo(valor) {
   if (valor == null) return null;
   const numero = Number(valor);
   return Number.isFinite(numero) ? numero : null;
+}
+
+function analiseIaDaTranscricao(valor) {
+  const dados = analiseSalva(valor);
+  if (!dados || !Array.isArray(dados.secoes)) return null;
+  return dados;
+}
+
+function resumoTotalCriterios(analise) {
+  const resumo = analise?.resumoConformidade;
+  if (resumo?.total != null) return Number(resumo.total) || 0;
+  return (analise?.secoes || []).reduce(
+    (total, secao) => total + (Array.isArray(secao.criterios) ? secao.criterios.length : 0),
+    0,
+  );
+}
+
+function dataOrdenacao(valor) {
+  const timestamp = Date.parse(String(valor || "").replace(" ", "T"));
+  return Number.isFinite(timestamp) ? timestamp : 0;
+}
+
+function mapearAvaliacaoOficial(row) {
+  return {
+    id: row.codigo,
+    avaliado: row.avaliado,
+    avaliador: row.avaliador,
+    supervisor: row.supervisor || "N/A",
+    campanha: row.campanha || "Sem campanha",
+    departamento: row.cliente,
+    categoria: formatarCategoria(row.categoria),
+    score: formatarScore(row.score),
+    data: formatarDataIso(row.data_avaliacao),
+    hora: formatarHora(row.data_avaliacao),
+    dataContato: formatarDataIso(row.data_contato),
+    horaContato: formatarHora(row.data_contato),
+    duracao: formatarDuracao(row.duracao_segundos),
+    duracaoAudio: formatarDuracao(row.duracao_segundos),
+    codGravacao: row.cod_gravacao || "N/A",
+    campos: Number(row.total_criterios ?? 0),
+    statusFeedback: STATUS_FEEDBACK[row.status_feedback] || row.status_feedback,
+    formulario: row.formulario,
+    cliente: row.cliente,
+    dataFormatada: formatarDataHora(row.data_avaliacao),
+    origem: "avaliacao",
+    href: `/avaliacoes/${encodeURIComponent(row.codigo)}`,
+    ordenacao: dataOrdenacao(row.data_avaliacao),
+  };
+}
+
+async function listarAvaliacoesIaLivres({ limit = 100 } = {}) {
+  try {
+    const rows = await query(
+      `SELECT
+          g.id,
+          g.nome_arquivo,
+          g.duracao_segundos,
+          g.created_at,
+          cl.nome AS cliente,
+          ca.nome AS campanha,
+          t.segmentos_json,
+          t.confianca
+         FROM gravacoes g
+         LEFT JOIN clientes cl ON cl.id = g.cliente_id
+         LEFT JOIN campanhas ca ON ca.id = g.campanha_id
+         JOIN transcricoes t
+           ON t.id = (
+                SELECT MAX(t2.id)
+                  FROM transcricoes t2
+                 WHERE t2.gravacao_id = g.id
+              )
+        WHERE t.status = 'concluida'
+          AND t.segmentos_json IS NOT NULL
+          AND (g.avaliacao_id IS NULL OR g.avaliacao_id = 0)
+        ORDER BY g.created_at DESC, g.id DESC
+        LIMIT :limit`,
+      { limit },
+    );
+
+    return rows
+      .map((row) => {
+        const analise = analiseIaDaTranscricao(row.segmentos_json);
+        if (!analise) return null;
+        const codigo = analise.codigo || codigoAnaliseIa(row.id, row.created_at);
+        const score = numeroOuNulo(analise.nota);
+        const confianca = numeroOuNulo(analise.confianca ?? row.confianca);
+
+        return {
+          id: codigo,
+          avaliado: analise.avaliado || analise.operador || "Monitoria IA",
+          avaliador: "Gemini",
+          supervisor: "Revisão humana pendente",
+          campanha: row.campanha || analise.campanha || "Sem campanha",
+          departamento: row.cliente || analise.carteira || "Monitor IA",
+          categoria: "Monitoria IA",
+          score: formatarScore(score),
+          data: formatarDataIso(row.created_at),
+          hora: formatarHora(row.created_at),
+          dataContato: formatarDataIso(row.created_at),
+          horaContato: formatarHora(row.created_at),
+          duracao: analise.duracao || formatarDuracao(row.duracao_segundos),
+          duracaoAudio: analise.duracao || formatarDuracao(row.duracao_segundos),
+          codGravacao: row.nome_arquivo || codigo,
+          campos: resumoTotalCriterios(analise),
+          statusFeedback: "Aguardando revisão",
+          formulario: analise.formulario || FORMULARIO_IA_LIVRE,
+          cliente: row.cliente || analise.carteira || "Sem carteira",
+          dataFormatada: formatarDataHora(row.created_at),
+          origem: "ia",
+          href: `/transcricoes/${row.id}`,
+          confianca: confianca == null ? null : Math.round(confianca * 100),
+          insights: listaTexto(analise.insights),
+          riscos: listaTexto(analise.riscos),
+          ordenacao: dataOrdenacao(row.created_at),
+        };
+      })
+      .filter(Boolean);
+  } catch (error) {
+    if (isMissingSchemaError(error)) return [];
+    return [];
+  }
 }
 
 /**

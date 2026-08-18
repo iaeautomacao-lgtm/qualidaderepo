@@ -145,6 +145,7 @@ export default function AvaliacoesPage() {
           item.cliente,
           item.campanha,
           item.codGravacao,
+          item.origem,
         ].some((campo) => normalizar(campo).includes(busca))
       ) {
         return false;
@@ -348,7 +349,9 @@ export default function AvaliacoesPage() {
             </div>
           ) : (
             <ul className={styles.lista}>
-              {visiveis.map((item) => (
+              {visiveis.map((item) => {
+                const href = item.href || `/avaliacoes/${item.id}`;
+                return (
                 <li className={styles.cardAvaliacao} key={item.id}>
                   <span className={styles.statusIcone} aria-hidden="true">
                     <Icon name="check" size={22} />
@@ -360,6 +363,7 @@ export default function AvaliacoesPage() {
                         <h3>{item.formulario}</h3>
                         <p>
                           <span className={`score ${tomDoScore(item.score)}`}>Nota: {item.score}</span>
+                          {item.origem === "ia" ? <span className="chip warning">IA</span> : null}
                           <span>ID: {item.id}</span>
                           <button className={styles.copiar} type="button" onClick={() => navigator.clipboard?.writeText(item.id)}>
                             <Icon name="checklist" size={13} label="Copiar ID" />
@@ -371,11 +375,11 @@ export default function AvaliacoesPage() {
                         </span>
                       </div>
                       <div className={styles.acoesCard}>
-                        <Link className="btn" href={`/avaliacoes/${item.id}`}>
+                        <Link className="btn" href={href}>
                           <Icon name="search" size={15} />
                           Visualizar
                         </Link>
-                        <Link className="btn" href={`/avaliacoes/${item.id}`}>
+                        <Link className="btn" href={href}>
                           <Icon name="edit" size={15} />
                           Editar
                         </Link>
@@ -399,7 +403,8 @@ export default function AvaliacoesPage() {
                     </dl>
                   </div>
                 </li>
-              ))}
+              );
+              })}
             </ul>
           )}
         </section>

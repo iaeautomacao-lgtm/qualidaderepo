@@ -39,14 +39,6 @@ const ACOES = [
     tom: "orange",
     href: "/formularios/justificativas",
   },
-  {
-    id: "relatorios",
-    titulo: "Relatórios",
-    detalhe: "Visualize relatórios e análises detalhadas",
-    icon: "metrics",
-    tom: "orange",
-    href: "/relatorios",
-  },
 ];
 
 function normalizar(texto) {
@@ -70,7 +62,7 @@ function formatarData(valor) {
 
 export default function FormulariosPage() {
   const [busca, setBusca] = useState("");
-  const [dados, setDados] = useState({ kpis: null, recentes: [] });
+  const [dados, setDados] = useState({ kpis: null, recentes: [], monitoriasIa: [] });
   const [erro, setErro] = useState("");
 
   useEffect(() => {
@@ -78,18 +70,27 @@ export default function FormulariosPage() {
 
     async function carregarFormularios() {
       try {
-        const resposta = await fetch("/api/formularios", { cache: "no-store" });
-        const payload = await resposta.json().catch(() => null);
-        if (!resposta.ok || !payload?.ok) {
-          throw new Error(payload?.error?.message || "Não foi possível carregar formulários do banco.");
+        const [respostaFormularios, respostaAvaliacoes] = await Promise.all([
+          fetch("/api/formularios", { cache: "no-store" }),
+          fetch("/api/avaliacoes?limit=8", { cache: "no-store" }),
+        ]);
+        const [payloadFormularios, payloadAvaliacoes] = await Promise.all([
+          respostaFormularios.json().catch(() => null),
+          respostaAvaliacoes.json().catch(() => null),
+        ]);
+        if (!respostaFormularios.ok || !payloadFormularios?.ok) {
+          throw new Error(payloadFormularios?.error?.message || "Não foi possível carregar formulários do banco.");
         }
         if (ativo) {
-          setDados(payload.data);
+          setDados({
+            ...payloadFormularios.data,
+            monitoriasIa: respostaAvaliacoes.ok && payloadAvaliacoes?.ok ? payloadAvaliacoes.data.avaliacoes || [] : [],
+          });
           setErro("");
         }
       } catch (error) {
         if (ativo) {
-          setDados({ kpis: null, recentes: [] });
+          setDados({ kpis: null, recentes: [], monitoriasIa: [] });
           setErro(error.message);
         }
       }
@@ -142,6 +143,17 @@ export default function FormulariosPage() {
     if (!termo) return dados.recentes;
     return dados.recentes.filter((form) => normalizar(form.nome).includes(termo));
   }, [busca, dados.recentes]);
+
+  const monitoriasFiltradas = useMemo(() => {
+    const termo = normalizar(busca);
+    const monitorias = dados.monitoriasIa || [];
+    if (!termo) return monitorias;
+    return monitorias.filter((item) =>
+      [item.id, item.formulario, item.cliente, item.campanha, item.codGravacao].some((campo) =>
+        normalizar(campo || "").includes(termo),
+      ),
+    );
+  }, [busca, dados.monitoriasIa]);
 
   return (
     <AppShell active="Formulários" breadcrumb="Qualidade > Formulários">
@@ -274,6 +286,55 @@ export default function FormulariosPage() {
             </span>
             <h3>Nenhum Formulário encontrado</h3>
             <p>Nada corresponde a “{busca}”.</p>
+          </div>
+        )}
+      </section>
+
+      <section className="card pad" aria-labelledby="monitorias-ia-recentes">
+        <div className={`section-head ${styles.cabecalhoComBotao}`}>
+          <div>
+            <h2 id="monitorias-ia-recentes">Monitorias IA recentes</h2>
+            <p>Análises geradas por upload, já disponíveis para revisão e gestão</p>
+          </div>
+          <Link className="btn" href="/avaliacoes">
+            <Icon name="checklist" size={16} />
+            Ver avaliações
+          </Link>
+        </div>
+
+        {monitoriasFiltradas.length > 0 ? (
+          <ul className={styles.formList}>
+            {monitoriasFiltradas.map((item) => (
+              <li key={item.id}>
+                <Link className={styles.formRow} href={item.href || `/avaliacoes/${item.id}`}>
+                  <span className={styles.formIcone}>
+                    <Icon name="sparkles" size={18} />
+                  </span>
+                  <span className={styles.formMain}>
+                    <strong>{item.codGravacao || item.id}</strong>
+                    <span>
+                      <span className="chip warning">IA</span>
+                      <span>{item.cliente}</span>
+                      <span>{item.campanha}</span>
+                      <span>{item.dataFormatada}</span>
+                    </span>
+                  </span>
+                  <span className={styles.linhaFim}>
+                    <strong>Nota {item.score}</strong>
+                    {item.confianca != null ? <span className="chip success">{item.confianca}% confiança</span> : null}
+                    <Icon name="chevronRight" size={16} />
+                  </span>
+                </Link>
+              </li>
+            ))}
+          </ul>
+        ) : (
+          <div className="empty-state">
+            <span className="icon-badge">
+              <Icon name="sparkles" size={20} />
+            </span>
+            <h3>Nenhuma monitoria IA encontrada</h3>
+            <p>As análises aparecem aqui depois que o upload é processado com o Gemini.</p>
           </div>
         )}
       </section>

@@ -159,8 +159,8 @@ export default function MonitorIaPage() {
               <h2 id="monitores-recentes">Monitores IA Recentes</h2>
               <p>Selecione um monitor para ações rápidas</p>
             </div>
-            <Link className="btn ghost" href="/relatorios">
-              Ver relatórios
+            <Link className="btn ghost" href="/">
+              Ver dashboard
               <Icon name="chevronRight" size={16} />
             </Link>
           </div>
@@ -250,12 +250,12 @@ export default function MonitorIaPage() {
               <strong>Avaliações IA</strong>
               <span>Ver resultados criados</span>
             </Link>
-            <Link className="quick-action compact" href="/relatorios">
+            <Link className="quick-action compact" href="/">
               <span className="icon-badge" aria-hidden="true">
                 <Icon name="metrics" size={18} />
               </span>
-              <strong>Relatórios</strong>
-              <span>Acompanhar base IA</span>
+              <strong>Dashboard</strong>
+              <span>Acompanhar indicadores IA</span>
             </Link>
             <Link className="quick-action compact" href="/transcricoes">
               <span className="icon-badge" aria-hidden="true">

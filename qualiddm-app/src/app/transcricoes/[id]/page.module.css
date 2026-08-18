@@ -224,6 +224,93 @@
   font-weight: var(--fw-semibold);
 }
 
+/* --- leitura executiva --------------------------------------------------- */
+
+.executivo {
+  display: grid;
+  gap: var(--sp-4);
+}
+
+.gradeExecutiva,
+.gradeGestao {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: var(--sp-4);
+}
+
+.gradeExecutiva article,
+.achados {
+  display: grid;
+  align-content: start;
+  gap: var(--sp-3);
+  min-width: 0;
+  padding: var(--sp-4);
+  border: 1px solid var(--line);
+  border-radius: var(--r-md);
+  background: var(--surface-2);
+}
+
+.gradeExecutiva h3,
+.achados h3 {
+  display: flex;
+  align-items: center;
+  gap: var(--sp-2);
+  font-size: var(--fs-300);
+  font-weight: var(--fw-semibold);
+}
+
+.gradeExecutiva p,
+.achados p,
+.achados span {
+  color: var(--text-soft);
+  font-size: var(--fs-200);
+  line-height: var(--lh-normal);
+}
+
+.resumoExecutivo {
+  display: grid;
+  gap: var(--sp-2);
+  padding: var(--sp-3);
+  border: 1px solid var(--line);
+  border-radius: var(--r-md);
+  background: var(--surface-muted);
+}
+
+.resumoExecutivo li {
+  color: var(--text-soft);
+  font-size: var(--fs-200);
+  line-height: var(--lh-normal);
+}
+
+.achados ul {
+  display: grid;
+  gap: var(--sp-3);
+}
+
+.achados li {
+  display: grid;
+  gap: var(--sp-1);
+  padding-left: var(--sp-3);
+  border-left: 2px solid var(--line);
+}
+
+.achados strong {
+  font-size: var(--fs-200);
+  font-weight: var(--fw-semibold);
+}
+
+.achadosdanger li {
+  border-left-color: var(--danger);
+}
+
+.achadossuccess li {
+  border-left-color: var(--success);
+}
+
+.achadoswarning li {
+  border-left-color: var(--warning);
+}
+
 /* --- seções e critérios -------------------------------------------------- */
 
 .secoes {
@@ -352,6 +439,11 @@
 @media (max-width: 1200px) {
   .corpo,
   .esqueletoCorpo {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .gradeExecutiva,
+  .gradeGestao {
     grid-template-columns: minmax(0, 1fr);
   }
 

@@ -27,6 +27,41 @@
   gap: var(--sp-5);
 }
 
+.leitura {
+  display: grid;
+  gap: var(--sp-4);
+}
+
+.leituraGrid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: var(--sp-4);
+}
+
+.leituraGrid article {
+  display: grid;
+  gap: var(--sp-2);
+  min-width: 0;
+  padding: var(--sp-4);
+  border: 1px solid var(--line);
+  border-radius: var(--r-md);
+  background: var(--surface-2);
+}
+
+.leituraGrid svg {
+  color: var(--accent);
+}
+
+.leituraGrid strong {
+  font-size: var(--fs-300);
+}
+
+.leituraGrid span {
+  color: var(--text-soft);
+  font-size: var(--fs-200);
+  line-height: var(--lh-normal);
+}
+
 /* Grade de duas faixas (cabeçalho + corpo) para o corpo poder ocupar a altura
    sobrando quando o cartão vizinho for mais alto. */
 .cartao,
@@ -406,6 +441,64 @@
   font-variant-numeric: tabular-nums;
 }
 
+.listaEstrategica,
+.listaCarteiras,
+.monitoriasRecentes {
+  display: grid;
+  gap: var(--sp-2);
+  min-width: 0;
+}
+
+.listaEstrategica a,
+.monitoriasRecentes a,
+.listaCarteiras li {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--sp-3);
+  min-width: 0;
+  padding: var(--sp-3);
+  border: 1px solid var(--line);
+  border-radius: var(--r-sm);
+  background: var(--surface-2);
+}
+
+.monitoriasRecentes a {
+  justify-content: flex-start;
+}
+
+.listaEstrategica span:first-child,
+.listaCarteiras span,
+.monitoriasRecentes span:nth-child(2) {
+  display: grid;
+  gap: 2px;
+  min-width: 0;
+}
+
+.listaEstrategica strong,
+.listaCarteiras strong,
+.monitoriasRecentes strong {
+  overflow: hidden;
+  font-size: var(--fs-200);
+  font-weight: var(--fw-semibold);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.listaEstrategica small,
+.listaCarteiras small,
+.monitoriasRecentes small {
+  overflow: hidden;
+  color: var(--text-muted);
+  font-size: var(--fs-100);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.monitoriasRecentes :global(.score) {
+  margin-left: auto;
+}
+
 /* ==========================================================================
    Responsivo — abaixo de 1200px a garantia de "sem rolagem" cai por terra de
    propósito: o conteúdo empilha e a página rola como qualquer outra.
@@ -416,7 +509,8 @@
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 
-  .gradePrincipal {
+  .gradePrincipal,
+  .leituraGrid {
     grid-template-columns: minmax(0, 1fr);
   }
 }
