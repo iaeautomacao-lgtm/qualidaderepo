@@ -1,4 +1,5 @@
-import { isMissingSchemaError, one, paraLike, query } from "../db";
+import { isMissingSchemaError, one, paraLike, query, transaction } from "../db";
+import { notFound } from "../errors";
 import { formatarDataHora, formatarDataIso, formatarHora, inteiro } from "../format";
 
 // Os 5 cards da tela de Feedback particionam o total: na captura de
@@ -256,6 +257,77 @@ export async function listarFeedbacks({
     if (isMissingSchemaError(error)) return vazio(limit, offset);
     return vazio(limit, offset);
   }
+}
+
+export const TIPOS_FEEDBACK = ["elogio", "orientacao", "alerta"];
+export const ACOES_FEEDBACK = ["aplicar", "justificar"];
+
+// Mínimo que o print da ficha cobra no contador "0 / 20 caracteres". Fica aqui,
+// junto da escrita, para a rota e a validação usarem o mesmo número.
+export const MIN_CARACTERES_MENSAGEM = 20;
+
+const STATUS_POR_ACAO = { aplicar: "concluida", justificar: "justificada" };
+
+/**
+ * Registra o feedback global de uma avaliação e move o status da ficha.
+ *
+ * Uma transação só: gravar o feedback sem mover `avaliacoes.status_feedback`
+ * deixaria a tela de Feedback contando a ficha como pendente para sempre, e o
+ * contrário mostraria ficha concluída sem texto nenhum.
+ *
+ * UPSERT porque `feedbacks` tem UNIQUE por avaliação — reenviar o formulário
+ * corrige o texto em vez de estourar ER_DUP_ENTRY.
+ */
+export async function registrarFeedbackAvaliacao({ codigo, tipo, mensagem, acao, autorId }) {
+  const status = STATUS_POR_ACAO[acao];
+  if (!status) throw notFound("Ação de feedback desconhecida.");
+
+  return transaction(async (connection) => {
+    const [fichas] = await connection.execute(
+      `SELECT id, status_feedback
+         FROM avaliacoes
+        WHERE codigo = :codigo
+          AND excluida_em IS NULL
+        LIMIT 1`,
+      { codigo },
+    );
+
+    if (fichas.length === 0) throw notFound("Avaliação não encontrada.");
+    const avaliacaoId = fichas[0].id;
+    const statusAnterior = fichas[0].status_feedback;
+
+    // `tipo` só entra no INSERT se a migration 004 já rodou: num banco sem a
+    // coluna o feedback ainda tem de ser gravado.
+    const [colunas] = await connection.execute("SHOW COLUMNS FROM feedbacks LIKE 'tipo'");
+    const temTipo = colunas.length > 0;
+
+    await connection.execute(
+      `INSERT INTO feedbacks (avaliacao_id, autor_id, aplicado_por_id, status, mensagem, aplicado_em
+                              ${temTipo ? ", tipo" : ""})
+       VALUES (:avaliacaoId, :autorId, :autorId, :status, :mensagem,
+               ${acao === "aplicar" ? "CURRENT_TIMESTAMP" : "NULL"}
+               ${temTipo ? ", :tipo" : ""})
+       ON DUPLICATE KEY UPDATE
+         autor_id = VALUES(autor_id),
+         aplicado_por_id = VALUES(aplicado_por_id),
+         status = VALUES(status),
+         mensagem = VALUES(mensagem),
+         aplicado_em = VALUES(aplicado_em)
+         ${temTipo ? ", tipo = VALUES(tipo)" : ""}`,
+      temTipo
+        ? { avaliacaoId, autorId, status, mensagem, tipo }
+        : { avaliacaoId, autorId, status, mensagem },
+    );
+
+    await connection.execute(
+      `UPDATE avaliacoes
+          SET status_feedback = :status
+        WHERE id = :avaliacaoId`,
+      { avaliacaoId, status },
+    );
+
+    return { avaliacaoId: String(avaliacaoId), status, statusAnterior };
+  });
 }
 
 // Cores e prazos que a tela usa nos badges. Vêm do banco porque a tela

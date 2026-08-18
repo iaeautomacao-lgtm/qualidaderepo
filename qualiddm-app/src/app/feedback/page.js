@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { useState } from "react";
 import AppShell from "@/components/AppShell";
 import BotaoCopiar from "@/components/BotaoCopiar";
@@ -453,6 +454,7 @@ export default function FeedbackPage() {
                     <th scope="col">Cliente</th>
                     <th scope="col">Campanha</th>
                     <th scope="col">Cód. gravação</th>
+                    <th scope="col">Ações</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -463,7 +465,17 @@ export default function FeedbackPage() {
                       <tr key={item.id}>
                         <th scope="row">
                           <span className="cell-id">
-                            {item.id}
+                            {/* O ID abre a ficha de monitoria. No QualiTalk a ficha
+                                é um modal sobre esta lista; aqui é a página
+                                /avaliacoes/[id], que já existe e mantém deep-link,
+                                histórico e impressão. `voltar` traz o rodapé de
+                                volta para cá. */}
+                            <Link
+                              className="table-link"
+                              href={`/avaliacoes/${encodeURIComponent(item.id)}?voltar=feedback`}
+                            >
+                              {item.id}
+                            </Link>
                             <BotaoCopiar valor={item.id} />
                           </span>
                         </th>
@@ -480,6 +492,18 @@ export default function FeedbackPage() {
                         <td>{item.cliente}</td>
                         <td>{item.campanha}</td>
                         <td>{item.codGravacao}</td>
+                        <td>
+                          {/* Rótulo com o ID: numa tabela de 50 linhas, 50 links
+                              chamados "Ver ficha" não dizem nada em leitor de tela. */}
+                          <Link
+                            className={`btn ghost ${styles.acaoLinha}`}
+                            href={`/avaliacoes/${encodeURIComponent(item.id)}?voltar=feedback`}
+                          >
+                            <Icon name="review" size={15} />
+                            Ver ficha
+                            <span className="sr-only"> da monitoria {item.id}</span>
+                          </Link>
+                        </td>
                       </tr>
                     );
                   })}

@@ -1,0 +1,223 @@
+.painel {
+  display: grid;
+  align-content: start;
+  gap: var(--sp-4);
+}
+
+/* Altura fixa com rolagem própria: o histórico cresce sem empurrar o resto da
+   página, e o campo de pergunta nunca sai da tela. */
+.log {
+  display: grid;
+  gap: var(--sp-3);
+  min-height: 180px;
+  max-height: 420px;
+  overflow-y: auto;
+  overscroll-behavior-y: contain;
+  padding: var(--sp-3);
+  border: 1px solid var(--line);
+  border-radius: var(--r-md);
+  background: var(--surface-2);
+}
+
+.mensagem {
+  display: grid;
+  gap: var(--sp-2);
+  max-width: 94%;
+  padding: var(--sp-3);
+  border: 1px solid var(--line);
+  border-radius: var(--r-md);
+  background: var(--surface);
+}
+
+.mensagem[data-autor="usuario"] {
+  justify-self: end;
+  border-color: var(--accent-soft-strong);
+  border-bottom-right-radius: var(--r-xs);
+  background: var(--accent-soft);
+}
+
+.mensagem[data-autor="ia"] {
+  justify-self: start;
+  border-bottom-left-radius: var(--r-xs);
+}
+
+/* A abertura é instrução do sistema, não resposta: fica visivelmente mais leve
+   para ninguém confundir com algo que a IA "descobriu" na gravação. */
+.mensagem[data-abertura="true"] {
+  max-width: 100%;
+  border-style: dashed;
+  background: var(--surface-2);
+}
+
+.autor {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--sp-1);
+  color: var(--text-muted);
+  font-size: var(--fs-100);
+  font-weight: var(--fw-semibold);
+  letter-spacing: var(--tracking-label);
+  text-transform: uppercase;
+}
+
+.texto {
+  font-size: var(--fs-200);
+  line-height: var(--lh-normal);
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+
+.evidencias {
+  display: grid;
+  gap: var(--sp-2);
+  padding: var(--sp-3);
+  border-radius: var(--r-sm);
+  background: var(--surface-3);
+}
+
+.evidenciasTitulo {
+  display: flex;
+  align-items: center;
+  gap: var(--sp-1);
+  color: var(--text-soft);
+  font-size: var(--fs-100);
+  font-weight: var(--fw-semibold);
+  letter-spacing: var(--tracking-label);
+  text-transform: uppercase;
+}
+
+.evidencia {
+  display: grid;
+  gap: var(--sp-1);
+  margin: 0;
+  padding-left: var(--sp-3);
+  border-left: 3px solid var(--line-strong);
+  font-size: var(--fs-200);
+  font-style: italic;
+  line-height: var(--lh-normal);
+}
+
+.evidencia cite {
+  color: var(--text-muted);
+  font-size: var(--fs-100);
+  font-style: normal;
+  font-weight: var(--fw-semibold);
+}
+
+.semBase {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--sp-2);
+  color: var(--warning-text);
+  font-size: var(--fs-100);
+  line-height: var(--lh-snug);
+}
+
+.semBase > svg {
+  flex: 0 0 auto;
+  margin-top: 2px;
+}
+
+.sugestoesIniciais {
+  display: grid;
+  gap: var(--sp-2);
+}
+
+.sugestoes {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--sp-2);
+}
+
+/* Alvo de toque: 36px de altura com padding vertical dá área confortável sem
+   virar botão de formulário — são atalhos, não a ação principal do painel. */
+.sugestao {
+  min-height: 36px;
+  padding: var(--sp-2) var(--sp-3);
+  border: 1px solid var(--line-strong);
+  border-radius: var(--r-pill);
+  background: var(--surface);
+  color: var(--text-soft);
+  font-size: var(--fs-200);
+  text-align: left;
+  transition: border-color var(--dur) var(--ease), background var(--dur) var(--ease),
+    color var(--dur) var(--ease);
+}
+
+.sugestao:hover:not(:disabled) {
+  border-color: var(--accent-soft-strong);
+  background: var(--accent-soft);
+  color: var(--accent-deep);
+}
+
+.sugestao:disabled {
+  color: var(--text-muted);
+}
+
+.formulario {
+  display: grid;
+  gap: var(--sp-3);
+}
+
+.campo {
+  min-height: 64px;
+}
+
+.formulario :global(.btn) {
+  justify-self: end;
+}
+
+/* Três pontos pulsando — o único sinal de que a IA está trabalhando; o texto
+   equivalente vai no .sr-only ao lado, para leitor de tela. */
+.digitando {
+  display: flex;
+  align-items: center;
+  gap: var(--sp-1);
+  height: 20px;
+}
+
+.digitando > span[aria-hidden] {
+  width: 6px;
+  height: 6px;
+  border-radius: var(--r-pill);
+  background: var(--accent);
+  animation: chat-pulso 1s var(--ease) infinite;
+}
+
+.digitando > span[aria-hidden]:nth-child(2) {
+  animation-delay: 0.15s;
+}
+
+.digitando > span[aria-hidden]:nth-child(3) {
+  animation-delay: 0.3s;
+}
+
+@keyframes chat-pulso {
+  0%,
+  60%,
+  100% {
+    opacity: 0.35;
+    transform: translateY(0);
+  }
+  30% {
+    opacity: 1;
+    transform: translateY(-3px);
+  }
+}
+
+@media (max-width: 640px) {
+  .mensagem {
+    max-width: 100%;
+  }
+
+  .formulario :global(.btn) {
+    justify-self: stretch;
+  }
+}
+
+/* Conversa com a IA não faz parte do documento oficial da monitoria. */
+@media print {
+  .painel {
+    display: none;
+  }
+}

@@ -1,6 +1,8 @@
 import { isMissingSchemaError, one, paraLike, query, transaction } from "../db";
 import { notFound } from "../errors";
-import { formatarDataHora, formatarDuracao, inteiro } from "../format";
+import { codigoAnaliseIa, formatarDataHora, formatarDuracao, inteiro } from "../format";
+import { arquivoExiste } from "../services/arquivo-storage";
+import { FORMULARIO_ANALISE_LIVRE } from "../services/avaliacao-ia";
 
 export const STATUS_TRANSCRICAO = [
   "nao_solicitada",
@@ -201,6 +203,8 @@ export async function obterTranscricao(gravacaoId) {
 
   if (!gravacao) throw notFound("Gravação não encontrada.");
 
+  const audioDisponivel = await arquivoExiste(gravacao.storage_path);
+
   return {
     id: String(gravacao.id),
     arquivo: gravacao.nome_arquivo,
@@ -212,6 +216,9 @@ export async function obterTranscricao(gravacaoId) {
     cliente: gravacao.cliente || null,
     campanha: gravacao.campanha || null,
     armazenada: Boolean(gravacao.storage_path),
+    // Rota autenticada com suporte a Range; `null` quando o arquivo não está no
+    // armazenamento, para a tela não montar um player que não toca.
+    audioUrl: audioDisponivel ? `/api/gravacoes/${gravacao.id}/audio` : null,
     transcricao: gravacao.transcricao_id
       ? {
           id: String(gravacao.transcricao_id),
@@ -222,10 +229,56 @@ export async function obterTranscricao(gravacaoId) {
           confianca: gravacao.confianca == null ? null : Number(gravacao.confianca),
           erro: gravacao.erro_mensagem,
           texto: gravacao.texto || "",
-          segmentos: parseSegmentos(gravacao.segmentos_json),
+          segmentos: completarAnalise(parseSegmentos(gravacao.segmentos_json), gravacao),
           geradaEm: formatarDataHora(gravacao.transcricao_em),
         }
       : null,
+  };
+}
+
+/**
+ * Preenche os campos de cabeçalho da análise IA que a tela de detalhes exige.
+ *
+ * Análises gravadas antes desses campos existirem não têm `codigo`, `persona`,
+ * `formulario` nem `duracao` dentro do JSON. Derivar aqui evita reprocessar
+ * gravação antiga só para a tela abrir — e nunca sobrescreve o que o modelo
+ * mandou.
+ */
+function completarAnalise(analise, gravacao) {
+  if (!analise) return null;
+
+  return {
+    ...analise,
+    codigo: analise.codigo || codigoAnaliseIa(gravacao.id, gravacao.created_at),
+    persona: analise.persona || analise.carteira || gravacao.cliente || null,
+    formulario: analise.formulario || FORMULARIO_ANALISE_LIVRE,
+    duracao: analise.duracao || formatarDuracao(gravacao.duracao_segundos),
+  };
+}
+
+/** Ponteiro do arquivo de uma gravação, para a rota que serve o áudio. */
+export async function obterArquivoGravacao(gravacaoId) {
+  let gravacao;
+  try {
+    gravacao = await one(
+      `SELECT nome_arquivo, storage_path, mime_type
+         FROM gravacoes
+        WHERE id = :gravacaoId
+        LIMIT 1`,
+      { gravacaoId },
+    );
+  } catch (error) {
+    if (isMissingSchemaError(error)) throw notFound("Gravação não encontrada.");
+    throw error;
+  }
+
+  if (!gravacao) throw notFound("Gravação não encontrada.");
+  if (!gravacao.storage_path) throw notFound("Esta gravação não tem arquivo armazenado.");
+
+  return {
+    caminho: gravacao.storage_path,
+    nome: gravacao.nome_arquivo,
+    mimeType: gravacao.mime_type,
   };
 }
 

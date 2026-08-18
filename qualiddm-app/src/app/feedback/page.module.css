@@ -188,10 +188,25 @@
   margin-bottom: var(--sp-4);
 }
 
-/* Nove colunas não cabem em tela estreita: abaixo desta largura o contêiner
+/* Dez colunas não cabem em tela estreita: abaixo desta largura o contêiner
    .table-scroll assume a rolagem horizontal, e a página nunca rola de lado. */
 .tabela {
-  min-width: 1180px;
+  min-width: 1300px;
+}
+
+/* Ação por linha: mais baixa que o .btn padrão (44px deixaria cada linha da
+   tabela com 60px e mataria a densidade que a lista precisa), mas ainda acima
+   do alvo mínimo do WCAG 2.2 (24x24).
+   O seletor é aninhado em .tabela para ganhar de `.btn` de globals.css por
+   especificidade, e não por ordem de injeção do CSS — que não é garantida. */
+.tabela .acaoLinha {
+  min-height: 32px;
+  padding-inline: var(--sp-3);
+  font-size: var(--fs-200);
+}
+
+.tabela .acaoLinha:hover {
+  color: var(--accent-strong);
 }
 
 .tabela td,

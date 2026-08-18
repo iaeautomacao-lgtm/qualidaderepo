@@ -15,7 +15,9 @@
 -- Feedback / Contestações / Transcrições / Administração / Relatórios,
 -- NÃO use este arquivo: rode
 -- `database/migrations/003_telas_operacao_ia_admin.sql`, que faz a mudança
--- sem apagar nada.
+-- sem apagar nada. Para as evidências da IA na ficha, os anexos por critério e
+-- o tipo de feedback, rode em seguida
+-- `database/migrations/004_ficha_ia_evidencias_e_anexos.sql`.
 --
 -- Requer MySQL 8.0.16+ ou MariaDB 10.2+ (por causa da restrição CHECK na
 -- tabela formulario_criterios). Se o servidor for mais antigo e acusar erro
@@ -53,6 +55,7 @@ DROP TABLE IF EXISTS feedbacks;
 DROP TABLE IF EXISTS avaliacao_edicoes;
 DROP TABLE IF EXISTS transcricoes;
 DROP TABLE IF EXISTS gravacoes;
+DROP TABLE IF EXISTS avaliacao_resposta_anexos;
 DROP TABLE IF EXISTS avaliacao_respostas;
 DROP TABLE IF EXISTS avaliacoes;
 DROP TABLE IF EXISTS justificativa_motivos;
@@ -525,6 +528,9 @@ CREATE TABLE avaliacoes (
   -- Código que aparece na tela: QA-26-000541
   codigo VARCHAR(20) NOT NULL,
   cod_gravacao VARCHAR(60) NULL,
+  -- CPF do CLIENTE atendido ("Cabeçalho da Ficha → CPF"), não do operador
+  -- avaliado: o sistema não cadastra o cliente final.
+  cpf_cliente VARCHAR(20) NULL,
   cliente_id BIGINT UNSIGNED NOT NULL,
   campanha_id BIGINT UNSIGNED NULL,
   formulario_id BIGINT UNSIGNED NOT NULL,
@@ -537,6 +543,18 @@ CREATE TABLE avaliacoes (
   -- /api/analyze). É o recorte do relatório "Base de Monitoria IA".
   -- `avaliador_id` continua apontando para o usuário responsável.
   origem ENUM('humana','ia') NOT NULL DEFAULT 'humana',
+  -- Cabeçalho da ficha gerada por IA. `ia_modelo` é guardado porque a mesma
+  -- ficha reavaliada com outro modelo dá outra nota, e a auditoria precisa
+  -- saber qual respondeu. `ia_analise_json` guarda o que não tem coluna própria
+  -- e a tela lê em bloco (insights, riscos, próximos passos, transcrição com
+  -- falantes, instante da geração) — texto serializado, não JSON nativo, pelo
+  -- mesmo motivo de `transcricoes.segmentos_json`.
+  ia_persona VARCHAR(160) NULL,
+  ia_modelo VARCHAR(120) NULL,
+  ia_confianca DECIMAL(5,4) NULL,
+  ia_resumo TEXT NULL,
+  ia_observacoes TEXT NULL,
+  ia_analise_json LONGTEXT NULL,
   score DECIMAL(6,2) NULL,
   zerada TINYINT(1) NOT NULL DEFAULT 0,
   quadrante ENUM('1Q','2Q','3Q','4Q','5Q') NULL,
@@ -603,10 +621,22 @@ CREATE TABLE avaliacao_respostas (
   id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
   avaliacao_id BIGINT UNSIGNED NOT NULL,
   criterio_id BIGINT UNSIGNED NOT NULL,
-  resposta ENUM('sim','nao') NULL,
+  -- Rótulo EXIBIDO da resposta, não a regra: além de 'sim'/'nao' a operação usa
+  -- 'diagnostico' (não penaliza) e rótulos de opção próprios por carteira. Quem
+  -- decide conforme / não conforme / não aplicável é `status`, abaixo. A lista
+  -- de valores aceitos fica na aplicação (`RESPOSTAS_CONHECIDAS`, em
+  -- src/server/repositories/avaliacoes.js).
+  resposta VARCHAR(40) NULL,
   status ENUM('conforme','nao_conforme','nao_aplicavel') NOT NULL,
   peso_aplicado DECIMAL(6,2) NULL,
   observacao_monitor TEXT NULL,
+  -- `ia_evidencia` é o trecho citado do atendimento: é o que transforma
+  -- "não conforme" em algo que uma pessoa consegue contestar. `ia_raciocinio` é
+  -- a explicação do modelo, espelhada em `observacao_monitor` enquanto ninguém
+  -- editou a observação — o relatório de Justificativas lê aquela coluna.
+  ia_evidencia TEXT NULL,
+  ia_confianca DECIMAL(5,4) NULL,
+  ia_raciocinio TEXT NULL,
   PRIMARY KEY (id),
   UNIQUE KEY uq_avaliacao_respostas (avaliacao_id, criterio_id),
   KEY idx_avaliacao_respostas_criterio (criterio_id),
@@ -614,6 +644,26 @@ CREATE TABLE avaliacao_respostas (
     FOREIGN KEY (avaliacao_id) REFERENCES avaliacoes(id) ON DELETE CASCADE,
   CONSTRAINT fk_avaliacao_respostas_criterio
     FOREIGN KEY (criterio_id) REFERENCES formulario_criterios(id)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- Anexos de apoio de um critério (print, e-mail, áudio). O arquivo em si fica
+-- na raiz de UPLOAD_STORAGE_DIR; a tabela guarda só o ponteiro, e o download
+-- confere se o caminho resolvido continua dentro daquela raiz.
+CREATE TABLE avaliacao_resposta_anexos (
+  id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
+  resposta_id BIGINT UNSIGNED NOT NULL,
+  nome_arquivo VARCHAR(255) NOT NULL,
+  storage_path VARCHAR(500) NOT NULL,
+  mime_type VARCHAR(120) NULL,
+  tamanho_bytes BIGINT UNSIGNED NULL,
+  enviado_por_id BIGINT UNSIGNED NULL,
+  created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  PRIMARY KEY (id),
+  KEY idx_anexos_resposta (resposta_id),
+  CONSTRAINT fk_anexos_resposta FOREIGN KEY (resposta_id)
+    REFERENCES avaliacao_respostas(id) ON DELETE CASCADE,
+  CONSTRAINT fk_anexos_usuario FOREIGN KEY (enviado_por_id)
+    REFERENCES users(id) ON DELETE SET NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 -- ---------------------------------------------------------------------------
@@ -736,6 +786,9 @@ CREATE TABLE feedbacks (
   aplicado_por_id BIGINT UNSIGNED NULL,
   status ENUM('pendente','assinatura','concluida','justificada','revisao','dispensado')
     NOT NULL DEFAULT 'pendente',
+  -- Tom do feedback registrado na ficha. Coluna própria para não contaminar o
+  -- texto que o operado assina.
+  tipo ENUM('elogio','orientacao','alerta') NULL,
   mensagem TEXT NULL,
   prazo DATE NULL,
   aplicado_em DATETIME NULL,

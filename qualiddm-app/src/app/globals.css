@@ -2280,31 +2280,8 @@ tr:hover .copy-id,
   font-size: var(--fs-hero);
 }
 
-/* --- player ------------------------------------------------------------- */
-
-.audio-player {
-  display: grid;
-  gap: var(--sp-4);
-}
-
-.audio-player audio {
-  width: 100%;
-}
-
-.wave {
-  display: flex;
-  align-items: flex-end;
-  gap: 3px;
-  height: 72px;
-}
-
-.wave span {
-  flex: 1 1 0;
-  min-width: 3px;
-  height: var(--h, 20%);
-  border-radius: var(--r-pill);
-  background: var(--orange-300);
-}
+/* O player da gravação tem controles próprios (velocidade 1x/1.5x/2x) e mora
+   em src/components/AudioPlayer.module.css — não há mais primitiva global. */
 
 /* --- transcrição -------------------------------------------------------- */
 
@@ -2685,6 +2662,64 @@ tr:hover .copy-id,
 
   .auth-logo-compact {
     display: block;
+  }
+}
+
+/* ==========================================================================
+   Impressão — "Exportar PDF" da ficha de monitoria chama window.print().
+
+   O papel não tem navegação nem barra de busca: a casca do app sai de cena e a
+   área de trabalho ocupa a folha inteira. Cada tela ajusta o próprio conteúdo
+   no @media print do seu módulo CSS.
+   ========================================================================== */
+
+@media print {
+  body {
+    background: #fff;
+    color: #000;
+    font-size: 11pt;
+  }
+
+  .sidebar,
+  .topbar,
+  .scrim,
+  .skip-link {
+    display: none !important;
+  }
+
+  .desktop-frame {
+    display: block;
+  }
+
+  .main {
+    padding-top: 0;
+  }
+
+  .workspace {
+    max-width: none;
+    gap: var(--sp-4);
+    padding: 0;
+  }
+
+  .card {
+    border-color: #999;
+    box-shadow: none;
+    break-inside: avoid;
+  }
+
+  /* Contêiner com rolagem precisa se abrir no papel, senão a folha mostra só a
+     primeira tela do conteúdo. */
+  .scroll-x,
+  .table-scroll {
+    overflow: visible;
+  }
+
+  .btn {
+    display: none;
+  }
+
+  .chip {
+    border: 1px solid #999;
   }
 }
 

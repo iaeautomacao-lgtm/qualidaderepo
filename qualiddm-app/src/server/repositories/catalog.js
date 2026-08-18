@@ -1,6 +1,7 @@
 import { one, query, transaction } from "../db";
 import { conflict, notFound } from "../errors";
 import { CLIENTES_INICIAIS } from "../catalogo-inicial";
+import { normalizarResposta } from "./avaliacoes";
 
 const OPTIONAL_SCHEMA_ERRORS = new Set(["ER_NO_SUCH_TABLE", "ER_BAD_FIELD_ERROR"]);
 
@@ -53,7 +54,7 @@ function ativoCliente(status) {
 
 function tratarDuplicidadeCliente(error) {
   if (error?.code === "ER_DUP_ENTRY") {
-    throw conflict("JÃ¡ existe um cliente com esse nome.");
+    throw conflict("Já existe um cliente com esse nome.");
   }
   throw error;
 }
@@ -79,7 +80,7 @@ export async function createCliente({ nome, status = "Ativo", contrato = null })
 
 export async function updateCliente(id, { nome, status = "Ativo", contrato = null }) {
   const atual = await one("SELECT id FROM clientes WHERE slug = :id OR id = :id LIMIT 1", { id });
-  if (!atual) throw notFound("Cliente nÃ£o encontrado.");
+  if (!atual) throw notFound("Cliente não encontrado.");
 
   try {
     await query(
@@ -112,7 +113,7 @@ export async function deactivateCliente(id) {
     { id },
   );
 
-  if (result.affectedRows === 0) throw notFound("Cliente nÃ£o encontrado.");
+  if (result.affectedRows === 0) throw notFound("Cliente não encontrado.");
   return getClientesOverview();
 }
 
@@ -348,10 +349,47 @@ function codigoAvaliacao() {
   return `QA-${ano}-${sufixo}`;
 }
 
+// A IA responde em sim/não; "diagnostico" é decisão humana e nunca sai daqui.
+// `normalizarResposta` é a validação de escrita da coluna, que virou VARCHAR na
+// migration 004 e por isso não tem mais ENUM para barrar valor inválido.
 function respostaPorStatus(status) {
-  if (status === "conforme") return "sim";
-  if (status === "nao_conforme") return "nao";
+  if (status === "conforme") return normalizarResposta("sim");
+  if (status === "nao_conforme") return normalizarResposta("nao");
   return null;
+}
+
+/**
+ * Colunas que a migration 004 acrescenta.
+ *
+ * O INSERT é montado com as que existirem: num banco que ainda não rodou a 004
+ * a avaliação por IA tem de continuar gravando o essencial (status, peso, nota)
+ * em vez de falhar inteira. Sem esse cuidado, subir o código antes da migration
+ * derrubaria a única funcionalidade que gera ficha automática.
+ */
+async function colunasPresentes(connection, tabela, candidatas) {
+  try {
+    const [rows] = await connection.execute(`SHOW COLUMNS FROM ${tabela}`);
+    const existentes = new Set(rows.map((row) => row.Field));
+    return candidatas.filter((coluna) => existentes.has(coluna));
+  } catch {
+    return [];
+  }
+}
+
+// Texto corrido das "Observações da IA". Quando o modelo não devolve o campo
+// pronto, é montado a partir dos pontos fortes e de desenvolvimento — que é o
+// que a análise sempre produz.
+function observacoesDaIa(resultado) {
+  if (resultado.observacoesIa) return resultado.observacoesIa;
+
+  const blocos = [];
+  const fortes = (resultado.pontosFortes || []).filter(Boolean);
+  const desenvolver = (resultado.pontosDesenvolvimento || []).filter(Boolean);
+  if (fortes.length > 0) blocos.push(`Pontos fortes:\n${fortes.map((item) => `- ${item}`).join("\n")}`);
+  if (desenvolver.length > 0) {
+    blocos.push(`Pontos de desenvolvimento:\n${desenvolver.map((item) => `- ${item}`).join("\n")}`);
+  }
+  return blocos.length > 0 ? blocos.join("\n\n") : null;
 }
 
 export async function createAvaliacaoFromIa({ formulario, resultado, arquivo, avaliadorId }) {
@@ -374,58 +412,112 @@ export async function createAvaliacaoFromIa({ formulario, resultado, arquivo, av
   );
 
   return transaction(async (connection) => {
+    // Tudo que a análise produz além do status por critério. Sem persistir isto
+    // a ficha "Detalhes da Avaliação IA" fica sem Evidência, Confiança e Notas
+    // da IA, e o chat sobre o operador não tem contexto para citar.
+    const valoresIa = {
+      ia_persona: resultado.persona || formulario.cliente || null,
+      ia_modelo: resultado.modelo || null,
+      ia_confianca: resultado.confianca ?? null,
+      ia_resumo: resultado.resumoAtendimento || null,
+      ia_observacoes: observacoesDaIa(resultado),
+      ia_analise_json: JSON.stringify({
+        persona: resultado.persona || formulario.cliente || null,
+        formulario: resultado.formulario || formulario.nome || null,
+        modelo: resultado.modelo || null,
+        resumo: resultado.resumoAtendimento || null,
+        observacoes: observacoesDaIa(resultado),
+        transcricao: resultado.transcricao || null,
+        duracao: resultado.duracao || null,
+        insights: resultado.pontosFortes || [],
+        riscos: resultado.riscos || [],
+        proximosPassos: resultado.pontosDesenvolvimento || [],
+        criteriosSemAvaliacao: resultado.criteriosSemAvaliacao || [],
+        arquivo: arquivo ? { nome: arquivo.nome, mimeType: arquivo.mimeType, tamanho: arquivo.tamanho } : null,
+        geradoEm: resultado.geradoEm || new Date().toISOString(),
+      }),
+      cpf_cliente: resultado.cpfCliente || null,
+    };
+
+    const colunasIa = await colunasPresentes(connection, "avaliacoes", Object.keys(valoresIa));
+    const params = {
+      codigo,
+      codGravacao: arquivo?.nome?.slice(0, 60) || null,
+      clienteId: formulario.cliente_id,
+      campanhaId: formulario.campanha_id || null,
+      formularioId: formulario.id,
+      avaliadoId: avaliado.id,
+      avaliadorId,
+      categoria: formulario.categoria || "padrao",
+      score: resultado.resumo.score,
+      zerada: resultado.resumo.zerada ? 1 : 0,
+      audioPath: arquivo?.storagePath || arquivo?.nome || null,
+      conformes: resultado.resumo.conforme,
+      naoConformes: resultado.resumo.nao_conforme,
+      naoAplicaveis: resultado.resumo.nao_aplicavel,
+      total: resultado.resumo.total,
+    };
+    for (const coluna of colunasIa) params[coluna] = valoresIa[coluna];
+
     const [insert] = await connection.execute(
       `INSERT INTO avaliacoes (
           codigo, cod_gravacao, cliente_id, campanha_id, formulario_id,
           avaliado_id, avaliador_id, categoria, origem, score, zerada,
           audio_path, data_contato, data_avaliacao, status_feedback,
           total_conformes, total_nao_conformes, total_nao_aplicaveis, total_criterios
+          ${colunasIa.map((coluna) => `, ${coluna}`).join("")}
        ) VALUES (
           :codigo, :codGravacao, :clienteId, :campanhaId, :formularioId,
           :avaliadoId, :avaliadorId, :categoria, 'ia', :score, :zerada,
           :audioPath, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP, 'pendente',
           :conformes, :naoConformes, :naoAplicaveis, :total
+          ${colunasIa.map((coluna) => `, :${coluna}`).join("")}
        )`,
-      {
-        codigo,
-        codGravacao: arquivo?.nome?.slice(0, 60) || null,
-        clienteId: formulario.cliente_id,
-        campanhaId: formulario.campanha_id || null,
-        formularioId: formulario.id,
-        avaliadoId: avaliado.id,
-        avaliadorId,
-        categoria: formulario.categoria || "padrao",
-        score: resultado.resumo.score,
-        zerada: resultado.resumo.zerada ? 1 : 0,
-        audioPath: arquivo?.storagePath || arquivo?.nome || null,
-        conformes: resultado.resumo.conforme,
-        naoConformes: resultado.resumo.nao_conforme,
-        naoAplicaveis: resultado.resumo.nao_aplicavel,
-        total: resultado.resumo.total,
-      }
+      params
     );
 
     const avaliacaoId = insert.insertId;
+    const colunasResposta = await colunasPresentes(connection, "avaliacao_respostas", [
+      "ia_evidencia",
+      "ia_confianca",
+      "ia_raciocinio",
+    ]);
+
     for (const secao of resultado.secoes) {
       for (const item of secao.criterios) {
         const criterio = criteriosPorNome.get(item.nome);
         if (!criterio) continue;
 
         const status = item.status || "nao_aplicavel";
+        const valoresResposta = {
+          ia_evidencia: item.trecho || null,
+          ia_confianca: item.confianca ?? null,
+          ia_raciocinio: item.justificativa || null,
+        };
+        const respostaParams = {
+          avaliacaoId,
+          criterioId: criterio.id,
+          resposta: respostaPorStatus(status),
+          status,
+          pesoAplicado: status === "conforme" ? criterio.peso : 0,
+          // O raciocínio da IA também vai para `observacao_monitor`: é o campo
+          // que o relatório de Justificativas lê, e ele ficaria vazio para toda
+          // ficha de IA se a coluna deixasse de ser preenchida. Uma edição
+          // humana depois sobrescreve a observação e `ia_raciocinio` preserva o
+          // que a IA disse.
+          observacao: item.justificativa,
+        };
+        for (const coluna of colunasResposta) respostaParams[coluna] = valoresResposta[coluna];
+
         await connection.execute(
           `INSERT INTO avaliacao_respostas (
               avaliacao_id, criterio_id, resposta, status, peso_aplicado, observacao_monitor
+              ${colunasResposta.map((coluna) => `, ${coluna}`).join("")}
            ) VALUES (
               :avaliacaoId, :criterioId, :resposta, :status, :pesoAplicado, :observacao
+              ${colunasResposta.map((coluna) => `, :${coluna}`).join("")}
            )`,
-          {
-            avaliacaoId,
-            criterioId: criterio.id,
-            resposta: respostaPorStatus(status),
-            status,
-            pesoAplicado: status === "conforme" ? criterio.peso : 0,
-            observacao: item.justificativa,
-          }
+          respostaParams
         );
       }
     }

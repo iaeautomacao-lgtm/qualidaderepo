@@ -2,6 +2,10 @@
 
 # dependencies
 /node_modules
+# O .zip de node_modules tem ~531 MB. O GitHub recusa arquivo acima de 100 MB e
+# o histórico do Git nunca esquece — a pasta é reconstruída com `npm ci` no
+# servidor, então o pacote não tem por que existir aqui.
+/node_modules.zip
 /.pnp
 .pnp.*
 .yarn/*
@@ -45,6 +49,13 @@ next-env.d.ts
 next-dev.log
 next-dev.err.log
 .next-dev.pid
+.codex-next-dev.log
+.codex-next-dev.err
 
 # arquivos enviados pelos usuários ficam no servidor, não no Git
 /storage/
+
+# scripts de investigação local: úteis na máquina de quem depura, sem valor no
+# histórico. Ficam no disco, fora do repositório.
+/server-debug.js
+/tmp-*

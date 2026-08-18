@@ -24,12 +24,44 @@ function assertConfigured() {
 }
 
 /**
+ * Turnos anteriores de uma conversa, no formato que a API espera.
+ *
+ * Histórico vai como TURNO, não colado dentro do prompt: assim o modelo
+ * distingue o que ele mesmo já respondeu do que o usuário perguntou, e o texto
+ * do usuário não pode se passar por instrução do sistema. Papel desconhecido é
+ * descartado em vez de virar "user" por omissão.
+ */
+function turnosAnteriores(historico) {
+  if (!Array.isArray(historico)) return [];
+
+  return historico
+    .map((mensagem) => {
+      const texto = String(mensagem?.texto || "").trim();
+      if (!texto) return null;
+      if (mensagem?.autor === "ia") return { role: "model", parts: [{ text: texto }] };
+      if (mensagem?.autor === "usuario") return { role: "user", parts: [{ text: texto }] };
+      return null;
+    })
+    .filter(Boolean);
+}
+
+/**
  * Gera conteúdo estruturado.
  *
  * `schema` é um JSON Schema (subset aceito pelo Gemini). Passar schema ativa o
  * modo JSON do modelo — sem ele, o texto volta em prosa e o parse vira loteria.
+ *
+ * `historico` é opcional e serve ao chat: turnos anteriores da conversa, em
+ * ordem cronológica, antes do turno atual.
  */
-export async function gerarJson({ instrucao, prompt, schema, temperatura = 0.2, anexo = null }) {
+export async function gerarJson({
+  instrucao,
+  prompt,
+  schema,
+  temperatura = 0.2,
+  anexo = null,
+  historico = [],
+}) {
   assertConfigured();
 
   // Corta a entrada antes de enviar: prompt gigante custa caro e estoura o
@@ -63,7 +95,7 @@ export async function gerarJson({ instrucao, prompt, schema, temperatura = 0.2, 
         },
         body: JSON.stringify({
           systemInstruction: { parts: [{ text: instrucao }] },
-          contents: [{ role: "user", parts: partes }],
+          contents: [...turnosAnteriores(historico), { role: "user", parts: partes }],
           generationConfig: {
             temperature: temperatura,
             responseMimeType: "application/json",

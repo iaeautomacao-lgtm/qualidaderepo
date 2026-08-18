@@ -1,452 +1,420 @@
-.page {
+/* ==========================================================================
+   Detalhes da Avaliação IA — mesma anatomia da ficha de monitoria, com a
+   transcrição e os painéis da IA no lugar dos blocos de pessoas.
+   ========================================================================== */
+
+.pagina {
   display: grid;
   gap: var(--sp-5);
 }
 
+/* --- cabeçalho ----------------------------------------------------------- */
+
 .hero {
-  background: linear-gradient(120deg, #2563eb 0%, #7c3aed 55%, #c026d3 100%);
-  border-radius: var(--radius-lg);
-  box-shadow: var(--shadow-lg);
-  color: #fff;
-  overflow: hidden;
-  padding: var(--sp-6);
-}
-
-.heroTop {
-  align-items: flex-start;
   display: grid;
-  gap: var(--sp-4);
-  grid-template-columns: auto minmax(0, 1fr) auto;
+  gap: var(--sp-5);
+  padding: var(--sp-5);
+  border: 1px solid var(--line);
+  border-radius: var(--r-lg);
+  background: var(--surface);
+  box-shadow: var(--shadow-sm);
 }
 
-.heroIcon {
-  align-items: center;
-  background: rgba(255, 255, 255, 0.92);
-  border-radius: 14px;
-  color: #175cd3;
-  display: inline-grid;
-  height: 56px;
-  place-items: center;
-  width: 56px;
-}
-
-.heroTitle {
-  display: grid;
-  gap: var(--sp-1);
-}
-
-.heroTitle h1 {
-  color: #fff;
-  font-size: clamp(1.8rem, 3vw, 2.55rem);
-  line-height: 1.05;
-  margin: 0;
-}
-
-.heroTitle p {
-  color: rgba(255, 255, 255, 0.9);
-  margin: 0;
-}
-
-.eyebrow {
-  color: rgba(255, 255, 255, 0.78) !important;
-  font-size: 0.78rem;
-  font-weight: 800;
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
-}
-
-.heroActions {
+.heroTopo {
   display: flex;
   flex-wrap: wrap;
-  gap: var(--sp-2);
-  justify-content: flex-end;
-}
-
-.metaGrid,
-.identityGrid {
-  border-top: 1px solid rgba(255, 255, 255, 0.25);
-  display: grid;
+  align-items: flex-start;
   gap: var(--sp-4);
-  margin-top: var(--sp-5);
-  padding-top: var(--sp-4);
 }
 
-.metaGrid {
-  grid-template-columns: repeat(6, minmax(0, 1fr));
-}
-
-.identityGrid {
-  grid-template-columns: repeat(4, minmax(0, 1fr));
-}
-
-.metaGrid div,
-.identityGrid div {
+.heroIcone {
   display: grid;
-  gap: var(--sp-1);
-  min-width: 0;
+  place-items: center;
+  flex: 0 0 auto;
+  width: 44px;
+  height: 44px;
+  border: 1px solid var(--accent-soft-strong);
+  border-radius: var(--r-md);
+  background: var(--accent-soft);
+  color: var(--accent);
 }
 
-.metaGrid span,
-.identityGrid span {
-  color: rgba(255, 255, 255, 0.72);
-  font-size: 0.78rem;
-  font-weight: 800;
-  letter-spacing: 0.04em;
+.heroIdent {
+  min-width: 0;
+  flex: 1 1 320px;
+  display: grid;
+  gap: var(--sp-2);
+}
+
+.heroSobre {
+  color: var(--accent-strong);
+  font-size: var(--fs-100);
+  font-weight: var(--fw-semibold);
+  letter-spacing: var(--tracking-label);
   text-transform: uppercase;
 }
 
-.metaGrid strong,
-.identityGrid strong {
-  color: #fff;
-  font-size: 1rem;
+.heroLinha {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--sp-2);
+  color: var(--text-soft);
+  font-size: var(--fs-200);
   overflow-wrap: anywhere;
 }
 
-.audioPanel {
+/* O código MIA-... é o identificador que o usuário cola em conversas: pastilha
+   própria com dígitos de largura fixa e botão de copiar sempre visível. */
+.heroCodigo {
+  display: inline-flex;
   align-items: center;
-  background: var(--surface);
-  border: 1px solid var(--line);
-  border-radius: var(--radius-md);
-  box-shadow: var(--shadow-sm);
+  gap: var(--sp-1);
+  padding: 2px var(--sp-2);
+  border: 1px solid var(--line-strong);
+  border-radius: var(--r-pill);
+  background: var(--surface-2);
+  color: var(--text);
+  font-weight: var(--fw-semibold);
+  font-variant-numeric: tabular-nums;
+}
+
+.heroCodigo :global(.copy-id) {
+  opacity: 1;
+}
+
+.heroAcoes {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--sp-2);
+}
+
+/* Os quatro números que resumem a análise: Persona, Nota, Confiança, Duração. */
+.kpis {
   display: grid;
-  gap: var(--sp-3);
-  grid-template-columns: auto minmax(0, 1fr) auto auto auto;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 180px), 1fr));
+  gap: var(--sp-4);
+}
+
+.kpis > div {
+  display: grid;
+  gap: var(--sp-1);
   padding: var(--sp-4);
+  border: 1px solid var(--line);
+  border-radius: var(--r-md);
+  background: var(--surface-2);
 }
 
-.playButton {
-  align-items: center;
-  background: transparent;
-  border: 0;
-  color: var(--ink);
-  cursor: pointer;
-  display: inline-grid;
-  height: 36px;
-  place-items: center;
-  width: 36px;
+/* A Nota é o único KPI que decide algo — ela ganha a tinta da marca. */
+.kpis > div[data-destaque="true"] {
+  border-color: var(--accent-soft-strong);
+  background: var(--accent-soft);
 }
 
-.fakeTrack {
-  background: var(--line);
-  border-radius: 999px;
-  height: 8px;
-  overflow: hidden;
+.kpis dt {
+  color: var(--text-muted);
+  font-size: var(--fs-100);
+  font-weight: var(--fw-semibold);
+  letter-spacing: var(--tracking-label);
+  text-transform: uppercase;
 }
 
-.fakeTrack span {
-  background: var(--brand);
-  display: block;
-  height: 100%;
-  width: 0;
+.kpis dd {
+  font-size: var(--fs-600);
+  font-weight: var(--fw-bold);
+  line-height: var(--lh-tight);
+  font-variant-numeric: tabular-nums;
+  overflow-wrap: anywhere;
 }
 
-.mainGrid {
+.kpis > div[data-destaque="true"] dd {
+  color: var(--accent-strong);
+}
+
+/* Explicação do indicador: precisa ser visivelmente secundária ao número, senão
+   disputa a leitura com ele. */
+.kpis dd.kpiNota {
+  color: var(--text-muted);
+  font-size: var(--fs-100);
+  font-weight: var(--fw-regular);
+  line-height: var(--lh-snug);
+}
+
+/* --- corpo --------------------------------------------------------------- */
+
+.corpo {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 360px);
   align-items: start;
-  display: grid;
-  gap: var(--sp-5);
-  grid-template-columns: minmax(0, 1fr) minmax(320px, 0.38fr);
-}
-
-.leftColumn,
-.rightColumn {
-  display: grid;
   gap: var(--sp-5);
 }
 
-.rightColumn {
+.principal,
+.trilha {
+  display: grid;
+  align-content: start;
+  gap: var(--sp-5);
+  min-width: 0;
+}
+
+.navSecoes {
   position: sticky;
-  top: var(--sp-4);
+  top: 88px;
 }
 
-.observacao {
-  color: var(--muted);
-  line-height: 1.65;
-  max-width: 110ch;
-}
-
-.resumoGrid {
+.navSecoes ul {
   display: grid;
-  gap: var(--sp-4);
-  grid-template-columns: repeat(4, minmax(0, 1fr));
-  margin-top: var(--sp-4);
+  gap: var(--sp-1);
 }
 
-.resumoGrid div {
+.navSecoes a {
+  display: flex;
   align-items: center;
-  border: 1px solid var(--line);
-  border-radius: var(--radius-sm);
-  display: grid;
-  min-height: 92px;
-  place-items: center;
-  text-align: center;
+  justify-content: space-between;
+  gap: var(--sp-3);
+  min-height: var(--tap-min);
+  padding: var(--sp-2) var(--sp-3);
+  border-radius: var(--r-sm);
+  color: var(--text-soft);
+  font-size: var(--fs-200);
+  font-weight: var(--fw-medium);
+  transition: background var(--dur) var(--ease), color var(--dur) var(--ease);
 }
 
-.resumoGrid strong {
-  color: var(--ink);
-  font-size: 1.85rem;
-  line-height: 1;
+.navSecoes a:hover {
+  background: var(--accent-soft);
+  color: var(--accent-deep);
 }
 
-.resumoGrid span {
-  color: var(--muted);
+.navSecoes a > span:first-child {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
-.goodNumber {
-  color: #078456 !important;
+.tituloLateral {
+  margin-bottom: var(--sp-3);
+  font-size: var(--fs-500);
+  font-weight: var(--fw-semibold);
 }
 
-.badNumber {
-  color: #c81e1e !important;
+.textoCorrido {
+  color: var(--text-soft);
+  font-size: var(--fs-300);
+  line-height: var(--lh-normal);
 }
 
-.warnNumber {
-  color: #b45309 !important;
+.textoCorrido + .textoCorrido {
+  margin-top: var(--sp-3);
 }
 
-.transcricao {
-  background: var(--surface-muted);
-  border: 1px solid var(--line);
-  border-radius: var(--radius-sm);
-  color: var(--ink);
-  font: 0.92rem/1.55 ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
-  max-height: 420px;
-  overflow: auto;
-  padding: var(--sp-4);
-  white-space: pre-wrap;
-}
-
-.insightStack {
-  display: grid;
-  gap: var(--sp-4);
-}
-
-.insightStack h3 {
-  margin-bottom: var(--sp-2);
-}
-
-.insightStack ul {
+.cartaoFormulario {
   display: grid;
   gap: var(--sp-2);
-  margin: 0;
-  padding-left: 1.1rem;
 }
+
+.cartaoFormulario p {
+  color: var(--text-soft);
+  font-size: var(--fs-300);
+}
+
+.rotuloInline {
+  color: var(--text);
+  font-weight: var(--fw-semibold);
+}
+
+/* --- seções e critérios -------------------------------------------------- */
 
 .secoes {
   display: grid;
-  gap: var(--sp-5);
-  margin-top: var(--sp-4);
+  gap: var(--sp-6);
 }
 
 .secao {
   display: grid;
-  gap: var(--sp-3);
+  gap: var(--sp-4);
+  scroll-margin-top: 88px;
 }
 
-.secaoHead {
-  background: linear-gradient(90deg, #dbeafe, #f3e8ff);
-  border: 1px solid var(--line);
-  border-radius: var(--radius-sm);
+.secaoCabecalho {
+  display: grid;
+  gap: var(--sp-2);
   padding: var(--sp-4);
+  border: 1px solid var(--accent-soft-strong);
+  border-radius: var(--r-md);
+  background: linear-gradient(100deg, var(--accent-soft) 0%, var(--surface-3) 100%);
 }
 
-.secaoHead h3 {
-  margin: 0;
+.secaoCabecalho h3 {
+  font-size: var(--fs-500);
 }
 
-.secaoHead p {
-  color: var(--muted);
-  margin: var(--sp-1) 0 0;
+.secaoCabecalho p {
+  color: var(--text-soft);
+  font-size: var(--fs-200);
+  line-height: var(--lh-normal);
 }
 
 .criterios {
   display: grid;
-  gap: var(--sp-3);
+  gap: var(--sp-4);
 }
 
-.criterio {
-  border: 1px solid var(--line);
-  border-radius: var(--radius-sm);
+/* --- insights / riscos / próximos passos -------------------------------- */
+
+.listas {
   display: grid;
-  gap: var(--sp-3);
-  padding: var(--sp-4);
+  align-content: start;
 }
 
-.criterioTop {
-  align-items: flex-start;
+.listas > div + div {
+  margin-top: var(--sp-4);
+  padding-top: var(--sp-4);
+  border-top: 1px solid var(--line);
+}
+
+.listas h3 {
   display: flex;
-  gap: var(--sp-3);
-  justify-content: space-between;
-}
-
-.criterioTop h4 {
-  margin: 0;
-}
-
-.criterioTop p {
-  color: var(--muted);
-  margin: var(--sp-1) 0 0;
-}
-
-.status {
-  border: 1px solid currentColor;
-  border-radius: 999px;
-  flex: 0 0 auto;
-  font-weight: 700;
-  padding: 0.25rem 0.65rem;
-}
-
-.ok {
-  background: #ecfdf3;
-  color: #067647;
-}
-
-.bad {
-  background: #fef3f2;
-  color: #b42318;
-}
-
-.neutral {
-  background: #fffbeb;
-  color: #b54708;
-}
-
-.warn {
-  background: #eff6ff;
-  color: #175cd3;
-}
-
-.evidencia,
-.raciocinio {
-  border: 1px solid var(--line);
-  border-radius: var(--radius-sm);
-  padding: var(--sp-3);
-}
-
-.evidencia {
-  background: #faf5ff;
-}
-
-.evidencia strong,
-.raciocinio strong {
-  display: inline-block;
+  align-items: center;
+  gap: var(--sp-2);
   margin-bottom: var(--sp-2);
+  font-size: var(--fs-300);
 }
 
-.evidencia span {
-  background: #f3e8ff;
-  border: 1px solid #d8b4fe;
-  border-radius: 999px;
-  color: #7e22ce;
-  float: right;
-  font-size: 0.8rem;
-  font-weight: 700;
-  padding: 0.15rem 0.55rem;
+.listas h3 > svg {
+  color: var(--accent);
 }
 
-.evidencia p {
-  clear: both;
-  font-style: italic;
-  margin: 0;
-}
-
-.raciocinio {
-  background: #fff7ed;
-}
-
-.raciocinio p,
-.peso {
-  margin: 0;
-}
-
-.peso {
-  color: var(--brand);
-  font-size: 0.86rem;
-  font-weight: 700;
-}
-
-.chatCard {
-  min-height: 520px;
-}
-
-.chatLog {
-  display: grid;
-  gap: var(--sp-3);
-  max-height: 340px;
-  overflow: auto;
-  padding-right: var(--sp-1);
-}
-
-.message {
-  border: 1px solid var(--line);
-  border-radius: var(--radius-sm);
-  display: grid;
-  gap: var(--sp-1);
-  padding: var(--sp-3);
-}
-
-.message span {
-  font-size: 0.72rem;
-  font-weight: 800;
-  text-transform: uppercase;
-}
-
-.message p {
-  margin: 0;
-}
-
-.aiMessage {
-  background: #f8fafc;
-}
-
-.userMessage {
-  background: #fff7ed;
-  border-color: #fed7aa;
-}
-
-.chatForm {
+.listas ul {
   display: grid;
   gap: var(--sp-2);
-  margin-top: var(--sp-4);
 }
 
-@media (max-width: 1260px) {
-  .mainGrid {
-    grid-template-columns: 1fr;
+.listas li {
+  padding-left: var(--sp-4);
+  border-left: 2px solid var(--line);
+  color: var(--text-soft);
+  font-size: var(--fs-200);
+  line-height: var(--lh-normal);
+}
+
+.rodape {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--sp-3);
+  padding-top: var(--sp-4);
+  border-top: 1px solid var(--line);
+}
+
+/* --- esqueleto ----------------------------------------------------------- */
+
+.esqueleto {
+  display: grid;
+  gap: var(--sp-5);
+}
+
+.esqueletoHero {
+  height: 120px;
+  border-radius: var(--r-lg);
+}
+
+.esqueletoKpis {
+  height: 96px;
+  border-radius: var(--r-lg);
+}
+
+.esqueletoCorpo {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 360px);
+  gap: var(--sp-5);
+}
+
+.esqueletoColuna {
+  display: grid;
+  gap: var(--sp-5);
+}
+
+.esqueletoBloco {
+  height: 120px;
+  border-radius: var(--r-lg);
+}
+
+.esqueletoBlocoAlto {
+  height: 280px;
+  border-radius: var(--r-lg);
+}
+
+/* ==========================================================================
+   Responsivo
+   ========================================================================== */
+
+@media (max-width: 1200px) {
+  .corpo,
+  .esqueletoCorpo {
+    grid-template-columns: minmax(0, 1fr);
   }
 
-  .rightColumn {
+  .navSecoes {
     position: static;
   }
 }
 
-@media (max-width: 1100px) {
-  .metaGrid {
-    grid-template-columns: repeat(3, minmax(0, 1fr));
+@media (max-width: 640px) {
+  .hero {
+    padding: var(--sp-4);
+    gap: var(--sp-4);
   }
 
-  .identityGrid,
-  .resumoGrid {
+  .heroAcoes {
+    width: 100%;
+  }
+
+  .heroAcoes :global(.btn) {
+    flex: 1 1 140px;
+  }
+
+  .kpis {
     grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: var(--sp-3);
+  }
+
+  .kpis > div {
+    padding: var(--sp-3);
+  }
+
+  .kpis dd {
+    font-size: var(--fs-500);
+  }
+
+  .rodape :global(.btn) {
+    flex: 1 1 100%;
   }
 }
 
-@media (max-width: 760px) {
-  .heroTop,
-  .audioPanel {
-    grid-template-columns: 1fr;
+/* ==========================================================================
+   Impressão — a ficha IA também é documento de monitoria.
+   ========================================================================== */
+
+@media print {
+  .heroIcone,
+  .heroAcoes,
+  .trilha,
+  .rodape {
+    display: none;
   }
 
-  .heroActions {
-    justify-content: flex-start;
+  .corpo {
+    grid-template-columns: minmax(0, 1fr);
   }
 
-  .metaGrid,
-  .identityGrid,
-  .resumoGrid {
-    grid-template-columns: 1fr;
+  .hero,
+  .secaoCabecalho {
+    background: none;
+    box-shadow: none;
   }
 
-  .criterioTop {
-    display: grid;
+  .secao {
+    break-inside: avoid;
   }
 }

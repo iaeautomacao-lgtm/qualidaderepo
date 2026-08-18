@@ -37,6 +37,63 @@ async function contadoresRbac() {
   };
 }
 
+/**
+ * Grava uma linha na trilha de auditoria.
+ *
+ * NUNCA propaga erro: auditoria que falha não pode desfazer a operação que ela
+ * descreve — um banco anterior à 003 (sem `modulo`/`resultado`) faria o feedback
+ * do supervisor falhar por causa do log. A falha vai para o log do processo,
+ * onde o operador de infraestrutura enxerga.
+ *
+ * `detalhe` é texto de auditoria: não coloque aqui conteúdo sensível nem o corpo
+ * inteiro da requisição.
+ */
+export async function registrarAuditoria({
+  userId = null,
+  acao,
+  modulo = null,
+  entidade = null,
+  entidadeId = null,
+  resultado = "sucesso",
+  severidade = "info",
+  detalhe = null,
+  ip = null,
+  userAgent = null,
+}) {
+  try {
+    await query(
+      `INSERT INTO audit_logs
+         (user_id, acao, modulo, entidade, entidade_id, resultado, severidade, detalhe, ip, user_agent)
+       VALUES
+         (:userId, :acao, :modulo, :entidade, :entidadeId, :resultado, :severidade, :detalhe, :ip, :userAgent)`,
+      {
+        userId,
+        acao: String(acao).slice(0, 80),
+        modulo: modulo && String(modulo).slice(0, 60),
+        entidade: entidade && String(entidade).slice(0, 80),
+        entidadeId: entidadeId && String(entidadeId).slice(0, 40),
+        resultado,
+        severidade,
+        detalhe: detalhe && String(detalhe).slice(0, 2000),
+        ip: ip && String(ip).slice(0, 45),
+        userAgent: userAgent && String(userAgent).slice(0, 300),
+      },
+    );
+    return true;
+  } catch (error) {
+    console.error(
+      JSON.stringify({
+        level: "warn",
+        message: "Falha ao gravar audit_logs",
+        acao,
+        entidadeId,
+        code: error?.code || null,
+      }),
+    );
+    return false;
+  }
+}
+
 // Bloco "Atividade Recente". O print mostra e-mail + módulo + ação + entidade,
 // que é exatamente o que audit_logs guarda depois da 003.
 async function atividadeRecente(limite) {

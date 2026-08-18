@@ -79,7 +79,10 @@ export async function receberGravacoes({
           mimeType: arquivo.mimeType || "application/octet-stream",
           base64: arquivo.base64,
           tamanho: arquivo.tamanho,
-          contexto,
+          // `sequencia` é o id da gravação: o código MIA-AAAAMMDD-NNNN da
+          // análise precisa ser o mesmo em toda leitura posterior, e o id é o
+          // único número estável disponível aqui.
+          contexto: { ...contexto, sequencia: registrada.id },
         });
 
         await concluirAnaliseGravacao({

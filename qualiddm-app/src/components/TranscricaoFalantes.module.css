@@ -1,0 +1,90 @@
+/* Rola dentro do próprio cartão: uma chamada de 8 minutos tem ~120 falas e
+   empurraria o resto da ficha para fora da tela. `tabIndex` no <ol> (no JS)
+   garante que o teclado alcance a rolagem. */
+.dialogo {
+  display: grid;
+  gap: var(--sp-3);
+  max-height: 460px;
+  overflow-y: auto;
+  overscroll-behavior-y: contain;
+  padding-right: var(--sp-2);
+}
+
+.turno {
+  display: grid;
+  gap: var(--sp-1);
+  max-width: 92%;
+  padding: var(--sp-3);
+  border: 1px solid var(--line);
+  border-radius: var(--r-md);
+  background: var(--surface-2);
+}
+
+/* Falantes alternados: lado, tinta e borda mudam juntos. Cor sozinha não
+   distingue — a posição e o rótulo textual carregam a informação. */
+.turno[data-falante="0"] {
+  justify-self: start;
+  border-color: var(--accent-soft-strong);
+  border-bottom-left-radius: var(--r-xs);
+  background: var(--accent-soft);
+}
+
+.turno[data-falante="1"] {
+  justify-self: end;
+  border-color: var(--line-strong);
+  border-bottom-right-radius: var(--r-xs);
+  background: var(--surface-3);
+}
+
+.turno[data-falante="2"] {
+  justify-self: start;
+  border-color: transparent;
+  border-bottom-left-radius: var(--r-xs);
+  background: var(--info-soft);
+}
+
+.turno[data-falante="3"] {
+  justify-self: end;
+  border-color: transparent;
+  border-bottom-right-radius: var(--r-xs);
+  background: var(--warning-soft);
+}
+
+.turno[data-falante="narrativa"] {
+  max-width: 100%;
+  border-style: dashed;
+  background: var(--surface);
+}
+
+.rotulo {
+  color: var(--text-soft);
+  font-size: var(--fs-100);
+  font-weight: var(--fw-semibold);
+  letter-spacing: var(--tracking-label);
+  text-transform: uppercase;
+}
+
+.fala {
+  font-size: var(--fs-200);
+  line-height: var(--lh-normal);
+  overflow-wrap: anywhere;
+}
+
+@media (max-width: 640px) {
+  .turno {
+    max-width: 100%;
+  }
+}
+
+/* No papel a transcrição precisa sair inteira, sem caixa de rolagem. */
+@media print {
+  .dialogo {
+    max-height: none;
+    overflow: visible;
+  }
+
+  .turno {
+    max-width: 100%;
+    break-inside: avoid;
+  }
+}

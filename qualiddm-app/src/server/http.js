@@ -73,6 +73,19 @@ export async function route(request, handler) {
   }
 }
 
+/**
+ * IP de origem, para a trilha de auditoria.
+ *
+ * `x-forwarded-for` é definido pelo proxy da frente e pode ser forjado por quem
+ * fala direto com a aplicação — serve para auditoria, NUNCA para autorização ou
+ * rate limit. O primeiro item da lista é o cliente original.
+ */
+export function ipDaRequisicao(request) {
+  const encaminhado = request?.headers?.get("x-forwarded-for");
+  if (encaminhado) return encaminhado.split(",")[0].trim().slice(0, 45);
+  return request?.headers?.get("x-real-ip")?.slice(0, 45) || null;
+}
+
 export function applyCors(response, request) {
   const origin = request.headers.get("origin");
   if (!origin || config.cors.allowedOrigins.length === 0) return response;

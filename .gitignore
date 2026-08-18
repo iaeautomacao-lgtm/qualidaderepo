@@ -1,0 +1,31 @@
+# Ignora na RAIZ do repositório. O app tem o seu próprio em qualiddm-app/.gitignore.
+
+# --- Artefatos de build: reconstruídos no servidor, não pertencem ao histórico.
+/next-build/
+/next-build.zip
+*.zip
+
+# --- Dados reais de cliente. NÃO COMMITAR.
+# Gravações de ligação e conversas de atendimento contêm dado pessoal de
+# devedor (nome, CPF, e-mail, valor de dívida). Uma vez no histórico do Git,
+# sair de lá exige reescrever o histórico — então nem entra.
+# Material de teste fica fora do repositório ou em storage privado.
+*.mp3
+*.mp3.mpeg
+*.mpeg
+*.wav
+*.ogg
+*.m4a
+/chat-*.pdf
+
+# --- Prints da ferramenta de referência.
+# Contêm nomes e e-mails corporativos de funcionários e dados de devedor.
+# A especificação escrita em qualiddm-app/docs/ESPEC-QUALITALK-PRINTS.md já
+# substitui as imagens para fins de implementação — ela SIM está versionada.
+/PRINTS/
+
+# --- Configuração local de ferramenta de agente.
+/.claude/
+
+# --- Imagem solta de referência da marca (mantida fora do histórico por peso).
+/QUALIDDM.png

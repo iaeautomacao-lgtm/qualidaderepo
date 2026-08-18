@@ -1,597 +1,484 @@
-/* Ficha da avaliação.
+/* ==========================================================================
+   Ficha de Monitoria — espelha a estrutura do QualiTalk com a paleta da DDM.
 
-   Esta tela é a mais densa do produto: 5 métricas, player, 8 metadados, 3
-   pessoas, o placar de conformidade e 25 critérios — e nada disso pode exigir
-   rolagem em 1440x900.
-
-   Como o espaço foi resolvido:
-   1. a ficha ocupa exatamente a altura útil da janela (grade de 3 faixas:
-      cabeçalho, banda de trabalho, rodapé);
-   2. a banda distribui o conteúdo em 3 colunas em vez de empilhar;
-   3. os 25 critérios ficam atrás de abas por seção — uma seção por vez;
-   4. o enunciado de cada critério, que é o texto longo, fica atrás de um
-      disclosure;
-   5. se ainda assim a seção aberta passar da altura, quem rola é a lista de
-      critérios, nunca a página. */
+   O cabeçalho do QualiTalk é um gradiente azul→roxo. Aqui ele é laranja da
+   marca: --orange-700 → --orange-900. Texto branco sobre #c93b04 dá 5,11:1 e
+   sobre #7e2608 sobe ainda mais, então toda a faixa passa AA — o que o roxo
+   original não garantia.
+   ========================================================================== */
 
 .ficha {
   display: grid;
-  grid-template-rows: auto minmax(0, 1fr) auto;
-  gap: var(--sp-4);
-  /* 136px = topbar (64) + padding vertical da área de trabalho (24 + 48). */
-  height: calc(100dvh - 136px);
-  min-height: 640px;
+  gap: var(--sp-5);
 }
 
-/* ==========================================================================
-   1. Cabeçalho + métricas (mesmo cartão: separá-los custaria 48px de altura)
-   ========================================================================== */
+/* --- cabeçalho ----------------------------------------------------------- */
 
 .hero {
   display: grid;
-  gap: var(--sp-3);
-  padding: var(--sp-4) var(--sp-5);
+  gap: var(--sp-4);
+  padding: var(--sp-5);
+  border-radius: var(--r-lg);
+  background: linear-gradient(105deg, var(--orange-700) 0%, var(--orange-900) 100%);
+  color: var(--text-on-dark);
+  box-shadow: var(--shadow-md);
 }
 
 .heroTopo {
   display: flex;
   flex-wrap: wrap;
   align-items: flex-start;
-  gap: var(--sp-3);
+  gap: var(--sp-4);
+}
+
+.heroIcone {
+  display: grid;
+  place-items: center;
+  flex: 0 0 auto;
+  width: 44px;
+  height: 44px;
+  border-radius: var(--r-md);
+  background: rgba(255, 255, 255, 0.18);
+  color: var(--text-on-dark);
 }
 
 .heroIdent {
   min-width: 0;
-  flex: 1 1 auto;
+  flex: 1 1 320px;
+  display: grid;
+  gap: var(--sp-2);
 }
 
-/* Menor que o h1 padrão: o título aqui divide a faixa com chip, ID e 4 ações. */
+.heroSobre {
+  color: rgba(255, 255, 255, 0.82);
+  font-size: var(--fs-100);
+  font-weight: var(--fw-semibold);
+  letter-spacing: var(--tracking-label);
+  text-transform: uppercase;
+}
+
 .heroTitulo {
-  font-size: var(--fs-600);
-  line-height: var(--lh-snug);
+  font-size: var(--fs-700);
+  overflow-wrap: anywhere;
+}
+
+.heroSelos {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--sp-2);
+}
+
+/* Os chips vêm de globals.css com fundo claro; sobre a faixa laranja eles
+   continuam legíveis porque o fundo do chip é próprio, não transparente. */
+.heroSelos :global(.chip) {
+  border-color: transparent;
+}
+
+.heroAcoes {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--sp-2);
+}
+
+/* Botões sobre a faixa: superfície translúcida com borda visível (3,1:1 contra
+   a tinta), em vez de branco cheio que competiria com o título. */
+.heroAcoes :global(.btn) {
+  min-height: var(--tap-min);
+  padding-inline: var(--sp-4);
+  border-color: rgba(255, 255, 255, 0.45);
+  background: rgba(255, 255, 255, 0.14);
+  color: var(--text-on-dark);
+  font-size: var(--fs-200);
+}
+
+.heroAcoes :global(.btn):hover {
+  border-color: var(--text-on-dark);
+  background: rgba(255, 255, 255, 0.26);
+}
+
+.heroAcoes :global(.btn):focus-visible {
+  outline-color: var(--text-on-dark);
 }
 
 .heroLinha {
   display: flex;
   flex-wrap: wrap;
   align-items: center;
-  gap: var(--sp-2) var(--sp-3);
-  margin-top: var(--sp-2);
+  gap: var(--sp-2);
+  color: rgba(255, 255, 255, 0.88);
+  font-size: var(--fs-200);
 }
 
 .heroId {
-  color: var(--text-soft);
-  font-size: var(--fs-200);
-  font-variant-numeric: tabular-nums;
-}
-
-.heroId strong {
-  color: var(--text);
-  font-weight: var(--fw-semibold);
-}
-
-.copiar {
-  min-height: 32px;
-  padding-inline: var(--sp-3);
-  border-color: var(--line);
-  font-size: var(--fs-100);
-}
-
-.heroAcoes {
-  display: flex;
-  flex-wrap: wrap;
-  gap: var(--sp-2);
-  flex: 0 0 auto;
-}
-
-/* 36px: quatro ações secundárias em 44px empurrariam a faixa para fora do
-   orçamento de altura. Continua bem acima do alvo mínimo do WCAG (24x24). */
-.acao {
-  min-height: 36px;
-  padding-inline: var(--sp-3);
-  font-size: var(--fs-200);
-  font-weight: var(--fw-medium);
-}
-
-.metricas {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(min(100%, 150px), 1fr));
-  gap: var(--sp-3);
-  padding-top: var(--sp-3);
-  border-top: 1px solid var(--line);
-}
-
-.metricas dd {
-  display: flex;
-  align-items: center;
-  margin: 0;
-  margin-top: 2px;
-  min-height: 26px;
-  color: var(--text);
-  font-size: var(--fs-400);
-  font-weight: var(--fw-semibold);
-  font-variant-numeric: tabular-nums;
-}
-
-/* ==========================================================================
-   2. Banda de trabalho — 3 colunas
-   ========================================================================== */
-
-.banda {
-  display: grid;
-  grid-template-columns: minmax(0, 0.85fr) minmax(0, 0.9fr) minmax(0, 1.35fr);
-  gap: var(--sp-4);
-  min-height: 0;
-}
-
-/* overflow-y é rede de segurança, não recurso de layout: em 1440x900 o conteúdo
-   das colunas cabe. Se uma tela mais baixa apertar, a coluna rola sozinha em vez
-   de derramar por cima do rodapé. */
-.coluna {
-  display: grid;
-  align-content: start;
-  gap: var(--sp-4);
-  min-height: 0;
-  overflow-y: auto;
-  overscroll-behavior: contain;
-}
-
-/* Cartões densos: o padding padrão (20px) somado em seis cartões estoura o
-   orçamento vertical da tela. */
-.cartaoDenso {
-  padding: var(--sp-4);
-}
-
-.tituloSecao {
-  margin-bottom: var(--sp-2);
-  font-size: var(--fs-400);
-  font-weight: var(--fw-semibold);
-  line-height: var(--lh-snug);
-}
-
-/* --- player -------------------------------------------------------------- */
-
-/* A onda é ornamento; encolher de 72px para 40px devolve altura à lista de
-   critérios sem tirar nenhuma informação da tela. */
-.player :global(.wave) {
-  height: 40px;
-}
-
-.player :global(.section-head) {
-  margin-bottom: 0;
-}
-
-.player :global(.alert) {
-  padding: var(--sp-2) var(--sp-3);
-  font-size: var(--fs-100);
-}
-
-/* --- pessoas ------------------------------------------------------------- */
-
-.pessoas {
-  display: grid;
-  gap: var(--sp-2);
-}
-
-.pessoa {
-  display: flex;
-  align-items: center;
-  gap: var(--sp-3);
-  padding: var(--sp-2);
-  border: 1px solid var(--line);
-  border-radius: var(--r-md);
-  background: var(--surface-2);
-}
-
-.pessoaTexto {
-  display: grid;
-  min-width: 0;
-  line-height: var(--lh-snug);
-}
-
-.pessoaTexto strong {
-  overflow: hidden;
-  font-size: var(--fs-200);
-  font-weight: var(--fw-semibold);
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
-.pessoaEmail {
-  overflow: hidden;
-  color: var(--text-soft);
-  font-size: var(--fs-100);
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
-.pessoaEmail:hover {
-  color: var(--accent-strong);
-  text-decoration: underline;
-}
-
-/* --- metadados ----------------------------------------------------------- */
-
-.metadados {
-  display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: var(--sp-3) var(--sp-4);
-}
-
-/* Nome e formulário são os valores longos: ocupam a linha inteira para não
-   quebrar em três linhas dentro de meia coluna. */
-.metadados > [data-largo="true"] {
-  grid-column: 1 / -1;
-}
-
-/* Entrelinha apertada nos oito metadados: são pares curtos de rótulo e valor,
-   e a entrelinha de leitura corrida (1,55) custaria 45px de altura na coluna. */
-.metadados dt,
-.metadados dd {
-  line-height: var(--lh-tight);
-}
-
-.metadados dd {
-  margin: 0;
-  margin-top: 2px;
-  overflow: hidden;
-  color: var(--text);
-  font-size: var(--fs-200);
-  font-weight: var(--fw-medium);
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
-/* --- resumo de conformidade ---------------------------------------------- */
-
-.resumo {
-  display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: var(--sp-2);
-}
-
-/* Cada número traz ícone e rótulo: a cor é reforço, nunca o único sinal. */
-.resumoItem {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: var(--sp-2);
-  padding: var(--sp-2) var(--sp-3);
-  border: 1px solid var(--line);
-  border-radius: var(--r-md);
-  background: var(--surface-2);
-}
-
-.resumoItem dt {
-  display: flex;
+  display: inline-flex;
   align-items: center;
   gap: var(--sp-1);
-  min-width: 0;
-  color: var(--text-soft);
-  font-size: var(--fs-100);
-  font-weight: var(--fw-semibold);
+  font-variant-numeric: tabular-nums;
 }
 
-.resumoItem dd {
-  margin: 0;
-  font-size: var(--fs-500);
+/* O botão de copiar é branco aqui, não cinza — a superfície mudou. */
+.heroId :global(.copy-id) {
+  opacity: 1;
+  color: rgba(255, 255, 255, 0.9);
+}
+
+.heroId :global(.copy-id):hover {
+  color: var(--text-on-dark);
+}
+
+.heroDados {
+  display: grid;
+  gap: var(--sp-4);
+}
+
+.heroDados[hidden] {
+  display: none;
+}
+
+.faixaPrincipal,
+.faixaIdentificacao {
+  display: grid;
+  gap: var(--sp-4);
+}
+
+/* Faixa 1: 5 métricas centradas, como no print. */
+.faixaPrincipal {
+  grid-template-columns: repeat(auto-fit, minmax(min(50% - var(--sp-2), 150px), 1fr));
+  padding-bottom: var(--sp-4);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.28);
+  text-align: center;
+}
+
+/* Faixa 2: 8 campos de identificação, alinhados à esquerda. */
+.faixaIdentificacao {
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 190px), 1fr));
+}
+
+.faixaPrincipal dt,
+.faixaIdentificacao dt {
+  color: rgba(255, 255, 255, 0.8);
+  font-size: var(--fs-100);
+  font-weight: var(--fw-semibold);
+  letter-spacing: var(--tracking-label);
+  text-transform: uppercase;
+}
+
+.faixaPrincipal dd,
+.faixaIdentificacao dd {
+  margin-top: var(--sp-1);
+  overflow: hidden;
+  font-size: var(--fs-400);
+  font-weight: var(--fw-semibold);
+  text-overflow: ellipsis;
+}
+
+.faixaIdentificacao dd {
+  font-size: var(--fs-300);
+  white-space: nowrap;
+}
+
+/* Score na faixa: a cor da faixa de nota entra como pastilha própria, porque
+   verde/vermelho de texto sobre a tinta laranja não alcançaria contraste. */
+.heroScore {
+  display: inline-grid;
+  place-items: center;
+  min-width: 72px;
+  min-height: 32px;
+  padding: 0 var(--sp-3);
+  border-radius: var(--r-sm);
+  background: rgba(255, 255, 255, 0.92);
+  color: var(--text);
+  font-size: var(--fs-400);
   font-weight: var(--fw-bold);
   font-variant-numeric: tabular-nums;
 }
 
-.resumoItem[data-tom="success"] {
-  border-color: transparent;
-  background: var(--success-soft);
-}
-
-.resumoItem[data-tom="success"] dt,
-.resumoItem[data-tom="success"] dd {
+.heroScore[data-tom="success"] {
   color: var(--success-text);
 }
 
-.resumoItem[data-tom="danger"] {
-  border-color: transparent;
-  background: var(--danger-soft);
-}
-
-.resumoItem[data-tom="danger"] dt,
-.resumoItem[data-tom="danger"] dd {
-  color: var(--danger-text);
-}
-
-.resumoItem[data-tom="warning"] {
-  border-color: transparent;
-  background: var(--warning-soft);
-}
-
-.resumoItem[data-tom="warning"] dt,
-.resumoItem[data-tom="warning"] dd {
+.heroScore[data-tom="warning"] {
   color: var(--warning-text);
 }
 
-/* ==========================================================================
-   3. Respostas e avaliações — abas + critérios
-   ========================================================================== */
-
-.respostas {
-  display: flex;
-  flex-direction: column;
-  min-height: 0;
+.heroScore[data-tom="danger"] {
+  color: var(--danger-text);
 }
 
-.respostasHead {
-  display: flex;
-  align-items: baseline;
-  justify-content: space-between;
-  gap: var(--sp-3);
-}
+/* --- corpo em duas colunas ---------------------------------------------- */
 
-.respostasHead .tituloSecao {
-  margin-bottom: 0;
-}
-
-/* Duas colunas: "NEGOCIAÇÃO/COBRANÇA" não cabe numa faixa de quatro abas
-   lado a lado sem truncar o nome da seção. */
-.abas {
+.corpo {
   display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: var(--sp-2);
-  margin: var(--sp-3) 0;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 360px);
+  align-items: start;
+  gap: var(--sp-5);
 }
 
-.aba {
+.principal,
+.trilha {
+  display: grid;
+  align-content: start;
+  gap: var(--sp-5);
+  min-width: 0;
+}
+
+/* A navegação de seções acompanha a rolagem: a ficha tem 30 critérios e sem
+   isso o monitor precisa voltar ao topo para trocar de seção. 88px = topbar
+   fixa (64px) + respiro. */
+.navSecoes {
+  position: sticky;
+  top: 88px;
+}
+
+.navSecoes ul {
+  display: grid;
+  gap: var(--sp-1);
+}
+
+.navSecoes a {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: var(--sp-2);
-  min-height: 38px;
-  padding: 0 var(--sp-3);
-  border: 1px solid var(--line);
-  border-radius: var(--r-md);
-  background: var(--surface-2);
+  gap: var(--sp-3);
+  min-height: var(--tap-min);
+  padding: var(--sp-2) var(--sp-3);
+  border-radius: var(--r-sm);
   color: var(--text-soft);
-  text-align: left;
-  transition: background var(--dur) var(--ease), border-color var(--dur) var(--ease),
-    color var(--dur) var(--ease);
+  font-size: var(--fs-200);
+  font-weight: var(--fw-medium);
+  transition: background var(--dur) var(--ease), color var(--dur) var(--ease);
 }
 
-.aba:hover {
-  border-color: var(--line-strong);
-  background: var(--surface-3);
-  color: var(--text);
-}
-
-/* Aba ativa: fundo tinta + borda + peso tipográfico. A cor sozinha não
-   distingue a aba selecionada. */
-.aba[aria-selected="true"] {
-  border-color: var(--accent-strong);
+.navSecoes a:hover {
   background: var(--accent-soft);
   color: var(--accent-deep);
 }
 
-.abaNome {
+.navSecoes a > span:first-child {
   min-width: 0;
   overflow: hidden;
-  font-size: var(--fs-100);
-  font-weight: var(--fw-semibold);
-  letter-spacing: var(--tracking-label);
   text-overflow: ellipsis;
   white-space: nowrap;
 }
 
-.aba[aria-selected="true"] .abaNome {
-  font-weight: var(--fw-bold);
-}
-
-.abaContagem {
-  display: flex;
-  align-items: center;
-  gap: var(--sp-2);
-  flex: 0 0 auto;
-  font-size: var(--fs-100);
-  font-weight: var(--fw-semibold);
-  font-variant-numeric: tabular-nums;
-}
-
-.abaOk,
-.abaNok {
-  display: inline-flex;
-  align-items: center;
-  gap: 2px;
-}
-
-.abaOk {
-  color: var(--success-text);
-}
-
-.abaNok {
-  color: var(--danger-text);
-}
-
-/* Última linha de defesa contra a rolagem da página: se a seção aberta for
-   mais alta que o espaço disponível, quem rola é esta lista. */
-.painel {
-  display: flex;
-  min-height: 0;
-  flex: 1 1 auto;
-  flex-direction: column;
-  gap: var(--sp-3);
-  overflow-y: auto;
-  overscroll-behavior: contain;
-  padding-right: var(--sp-1);
-}
-
-.painelDescricao {
-  color: var(--text-soft);
-  font-size: var(--fs-100);
-  line-height: var(--lh-snug);
-}
-
-.criterios {
-  display: grid;
-  align-content: start;
-  gap: var(--sp-2);
-}
-
-/* Faixa lateral colorida por status — sempre acompanhada do selo em texto. */
-.criterio {
-  border: 1px solid var(--line);
-  border-left: 3px solid var(--success);
-  border-radius: var(--r-md);
-  background: var(--surface);
-}
-
-.criterio[data-conforme="false"] {
-  border-left-color: var(--danger);
-  background: var(--danger-soft);
-}
-
-.criterioTopo {
-  display: grid;
-  grid-template-columns: minmax(0, 1fr) auto auto;
-  grid-template-areas:
-    "nome selo seta"
-    "meta selo seta";
-  align-items: center;
-  gap: 2px var(--sp-3);
-  padding: var(--sp-2) var(--sp-3);
-  border-radius: var(--r-md);
-  cursor: pointer;
-  list-style: none;
-}
-
-.criterioTopo::-webkit-details-marker {
-  display: none;
-}
-
-.criterioTopo:hover {
-  background: var(--surface-2);
-}
-
-.criterio[data-conforme="false"] .criterioTopo:hover {
-  background: transparent;
-}
-
-.criterioNome {
-  grid-area: nome;
-  min-width: 0;
-  overflow: hidden;
-  font-size: var(--fs-200);
-  font-weight: var(--fw-semibold);
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
-.criterioMeta {
-  grid-area: meta;
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  gap: var(--sp-2);
-  color: var(--text-soft);
-  font-size: var(--fs-100);
-}
-
-.criterioMeta strong {
-  color: var(--text);
-  font-weight: var(--fw-semibold);
-}
-
-/* :global porque `.chip` é primitiva do globals.css — sem isso o CSS Module
-   renomearia a classe e o selo cairia fora da área "selo" da grade. */
-.criterioTopo > :global(.chip) {
-  grid-area: selo;
-}
-
-.criterioSeta {
-  grid-area: seta;
-  display: grid;
-  place-items: center;
-  color: var(--text-muted);
-  transition: transform var(--dur) var(--ease);
-}
-
-.disclosure[open] .criterioSeta {
-  transform: rotate(180deg);
-}
-
-.criterioEnunciado {
-  padding: 0 var(--sp-3) var(--sp-3);
-  color: var(--text-soft);
-  font-size: var(--fs-100);
-  line-height: var(--lh-normal);
-}
-
-.observacao {
-  margin: 0 var(--sp-3) var(--sp-3);
-  padding: var(--sp-2) var(--sp-3);
-  border-left: 3px solid var(--danger-text);
-  border-radius: var(--r-xs);
-  background: var(--surface);
-}
-
-.observacao p:last-child {
-  margin-top: 2px;
-  color: var(--text);
-  font-size: var(--fs-100);
-  line-height: var(--lh-snug);
-}
-
-/* ==========================================================================
-   Rodapé
-   ========================================================================== */
-
-.rodape {
-  display: flex;
-  align-items: center;
-  gap: var(--sp-3);
-}
-
-.fallback {
-  color: var(--warning-text);
-  font-size: var(--fs-100);
-}
-
-.modalBackdrop {
-  position: fixed;
-  inset: 0;
-  z-index: 80;
-  display: grid;
-  place-items: center;
-  padding: var(--sp-5);
-  background: rgba(20, 20, 20, 0.35);
-}
-
-.modal {
-  display: grid;
-  gap: var(--sp-4);
-  width: min(100%, 640px);
-  max-height: min(720px, calc(100dvh - 48px));
-  padding: var(--sp-5);
-  overflow: hidden;
-}
-
-.modalHead {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: var(--sp-3);
-}
-
-.modalHead h2 {
+.tituloSecao {
+  margin-bottom: var(--sp-3);
   font-size: var(--fs-500);
   font-weight: var(--fw-semibold);
 }
 
-.modalLista {
+/* --- pessoas ------------------------------------------------------------- */
+
+.pessoasCartao {
   display: grid;
-  gap: var(--sp-3);
-  min-height: 0;
-  overflow-y: auto;
-  overscroll-behavior: contain;
+  align-content: start;
 }
 
-.modalItem {
+.pessoas {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 260px), 1fr));
+  gap: var(--sp-4);
+}
+
+.pessoa {
+  display: grid;
+  gap: var(--sp-2);
+  padding: var(--sp-4);
+  border: 1px solid var(--line);
+  border-radius: var(--r-md);
+  background: var(--surface-2);
+}
+
+.pessoa h3 {
+  font-size: var(--fs-400);
+}
+
+.pessoa p {
+  color: var(--text-soft);
+  font-size: var(--fs-200);
+  overflow-wrap: anywhere;
+}
+
+.rotuloInline {
+  color: var(--text);
+  font-weight: var(--fw-semibold);
+}
+
+.email {
+  color: var(--accent-deep);
+  text-decoration: underline;
+}
+
+.textoCorrido {
+  color: var(--text-soft);
+  font-size: var(--fs-300);
+  line-height: var(--lh-normal);
+}
+
+.textoCorrido + .textoCorrido {
+  margin-top: var(--sp-3);
+}
+
+/* --- seções e critérios -------------------------------------------------- */
+
+.secoes {
+  display: grid;
+  gap: var(--sp-6);
+}
+
+.secao {
+  display: grid;
+  gap: var(--sp-4);
+  /* A âncora precisa parar abaixo da topbar fixa, senão o título fica escondido. */
+  scroll-margin-top: 88px;
+}
+
+/* Faixa de seção: no QualiTalk é lilás; aqui é a tinta clara da marca. */
+.secaoCabecalho {
+  display: grid;
+  gap: var(--sp-2);
+  padding: var(--sp-4);
+  border: 1px solid var(--accent-soft-strong);
+  border-radius: var(--r-md);
+  background: linear-gradient(100deg, var(--accent-soft) 0%, var(--surface-3) 100%);
+}
+
+.secaoCabecalho h3 {
+  font-size: var(--fs-500);
+}
+
+.secaoCabecalho p {
+  color: var(--text-soft);
+  font-size: var(--fs-200);
+  line-height: var(--lh-normal);
+}
+
+.criterios {
+  display: grid;
+  gap: var(--sp-4);
+}
+
+/* --- leitura da IA ------------------------------------------------------- */
+
+.listasIa {
+  gap: var(--sp-4);
+}
+
+.listasIa > div + div {
+  margin-top: var(--sp-4);
+  padding-top: var(--sp-4);
+  border-top: 1px solid var(--line);
+}
+
+.listasIa h3 {
+  display: flex;
+  align-items: center;
+  gap: var(--sp-2);
+  margin-bottom: var(--sp-2);
+  font-size: var(--fs-300);
+}
+
+.listasIa h3 > svg {
+  color: var(--accent);
+}
+
+.listasIa ul {
+  display: grid;
+  gap: var(--sp-2);
+}
+
+.listasIa li {
+  padding-left: var(--sp-4);
+  border-left: 2px solid var(--line);
+  color: var(--text-soft);
+  font-size: var(--fs-200);
+  line-height: var(--lh-normal);
+}
+
+/* --- feedback global ----------------------------------------------------- */
+
+.feedback {
+  display: grid;
+  gap: var(--sp-4);
+  border-color: var(--accent-soft-strong);
+  background: linear-gradient(180deg, var(--accent-soft) 0%, var(--surface) 32%);
+  scroll-margin-top: 88px;
+}
+
+.feedbackCampos {
+  display: grid;
+  gap: var(--sp-4);
+}
+
+.feedback :global(.btn-row) {
+  justify-content: flex-end;
+}
+
+/* --- rodapé -------------------------------------------------------------- */
+
+.rodape {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--sp-3);
+  padding-top: var(--sp-4);
+  border-top: 1px solid var(--line);
+}
+
+/* --- painéis (histórico / edições / feedbacks) --------------------------- */
+
+.modalFundo {
+  position: fixed;
+  inset: 0;
+  z-index: var(--z-drawer);
+  display: grid;
+  place-items: center;
+  padding: var(--sp-4);
+  background: rgba(23, 22, 20, 0.5);
+  animation: modal-entrada var(--dur) var(--ease);
+}
+
+@keyframes modal-entrada {
+  from {
+    opacity: 0;
+  }
+}
+
+.modal {
+  display: grid;
+  grid-template-rows: auto minmax(0, 1fr);
+  width: min(100%, 640px);
+  max-height: min(80dvh, 720px);
+}
+
+.modalCabecalho {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--sp-3);
+  padding: var(--sp-4) var(--sp-5);
+  border-bottom: 1px solid var(--line);
+}
+
+.modalCabecalho h2 {
+  font-size: var(--fs-500);
+}
+
+.modalCorpo {
+  overflow-y: auto;
+  overscroll-behavior-y: contain;
+  padding: var(--sp-5);
+}
+
+.painelLista {
+  display: grid;
+  gap: var(--sp-3);
+}
+
+.painelLista li {
   display: grid;
   gap: var(--sp-1);
   padding: var(--sp-3);
@@ -600,94 +487,169 @@
   background: var(--surface-2);
 }
 
-.modalItem strong {
-  font-size: var(--fs-200);
+.painelLista strong {
+  font-size: var(--fs-300);
   font-weight: var(--fw-semibold);
 }
 
-.modalItem p {
-  color: var(--text);
+.painelLista p {
+  color: var(--text-soft);
   font-size: var(--fs-200);
   line-height: var(--lh-normal);
 }
 
-.modalItem span,
-.modalVazio {
-  color: var(--text-soft);
+.painelLista span {
+  color: var(--text-muted);
   font-size: var(--fs-100);
-  line-height: var(--lh-normal);
 }
 
-@media print {
-  .heroAcoes,
-  .rodape,
-  .modalBackdrop {
-    display: none !important;
-  }
+.painelVazio {
+  color: var(--text-soft);
+  font-size: var(--fs-200);
+}
 
-  .ficha {
-    height: auto;
-    min-height: 0;
-  }
+/* --- esqueleto ----------------------------------------------------------- */
 
-  .banda {
-    grid-template-columns: 1fr;
-  }
+.esqueleto {
+  display: grid;
+  gap: var(--sp-5);
+}
 
-  .coluna,
-  .painel {
-    overflow: visible;
-  }
+.esqueletoHero {
+  height: 220px;
+  border-radius: var(--r-lg);
+}
+
+.esqueletoCorpo {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 360px);
+  gap: var(--sp-5);
+}
+
+.esqueletoColuna {
+  display: grid;
+  gap: var(--sp-5);
+}
+
+.esqueletoBloco {
+  height: 120px;
+  border-radius: var(--r-lg);
+}
+
+.esqueletoBlocoAlto {
+  height: 240px;
+  border-radius: var(--r-lg);
 }
 
 /* ==========================================================================
-   Responsivo — abaixo do desktop a altura travada perde o sentido e a página
-   volta a rolar normalmente.
+   Responsivo
    ========================================================================== */
 
 @media (max-width: 1200px) {
-  .ficha {
-    height: auto;
-    min-height: 0;
+  .corpo,
+  .esqueletoCorpo {
+    grid-template-columns: minmax(0, 1fr);
   }
 
-  .banda {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-  }
-
-  .respostas {
-    grid-column: 1 / -1;
-  }
-
-  .painel {
-    overflow: visible;
+  /* Sem coluna lateral a navegação não pode continuar colada no topo: ela
+     passa a ser um bloco normal antes do chat. */
+  .navSecoes {
+    position: static;
   }
 }
 
-@media (max-width: 820px) {
-  .banda {
-    grid-template-columns: minmax(0, 1fr);
+@media (max-width: 640px) {
+  .hero {
+    padding: var(--sp-4);
   }
 
-  .abas {
-    grid-template-columns: minmax(0, 1fr);
+  .heroTitulo {
+    font-size: var(--fs-600);
   }
 
   .heroAcoes {
     width: 100%;
   }
 
-  .criterioTopo {
-    grid-template-columns: minmax(0, 1fr) auto;
-    grid-template-areas:
-      "nome seta"
-      "meta seta"
-      "selo selo";
-    justify-items: start;
-    gap: var(--sp-2);
+  .heroAcoes .btn {
+    flex: 1 1 140px;
   }
 
-  .criterioNome {
+  .faixaPrincipal,
+  .faixaIdentificacao {
+    gap: var(--sp-3);
+    text-align: left;
+  }
+
+  /* Nome de formulário longo precisa quebrar em vez de virar "…" no celular. */
+  .faixaIdentificacao dd {
     white-space: normal;
+  }
+
+  .rodape :global(.btn),
+  .feedback :global(.btn-row) :global(.btn) {
+    flex: 1 1 100%;
+  }
+
+  .modal {
+    max-height: 88dvh;
+  }
+}
+
+/* ==========================================================================
+   Impressão — "Exportar PDF" chama window.print(), então a folha precisa ser
+   um documento, não uma captura da tela: nada de gradiente, nada de coluna
+   lateral, nada de botão.
+   ========================================================================== */
+
+@media print {
+  .ficha {
+    gap: var(--sp-4);
+  }
+
+  .hero {
+    border: 1px solid #999;
+    background: none;
+    color: #000;
+    box-shadow: none;
+  }
+
+  .heroSobre,
+  .heroLinha,
+  .faixaPrincipal dt,
+  .faixaIdentificacao dt {
+    color: #333;
+  }
+
+  .heroIcone,
+  .heroAcoes,
+  .trilha,
+  .rodape,
+  .feedback :global(.btn-row),
+  .modalFundo {
+    display: none;
+  }
+
+  .heroScore {
+    background: none;
+    color: #000;
+  }
+
+  .corpo {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .secao,
+  .pessoa,
+  .secaoCabecalho {
+    break-inside: avoid;
+  }
+
+  .secaoCabecalho {
+    background: none;
+  }
+
+  .feedback {
+    background: none;
   }
 }

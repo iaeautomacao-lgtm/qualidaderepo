@@ -27,3 +27,7 @@ export function notFound(message = "Recurso não encontrado.") {
 export function conflict(message, details = null) {
   return new AppError(409, "conflict", message, details);
 }
+
+export function tooManyRequests(message = "Muitas requisições. Tente novamente em instantes.", details = null) {
+  return new AppError(429, "too_many_requests", message, details);
+}
