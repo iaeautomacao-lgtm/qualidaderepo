@@ -220,10 +220,12 @@ export default function UploadPage() {
           gravacoes?.gravacoes?.find((gravacao) => !gravacao.duplicada) ||
           gravacoes?.gravacoes?.[0] ||
           null;
+        const primeiraComErro = gravacoes?.gravacoes?.find((gravacao) => gravacao.status === "erro");
         setResult({
           tipo: "gravacoes",
           busca: files[0]?.name || "",
           href: primeiraGravacao?.id ? `/transcricoes/${primeiraGravacao.id}` : null,
+          erroAnalise: primeiraComErro?.erro || null,
           ...gravacoes,
         });
       }
@@ -441,13 +443,16 @@ export default function UploadPage() {
             ) : null}
 
             {status === "done" && result?.tipo === "gravacoes" ? (
-              <p className="alert success">
-                <Icon name="checkCircle" size={18} />
+              <p className={`alert ${result.erros > 0 ? "danger" : "success"}`}>
+                <Icon name={result.erros > 0 ? "error" : "checkCircle"} size={18} />
                 <span className="alert-body">
-                  <strong>Arquivo salvo na fila</strong>
+                  <strong>
+                    {result.erros > 0 ? "Arquivo salvo, mas a analise falhou" : "Analise concluida"}
+                  </strong>
                   <span>
                     {`${result.recebidas ?? 0} novo(s) arquivo(s) registrado(s).`}
                     {result.duplicadas ? ` ${result.duplicadas} duplicado(s) já existiam.` : ""}
+                    {result.erroAnalise ? ` ${result.erroAnalise}` : ""}
                   </span>
                 </span>
               </p>
@@ -523,8 +528,10 @@ export default function UploadPage() {
                       />
                     </div>
                     <span className="subtle-text">
-                      {status === "done"
-                        ? "Transcrição concluída"
+                      {result?.erros > 0
+                        ? "Arquivo salvo; analise pendente de correcao"
+                        : status === "done"
+                          ? "Analise concluida"
                         : sending
                           ? "Enviando para a IA"
                           : "Aguardando envio"}

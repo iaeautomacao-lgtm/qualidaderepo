@@ -12,6 +12,7 @@ import ResumoConformidade from "@/components/ResumoConformidade";
 import TranscricaoFalantes from "@/components/TranscricaoFalantes";
 import { Icon } from "@/components/icons";
 import useRecurso from "@/hooks/useRecurso";
+import { enviarApi } from "@/lib/api";
 import styles from "./page.module.css";
 
 /** "0.00" — a nota da IA é sempre exibida com duas casas, como no QualiTalk. */
@@ -41,9 +42,29 @@ export default function ResultadoTranscricaoPage() {
     id ? `/api/transcricoes/${encodeURIComponent(id)}` : null,
   );
   const [soNaoConformes, setSoNaoConformes] = useState(false);
+  const [reprocessando, setReprocessando] = useState(false);
+  const [erroReprocessamento, setErroReprocessamento] = useState("");
 
   const gravacao = dados?.gravacao ?? null;
   const analise = gravacao?.transcricao?.segmentos ?? null;
+
+  async function reprocessarAnalise() {
+    if (!id || reprocessando) return;
+    setReprocessando(true);
+    setErroReprocessamento("");
+    try {
+      await enviarApi(`/api/transcricoes/${encodeURIComponent(id)}/reprocessar`, {});
+      await recarregar();
+    } catch (cause) {
+      setErroReprocessamento(
+        cause instanceof Error
+          ? cause.message
+          : "Nao foi possivel gerar a analise agora. Tente novamente.",
+      );
+    } finally {
+      setReprocessando(false);
+    }
+  }
 
   const secoes = useMemo(() => {
     const lista = Array.isArray(analise?.secoes) ? analise.secoes : [];
@@ -210,18 +231,44 @@ export default function ResultadoTranscricaoPage() {
         {!analise ? (
           <section className="card pad">
             <div className="empty-state">
-              <span className="icon-badge warning">
-                <Icon name="info" size={22} />
+              <span className={`icon-badge ${gravacao.transcricao?.erro ? "danger" : "warning"}`}>
+                <Icon name={gravacao.transcricao?.erro ? "error" : "info"} size={22} />
               </span>
-              <h2>Análise sem ficha estruturada</h2>
+              <h2>
+                {gravacao.transcricao?.erro
+                  ? "A IA nao conseguiu gerar a analise"
+                  : "Analise sem ficha estruturada"}
+              </h2>
               <p>
-                Esta gravação foi transcrita antes da avaliação por formulário. Reenvie o arquivo
-                pelo Monitor IA para gerar nota, critérios e evidências.
+                {gravacao.transcricao?.erro ||
+                  "Esta gravacao ainda nao tem criterios, nota e evidencias salvos no banco."}
               </p>
+              <p>
+                Use o arquivo ja salvo para gerar a analise completa da IA. Se o erro mencionar
+                chave/API da IA, ajuste o ambiente no cPanel e rode novamente.
+              </p>
+              {erroReprocessamento ? (
+                <p className="alert danger">
+                  <Icon name="error" size={18} />
+                  <span className="alert-body">
+                    <strong>Reprocessamento nao concluido</strong>
+                    <span>{erroReprocessamento}</span>
+                  </span>
+                </p>
+              ) : null}
               <div className="btn-row">
-                <Link className="btn primary" href="/upload">
+                <button
+                  className="btn primary"
+                  type="button"
+                  onClick={reprocessarAnalise}
+                  disabled={reprocessando || !gravacao.armazenada}
+                >
+                  <Icon name="sparkles" size={16} />
+                  {reprocessando ? "Gerando analise..." : "Gerar analise agora"}
+                </button>
+                <Link className="btn" href="/upload">
                   <Icon name="upload" size={16} />
-                  Reenviar gravação
+                  Reenviar arquivo
                 </Link>
               </div>
             </div>

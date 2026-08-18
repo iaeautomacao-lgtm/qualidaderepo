@@ -108,18 +108,22 @@ export async function receberGravacoes({
         });
         registrada.status = "concluida";
       } catch (error) {
+        registrada.erro = error instanceof Error ? error.message : "Erro ao analisar arquivo.";
         await registrarErroAnaliseGravacao({
           gravacaoId: registrada.id,
-          erro: error instanceof Error ? error.message : "Erro ao analisar arquivo.",
+          erro: registrada.erro,
         });
         registrada.status = "erro";
       }
     }
   }
 
+  const erros = registradas.filter((item) => item.status === "erro").length;
+
   return {
     recebidas: registradas.filter((item) => !item.duplicada).length,
     duplicadas: registradas.filter((item) => item.duplicada).length,
+    erros,
     gravacoes: registradas,
     armazenamento: "arquivo-e-metadados",
   };
