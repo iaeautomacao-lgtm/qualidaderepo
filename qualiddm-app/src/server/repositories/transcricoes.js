@@ -236,6 +236,25 @@ export async function obterTranscricao(gravacaoId) {
   };
 }
 
+export async function precisaAnaliseEstruturada(gravacaoId) {
+  const transcricao = await one(
+    `SELECT segmentos_json
+       FROM transcricoes
+      WHERE gravacao_id = :gravacaoId
+      ORDER BY id DESC
+      LIMIT 1`,
+    { gravacaoId },
+  );
+
+  if (!transcricao?.segmentos_json) return true;
+
+  const segmentos = parseSegmentos(transcricao.segmentos_json);
+  if (!segmentos) return true;
+
+  const secoes = Array.isArray(segmentos.secoes) ? segmentos.secoes : [];
+  return !secoes.some((secao) => Array.isArray(secao.criterios) && secao.criterios.length > 0);
+}
+
 /**
  * Preenche os campos de cabeçalho da análise IA que a tela de detalhes exige.
  *

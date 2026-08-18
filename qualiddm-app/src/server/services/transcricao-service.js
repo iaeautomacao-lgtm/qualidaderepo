@@ -4,6 +4,7 @@ import { saveUploadFile, validateUploadFiles } from "./upload-service";
 import { analisarArquivoLivreEstruturado } from "./avaliacao-ia";
 import {
   concluirAnaliseGravacao,
+  precisaAnaliseEstruturada,
   registrarErroAnaliseGravacao,
   registrarGravacoes,
 } from "../repositories/transcricoes";
@@ -69,7 +70,11 @@ export async function receberGravacoes({
 
   if (transcreverAutomatico) {
     for (const registrada of registradas) {
-      if (registrada.duplicada) continue;
+      if (registrada.duplicada) {
+        const deveReprocessar = await precisaAnaliseEstruturada(registrada.id);
+        if (!deveReprocessar) continue;
+      }
+
       const arquivo = arquivos.find((item) => item.nome === registrada.arquivo);
       if (!arquivo) continue;
 

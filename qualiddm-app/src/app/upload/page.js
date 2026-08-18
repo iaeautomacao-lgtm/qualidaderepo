@@ -339,7 +339,7 @@ export default function UploadPage() {
                   setResult(null);
                 }}
               >
-                <option value="">Sem ficha - apenas subir para fila</option>
+                <option value="">Sem ficha - gerar análise IA livre</option>
                 {formulariosDisponiveis.map((formulario) => (
                   <option key={formulario.id} value={formulario.id}>
                     {[formulario.nome, formulario.cliente, formulario.campanha].filter(Boolean).join(" - ")}
@@ -347,7 +347,8 @@ export default function UploadPage() {
                 ))}
               </select>
               <span className="field-hint">
-                Com ficha, a IA gera avaliacao. Sem ficha, o arquivo fica salvo na fila da carteira.
+                Com ficha, a IA usa os critérios cadastrados. Sem ficha, gera análise livre com
+                transcrição, nota, evidências e insights.
               </span>
             </div>
           </div>
@@ -404,7 +405,7 @@ export default function UploadPage() {
                   disabled={sending || files.length === 0 || !clienteId}
                 >
                   <Icon name={sending ? "spinner" : "sparkles"} size={17} className={sending ? "spinning" : undefined} />
-                  {sending ? "Enviando..." : formularioId ? "Enviar para a IA" : "Subir para a fila"}
+                  {sending ? "Enviando..." : formularioId ? "Enviar para a IA" : "Analisar com IA"}
                 </button>
               </div>
             </div>
