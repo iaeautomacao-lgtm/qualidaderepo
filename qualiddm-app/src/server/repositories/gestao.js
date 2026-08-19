@@ -117,6 +117,12 @@ async function carregarMonitorias({ periodoDias = 31 } = {}) {
     ),
   );
 
+  // Mesma regra da lista de Avaliações: análise de gravação excluída não conta
+  // no desempenho da operação nem da campanha.
+  const filtroExcluida = (await temColunaGestao("gravacoes", "excluida_em"))
+    ? "AND g.excluida_em IS NULL"
+    : "";
+
   const analises = await seguro("analisesIa", [], () =>
     query(
       `SELECT g.cliente_id, g.campanha_id, g.avaliado_id, g.mime_type,
@@ -130,6 +136,7 @@ async function carregarMonitorias({ periodoDias = 31 } = {}) {
           AND t.status = 'concluida'
           AND t.segmentos_json IS NOT NULL
           AND g.avaliacao_id IS NULL
+          ${filtroExcluida}
         LIMIT 2000`,
       { periodoDias },
     ),

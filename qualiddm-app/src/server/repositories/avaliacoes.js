@@ -300,6 +300,14 @@ function mapearAvaliacaoOficial(row) {
 }
 
 async function listarAvaliacoesIaLivres({ limit = 100 } = {}) {
+  // Gravação excluída sai da lista. Sem este filtro a exclusão gravava no banco e
+  // a tela mostrava o cartão de novo no F5 — o botão parecia não funcionar.
+  const colunasGravacao = await colunasOpcionais("gravacoes");
+  const filtroExcluida =
+    colunasGravacao.size === 0 || colunasGravacao.has("excluida_em")
+      ? "AND g.excluida_em IS NULL"
+      : "";
+
   try {
     const rows = await query(
       `SELECT
@@ -323,6 +331,7 @@ async function listarAvaliacoesIaLivres({ limit = 100 } = {}) {
         WHERE t.status = 'concluida'
           AND t.segmentos_json IS NOT NULL
           AND (g.avaliacao_id IS NULL OR g.avaliacao_id = 0)
+          ${filtroExcluida}
         ORDER BY g.created_at DESC, g.id DESC
         LIMIT :limit`,
       { limit },

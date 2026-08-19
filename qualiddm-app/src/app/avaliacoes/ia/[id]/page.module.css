@@ -595,3 +595,13 @@
     box-shadow: none;
   }
 }
+
+/* Explicação do erro de id inexistente. Fica abaixo da mensagem crua da API
+   porque aquela responde "o quê" e esta responde "o que fazer agora". */
+.dicaErro {
+  max-width: 62ch;
+  margin-inline: auto;
+  color: var(--text-soft);
+  font-size: var(--fs-200);
+  line-height: var(--lh-normal);
+}

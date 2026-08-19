@@ -136,8 +136,21 @@ export default function AvaliacaoIaPage() {
             </span>
             <h1>Não foi possível abrir a avaliação</h1>
             <p>{erro || "A gravação não foi encontrada no banco."}</p>
+            {/* "Gravação não encontrada" quer dizer que o id da URL não existe em
+                `gravacoes` — não que a análise falhou. Quem cai aqui precisa da
+                fila de transcrições, que mostra o que de fato foi enviado e em que
+                estado está. Sem este caminho, a tela é um beco. */}
+            <p className={styles.dicaErro}>
+              O identificador <strong>{id}</strong> não corresponde a nenhuma gravação. Se você
+              acabou de enviar um arquivo, confira a fila de transcrições: lá aparecem os envios
+              recebidos e, quando a análise falha, o motivo.
+            </p>
             <div className="btn-row">
-              <button className="btn primary" type="button" onClick={recarregar}>
+              <Link className="btn primary" href="/transcricoes">
+                <Icon name="waveform" size={16} />
+                Ver fila de transcrições
+              </Link>
+              <button className="btn" type="button" onClick={recarregar}>
                 <Icon name="refresh" size={16} />
                 Tentar de novo
               </button>

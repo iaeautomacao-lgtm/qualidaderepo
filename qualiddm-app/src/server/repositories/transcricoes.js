@@ -403,15 +403,59 @@ export async function registrarGravacoes({
   for (const arquivo of arquivos) {
     const resultado = await transaction(async (connection) => {
       if (arquivo.hash) {
+        const temExclusao = await temColunaExclusaoGravacao();
         const [existentes] = await connection.execute(
-          "SELECT id, status_transcricao FROM gravacoes WHERE hash_sha256 = :hash LIMIT 1",
+          `SELECT id, status_transcricao
+                  ${temExclusao ? ", excluida_em" : ", NULL AS excluida_em"}
+             FROM gravacoes
+            WHERE hash_sha256 = :hash
+            LIMIT 1`,
           { hash: arquivo.hash },
         );
+
         if (existentes.length > 0) {
+          const anterior = existentes[0];
+
+          /* Gravação que foi EXCLUÍDA e cujo arquivo volta a ser enviado é
+             reativada, não recusada como duplicada.
+             `uq_gravacoes_hash` é UNIQUE no hash, então não existe a opção de
+             inserir uma segunda linha para o mesmo arquivo. Sem esta reativação,
+             quem exclui uma análise e reenvia o mesmo PDF recebe "duplicada" e não
+             vê nada em tela nenhuma — o arquivo entrou, mas está escondido pela
+             exclusão anterior. */
+          if (temExclusao && anterior.excluida_em) {
+            await connection.execute(
+              `UPDATE gravacoes
+                  SET excluida_em = NULL,
+                      excluida_por_id = NULL,
+                      exclusao_motivo = NULL,
+                      nome_arquivo = :nome,
+                      status_transcricao = :status,
+                      enviado_por_id = :userId
+                WHERE id = :id`,
+              {
+                id: anterior.id,
+                nome: arquivo.nome,
+                status: transcreverAutomatico ? "pendente" : "nao_solicitada",
+                userId,
+              },
+            );
+
+            return {
+              id: String(anterior.id),
+              arquivo: arquivo.nome,
+              status: transcreverAutomatico ? "pendente" : "nao_solicitada",
+              // `duplicada: false` de propósito: para o resto do fluxo isto é um
+              // envio novo, e a análise precisa rodar de novo.
+              duplicada: false,
+              reativada: true,
+            };
+          }
+
           return {
-            id: String(existentes[0].id),
+            id: String(anterior.id),
             arquivo: arquivo.nome,
-            status: existentes[0].status_transcricao,
+            status: anterior.status_transcricao,
             duplicada: true,
           };
         }

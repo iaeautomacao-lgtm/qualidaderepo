@@ -62,6 +62,26 @@ async function safe(label, fallback, work) {
   }
 }
 
+/**
+ * A coluna de exclusão de gravação existe? (migration 007)
+ *
+ * Memoizado por processo: o painel roda esta checagem a cada carga, e coluna não
+ * aparece no meio da execução. Sem o filtro que ela habilita, análise excluída
+ * continuaria somando nos KPIs e reaparecendo nas prioridades.
+ */
+let colunaExclusaoGravacao = null;
+
+async function gravacaoTemExclusao() {
+  if (colunaExclusaoGravacao !== null) return colunaExclusaoGravacao;
+  try {
+    const rows = await query("SHOW COLUMNS FROM gravacoes LIKE 'excluida_em'");
+    colunaExclusaoGravacao = rows.length > 0;
+  } catch {
+    colunaExclusaoGravacao = false;
+  }
+  return colunaExclusaoGravacao;
+}
+
 function numero(valor, fallback = 0) {
   const convertido = Number(valor);
   return Number.isFinite(convertido) ? convertido : fallback;
@@ -352,6 +372,8 @@ export async function getDashboardOverview({ period, clienteId, campanhaId, oper
   const avaliacoes = recorte(filtro, "a");
   const gravacoes = recorte(filtro, "g");
   const base = { periodDays, janelaDupla };
+  // Resolvido antes do Promise.all porque entra no texto de uma das consultas.
+  const filtroGravacaoExcluida = (await gravacaoTemExclusao()) ? "AND g.excluida_em IS NULL" : "";
 
   const [
     kpisRows,
@@ -532,6 +554,7 @@ export async function getDashboardOverview({ period, clienteId, campanhaId, oper
           WHERE g.created_at >= DATE_SUB(CURRENT_DATE, INTERVAL :janelaDupla DAY)
             AND t.status = 'concluida'
             AND t.segmentos_json IS NOT NULL
+            ${filtroGravacaoExcluida}
             ${gravacoes.sql}
           ORDER BY g.created_at DESC
           LIMIT 1000`,
