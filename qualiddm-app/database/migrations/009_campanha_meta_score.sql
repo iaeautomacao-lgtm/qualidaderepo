@@ -1,0 +1,54 @@
+-- ---------------------------------------------------------------------------
+-- 009 — Meta de nota da campanha
+--
+-- O PROBLEMA QUE ESTA MIGRATION RESOLVE: a tela "Gerenciar — {campanha}" tem o
+-- bloco "Faixa de Performance e Metas" com dois campos lado a lado:
+--
+--   * Conjunto de Faixas  -> já existe: `campanhas.faixa_conjunto_id` (003)
+--   * Meta de Nota (0–100) -> não existia em `campanhas`
+--
+-- SOBRE A META QUE JÁ EXISTE EM OUTRO LUGAR
+--
+-- `metas_monitoria.meta_score` (003) também guarda uma meta de nota, e as duas
+-- NÃO são a mesma coisa — por isso esta coluna não é duplicação:
+--
+--   `campanhas.meta_score`      = alvo PERMANENTE da campanha. É a régua com que
+--                                 se lê qualquer período dela, e é o que o print
+--                                 chama de "usado em relatórios e painéis para
+--                                 medir atingimento".
+--   `metas_monitoria.meta_score` = alvo de UM MÊS, ao lado da meta de volume
+--                                 (quantas monitorias por agente). É compromisso
+--                                 de período, e pode ser diferente do alvo
+--                                 permanente num mês de recuperação.
+--
+-- Quem lê a campanha usa o alvo permanente; a tela de Metas Mensais continua
+-- dona do alvo do mês. Se um dia a operação quiser que o mês sobreponha a
+-- campanha, isso é um COALESCE explícito na consulta — não a fusão das duas
+-- colunas, que apagaria a distinção.
+--
+-- DECIMAL(5,2) e não INT: a operação trabalha com meta 87,5 em algumas
+-- carteiras, e arredondar para 88 mudaria quem atinge a meta.
+--
+-- COMO RODAR (cPanel > phpMyAdmin):
+--   1. selecione o banco `grpia_qualiddm` na coluna da esquerda
+--   2. aba SQL > cole este arquivo inteiro > Executar
+--   NÃO use a aba Import: ela quebra o arquivo em blocos.
+--
+-- PONTO DE PARTIDA: banco no nível da 008.
+--
+-- NÃO é idempotente (o MySQL 8 não aceita `ADD COLUMN IF NOT EXISTS`): rodar
+-- duas vezes acusa "Duplicate column name". O erro é inofensivo, mas rode uma
+-- vez só.
+--
+-- NADA AQUI APAGA DADO: só ADD COLUMN.
+--
+-- NULL é o default de propósito: campanha sem meta cadastrada não tem meta, e a
+-- tela mostra "—" em vez de inventar 80. Meta chutada é pior que meta ausente —
+-- ela vira número de relatório e ninguém lembra que foi palpite.
+--
+-- A aplicação tolera este schema AUSENTE: a tela de gerenciamento abre com o
+-- campo desabilitado e um aviso, e salvar responde 409 explicando.
+-- ---------------------------------------------------------------------------
+
+ALTER TABLE campanhas
+  ADD COLUMN meta_score DECIMAL(5,2) NULL AFTER faixa_conjunto_id;
