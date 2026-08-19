@@ -34,7 +34,12 @@ const menu = [
   // Não existe no menu do QualiTalk de referência, mas é por onde o áudio
   // entra no QualiDDM — sem este item a tela de upload fica inalcançável.
   { label: "Upload", href: "/upload", icon: "upload" },
-  { label: "Clientes", href: "/clientes", icon: "wallet" },
+  // "Clientes" virou "Operações": no vocabulário da DDM o que se gerencia aqui é
+  // a operação de um cliente (carteira + campanhas por canal), não o cadastro
+  // comercial dele.
+  { label: "Operações", href: "/operacoes", icon: "wallet" },
+  { label: "Campanhas", href: "/campanhas", icon: "target" },
+  { label: "Avaliados", href: "/avaliados", icon: "users" },
   { label: "Avaliações", href: "/avaliacoes", icon: "review" },
   {
     label: "Formulários",
@@ -42,16 +47,40 @@ const menu = [
     icon: "checklist",
     filhos: [
       { label: "Painel", href: "/formularios" },
-      { label: "Justificativas", href: "/formularios/justificativas" },
       { label: "Monitorias editadas", href: "/formularios/monitorias-editadas" },
     ],
   },
+  { label: "Dashboard de Formulários", href: "/dashboard-formularios", icon: "metrics" },
   // Monitor IA e Transcrições ficam como entradas próprias, no padrão da tela
   // de referência: primeiro a gestão das personas, depois a entrada dos áudios.
   { label: "Monitor IA", href: "/monitor-ia", icon: "sparkles" },
   { label: "Transcrições", href: "/transcricoes", icon: "waveform" },
+  // Copiloto de qualidade: pergunta sobre o período inteiro, não sobre uma ficha.
+  // Fica depois das entradas de dado porque só faz sentido com monitoria no
+  // banco — antes disso ele responde "não há base para dizer".
+  { label: "Perguntar à IA", href: "/perguntar-ia", icon: "sparkles" },
   { label: "Feedback", href: "/feedback", icon: "feedback" },
-  { label: "Administração", href: "/administracao", icon: "settings", filhos: [] },
+  // Contestação vem depois de Feedback porque é o passo seguinte dele: só se
+  // contesta o que já foi apontado. As duas sub-abas são as da tela de
+  // referência — quem abre pedido e quem julga não são a mesma pessoa.
+  {
+    label: "Contestações",
+    href: "/contestacoes/avaliacoes-candidatas",
+    icon: "alert",
+    filhos: [
+      { label: "Avaliações candidatas", href: "/contestacoes/avaliacoes-candidatas" },
+      { label: "Gestão ADM", href: "/contestacoes/gestao-adm" },
+    ],
+  },
+  {
+    label: "Gestão",
+    href: "/gestao",
+    icon: "settings",
+    filhos: [
+      { label: "Operação", href: "/gestao" },
+      { label: "Usuários", href: "/gestao/usuarios" },
+    ],
+  },
 ];
 
 export default function Sidebar({ active = "Dashboard", open = false, onNavigate }) {

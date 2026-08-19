@@ -1,5 +1,5 @@
 import { isMissingSchemaError, one, paraLike, query, transaction } from "../db";
-import { notFound } from "../errors";
+import { conflict, notFound } from "../errors";
 import { codigoAnaliseIa, formatarDataHora, formatarDuracao, inteiro } from "../format";
 import { arquivoExiste } from "../services/arquivo-storage";
 import { FORMULARIO_ANALISE_LIVRE } from "../services/avaliacao-ia";
@@ -33,6 +33,27 @@ const LABEL_ORIGEM = {
 // completo sai só no detalhe ou na exportação — mandar LONGTEXT inteiro numa
 // listagem de 200 linhas é payload que ninguém lê.
 const TAMANHO_PREVIA = 180;
+
+/**
+ * Colunas da tratativa (migration 005). Consultadas antes de entrar no SELECT
+ * porque a aplicação tem de abrir num banco que ainda não rodou a 005 — mesma
+ * regra que a ficha IA já usa para as colunas da 004.
+ *
+ * O resultado é memorizado: `SHOW COLUMNS` a cada leitura de detalhe seria uma
+ * ida ao banco a mais por request, e coluna não aparece no meio da execução.
+ */
+let colunasTratativa = null;
+
+async function temColunasTratativa() {
+  if (colunasTratativa !== null) return colunasTratativa;
+  try {
+    const rows = await query("SHOW COLUMNS FROM gravacoes LIKE 'tratada_em'");
+    colunasTratativa = rows.length > 0;
+  } catch {
+    colunasTratativa = false;
+  }
+  return colunasTratativa;
+}
 
 function montarFiltros(filtros = {}) {
   const condicoes = [];
@@ -184,17 +205,27 @@ export async function listarGravacoes({ filtros = {}, limit = 50, offset = 0 } =
 
 /** Texto completo e segmentos — usado no detalhe e na exportação JSON. */
 export async function obterTranscricao(gravacaoId) {
+  const comTratativa = await temColunasTratativa();
+  const colunasExtra = comTratativa
+    ? `, g.tratada_em, g.tratativa_nota, trat.name AS tratada_por`
+    : "";
+  const joinExtra = comTratativa ? "LEFT JOIN users trat ON trat.id = g.tratada_por_id" : "";
+
   const gravacao = await one(
     `SELECT g.id, g.nome_arquivo, g.duracao_segundos, g.origem,
             g.status_transcricao, g.created_at, g.storage_path,
             cl.nome AS cliente,
             ca.nome AS campanha,
+            av.name AS avaliado,
             t.id AS transcricao_id, t.provedor, t.modelo, t.idioma,
             t.texto, t.segmentos_json, t.confianca, t.status AS transcricao_status,
             t.erro_mensagem, t.created_at AS transcricao_em
+            ${colunasExtra}
        FROM gravacoes g
        LEFT JOIN clientes cl ON cl.id = g.cliente_id
        LEFT JOIN campanhas ca ON ca.id = g.campanha_id
+       LEFT JOIN users av ON av.id = g.avaliado_id
+       ${joinExtra}
        ${JOIN_TRANSCRICAO_CORRENTE}
       WHERE g.id = :gravacaoId
       LIMIT 1`,
@@ -215,7 +246,19 @@ export async function obterTranscricao(gravacaoId) {
     status: gravacao.status_transcricao,
     cliente: gravacao.cliente || null,
     campanha: gravacao.campanha || null,
+    avaliado: gravacao.avaliado || null,
     armazenada: Boolean(gravacao.storage_path),
+    // `suportada: false` diz à tela que o botão "Marcar como tratado" não tem
+    // onde gravar ainda — melhor esconder o botão do que oferecer um que falha.
+    tratativa: comTratativa
+      ? {
+          suportada: true,
+          tratada: Boolean(gravacao.tratada_em),
+          em: gravacao.tratada_em ? formatarDataHora(gravacao.tratada_em) : null,
+          por: gravacao.tratada_por || null,
+          nota: gravacao.tratativa_nota || null,
+        }
+      : { suportada: false, tratada: false, em: null, por: null, nota: null },
     // Rota autenticada com suporte a Range; `null` quando o arquivo não está no
     // armazenamento, para a tela não montar um player que não toca.
     audioUrl: audioDisponivel ? `/api/gravacoes/${gravacao.id}/audio` : null,
@@ -470,4 +513,43 @@ export async function registrarErroAnaliseGravacao({ gravacaoId, erro }) {
       { gravacaoId },
     );
   });
+}
+
+/**
+ * Registra (ou desfaz) a tratativa de uma análise IA.
+ *
+ * `tratada_em` é o estado: gravar a data marca como tratada, limpar devolve
+ * para a fila. Não existe booleano separado de propósito — dois campos para o
+ * mesmo fato acabam discordando.
+ *
+ * Sem a migration 005 a operação falha explicitamente em vez de fingir sucesso:
+ * a tela precisa dizer ao usuário por que o botão não funcionou.
+ */
+export async function registrarTratativaGravacao({ gravacaoId, userId, tratada, nota }) {
+  if (!(await temColunasTratativa())) {
+    throw conflict(
+      "O banco ainda não tem as colunas de tratativa. Rode a migration 005_tratativa_analise_ia.sql.",
+    );
+  }
+
+  const existe = await one("SELECT id FROM gravacoes WHERE id = :gravacaoId LIMIT 1", { gravacaoId });
+  if (!existe) throw notFound("Gravação não encontrada.");
+
+  if (tratada) {
+    await query(
+      `UPDATE gravacoes
+          SET tratada_em = NOW(), tratada_por_id = :userId, tratativa_nota = :nota
+        WHERE id = :gravacaoId`,
+      { gravacaoId, userId, nota: nota ? String(nota).slice(0, 400) : null },
+    );
+  } else {
+    await query(
+      `UPDATE gravacoes
+          SET tratada_em = NULL, tratada_por_id = NULL, tratativa_nota = NULL
+        WHERE id = :gravacaoId`,
+      { gravacaoId },
+    );
+  }
+
+  return obterTranscricao(gravacaoId);
 }

@@ -358,7 +358,10 @@ async function listarAvaliacoesIaLivres({ limit = 100 } = {}) {
           cliente: row.cliente || analise.carteira || "Sem carteira",
           dataFormatada: formatarDataHora(row.created_at),
           origem: "ia",
-          href: `/transcricoes/${row.id}`,
+          // A ficha da análise IA agora vive em Avaliações; /transcricoes/[id]
+          // ficou só com o áudio e o texto.
+          href: `/avaliacoes/ia/${row.id}`,
+          hrefTranscricao: `/transcricoes/${row.id}`,
           confianca: confianca == null ? null : Math.round(confianca * 100),
           insights: listaTexto(analise.insights),
           riscos: listaTexto(analise.riscos),

@@ -1,541 +1,512 @@
 /* ==========================================================================
-   Tela: Dashboard
+   Dashboard — painel executivo.
 
-   Restrição que manda em tudo aqui: nada de rolagem vertical em 1440x900.
-   O orçamento é 764px (900 - topbar 64 - padding do workspace 24 em cima e
-   48 embaixo), repartido assim:
-
-     cabeçalho 42 + 24 · KPIs 116 + 20 · gráficos 258 + 20 · listas 267 = 747
-
-   Por isso os cartões usam padding menor que `.card.pad` e as listas trocam
-   `gap` por divisórias. Se algo crescer, corte conteúdo — não empurre pra
-   baixo.
+   Menos borda, mais respiro: os blocos se separam pelo espaço e por uma sombra
+   muito discreta (`--shadow-sm` do .card), não por linha grossa. A hierarquia
+   dentro de cada bloco é sempre a mesma — número grande, contexto pequeno,
+   ação no fim — para o olho aprender o padrão uma vez.
    ========================================================================== */
 
-.painel {
-  display: grid;
-  gap: var(--sp-5);
-}
-
-.painel :global(.kpi-grid) {
-  grid-template-columns: repeat(4, minmax(0, 1fr));
-}
-
-.gradePrincipal {
-  display: grid;
-  grid-template-columns: minmax(0, 2fr) minmax(0, 1fr);
-  gap: var(--sp-5);
-}
-
-.leitura {
-  display: grid;
+.cabecalho {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  justify-content: space-between;
   gap: var(--sp-4);
 }
 
-.leituraGrid {
-  display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
-  gap: var(--sp-4);
+.cabecalho h1 {
+  font-size: var(--fs-700);
 }
 
-.leituraGrid article {
-  display: grid;
-  gap: var(--sp-2);
-  min-width: 0;
-  padding: var(--sp-4);
-  border: 1px solid var(--line);
-  border-radius: var(--r-md);
-  background: var(--surface-2);
-}
-
-.leituraGrid svg {
-  color: var(--accent);
-}
-
-.leituraGrid strong {
+.cabecalho p {
+  margin-top: var(--sp-1);
+  color: var(--text-soft);
   font-size: var(--fs-300);
 }
 
-.leituraGrid span {
-  color: var(--text-soft);
-  font-size: var(--fs-200);
-  line-height: var(--lh-normal);
+/* --- filtros globais ------------------------------------------------------ */
+
+/* Quatro recortes na mesma linha do título: o filtro é do PAINEL inteiro, não
+   de um bloco. A busca global segue na topbar, separada — buscar uma chamada e
+   recortar o período são intenções diferentes. */
+.filtros {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  gap: var(--sp-3);
 }
 
-/* Grade de duas faixas (cabeçalho + corpo) para o corpo poder ocupar a altura
-   sobrando quando o cartão vizinho for mais alto. */
-.cartao,
-.cartaoBaixo {
+.filtros .field {
+  min-width: 150px;
+}
+
+.filtros label {
+  color: var(--text-muted);
+  font-size: var(--fs-100);
+  font-weight: var(--fw-semibold);
+  letter-spacing: var(--tracking-label);
+  text-transform: uppercase;
+}
+
+/* --- faixa de KPIs -------------------------------------------------------- */
+
+.kpis {
   display: grid;
-  grid-template-rows: auto minmax(0, 1fr);
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 190px), 1fr));
+  gap: var(--sp-4);
+}
+
+.kpi {
+  display: grid;
   align-content: start;
-}
-
-.cartao {
+  gap: var(--sp-2);
   padding: var(--sp-4) var(--sp-5);
+  border: 1px solid var(--line);
+  border-radius: var(--r-lg);
+  background: var(--surface);
+  box-shadow: var(--shadow-xs);
 }
 
-.cartaoBaixo {
-  padding: var(--sp-3) var(--sp-5) var(--sp-4);
+/* A nota média é o número que abre a conversa: ganha a tinta da marca. */
+.kpi[data-destaque="true"] {
+  border-color: var(--accent-soft-strong);
+  background: var(--accent-soft);
 }
 
-.corpoCentral {
-  display: grid;
-  align-content: center;
-  min-height: 0;
+/* Crítica com valor > 0 é o único KPI que muda de cor por estado. Sem alerta
+   agressivo: borda e rótulo, não fundo vermelho. */
+.kpi[data-alerta="true"] {
+  border-color: var(--danger);
 }
 
-/* --- gráfico de linha ---------------------------------------------------- */
-
-.figura {
-  display: grid;
-  min-width: 0;
+.kpiRotulo {
+  color: var(--text-muted);
+  font-size: var(--fs-100);
+  font-weight: var(--fw-semibold);
+  letter-spacing: var(--tracking-label);
+  text-transform: uppercase;
 }
 
-.grafico {
-  width: 100%;
-  height: auto;
+.kpiValor {
+  font-size: var(--fs-kpi);
+  font-weight: var(--fw-bold);
+  line-height: var(--lh-tight);
+  font-variant-numeric: tabular-nums;
+  letter-spacing: -0.02em;
 }
 
-.grade {
-  stroke: var(--chart-grid);
-  stroke-width: 1;
+.kpi[data-destaque="true"] .kpiValor {
+  color: var(--accent-strong);
 }
 
-.tick {
-  fill: var(--text-muted);
-  font-size: 12px;
-  font-weight: var(--fw-medium);
+.kpi[data-alerta="true"] .kpiValor {
+  color: var(--danger-text);
 }
 
-/* `--tom` desce da série para linha, marcador e amostra da legenda: uma fonte
-   de cor só por série. */
-.serieA {
-  --tom: var(--chart-bar);
-}
-
-.serieB {
-  --tom: var(--info);
-}
-
-.linha {
-  fill: none;
-  stroke: var(--tom);
-  stroke-width: 2.5;
-  stroke-linecap: round;
-  stroke-linejoin: round;
-}
-
-.serieB .linha {
-  stroke-dasharray: 7 4;
-}
-
-/* Contorno na cor da superfície: onde as duas linhas se cruzam, o marcador
-   continua legível. */
-.marcador {
-  fill: var(--tom);
-  stroke: var(--surface);
-  stroke-width: 1.5;
-}
-
-.legenda {
+.kpiPe {
   display: flex;
   flex-wrap: wrap;
   align-items: center;
-  gap: var(--sp-2) var(--sp-4);
-  flex: 0 1 auto;
-}
-
-.legenda li {
-  display: inline-flex;
-  align-items: center;
   gap: var(--sp-2);
-  color: var(--text-soft);
-  font-size: var(--fs-100);
-  font-weight: var(--fw-medium);
+  min-height: 20px;
 }
 
-.marca {
-  flex: 0 0 auto;
-  width: 10px;
-  height: 10px;
-  background: var(--tom);
-}
-
-.marcaCirculo {
-  border-radius: var(--r-pill);
-}
-
-.marcaLosango {
-  transform: rotate(45deg);
-}
-
-/* --- rosca de quadrantes ------------------------------------------------- */
-
-.cartaoQuadrantes {
-  /* Não existe token para o 5º quadrante ("danger-deep"). Em vez de um hex
-     cru, escurece o vermelho de texto contra a tinta do app. */
-  --tom-danger-deep: color-mix(in srgb, var(--danger-text) 62%, var(--surface-inverse));
-}
-
-.rosca {
-  display: grid;
-  grid-template-columns: minmax(0, auto) minmax(0, 1fr);
-  align-content: center;
-  align-items: center;
-  gap: var(--sp-4);
-  min-height: 0;
-}
-
-.roscaSvg {
-  width: 132px;
-  height: auto;
-}
-
-.fatia {
-  fill: none;
-  stroke: var(--tom);
-  stroke-width: 16;
-}
-
-.roscaValor {
-  fill: var(--text);
-  font-size: 26px;
-  font-weight: var(--fw-bold);
-}
-
-.roscaRotulo {
-  fill: var(--text-muted);
-  font-size: 11px;
-  font-weight: var(--fw-semibold);
-}
-
-.roscaLegenda {
-  display: grid;
-  gap: var(--sp-1);
-  min-width: 0;
-}
-
-.roscaLegenda li {
-  display: grid;
-  grid-template-columns: 10px minmax(0, 1fr) auto;
-  align-items: center;
-  gap: var(--sp-2);
-  padding: var(--sp-1) 0;
-  border-bottom: 1px solid var(--line);
-  font-size: var(--fs-200);
-}
-
-.roscaLegenda li:last-child {
-  border-bottom: 0;
-}
-
-.amostra {
-  width: 10px;
-  height: 10px;
-  border-radius: var(--r-xs);
-  background: var(--tom);
-}
-
-.roscaLegendaRotulo {
-  overflow: hidden;
-  color: var(--text-soft);
-  font-weight: var(--fw-semibold);
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
-.roscaLegendaValor {
-  color: var(--text);
-  font-weight: var(--fw-bold);
-  font-variant-numeric: tabular-nums;
-}
-
-.tomSuccess {
-  --tom: var(--success);
-}
-
-.tomInfo {
-  --tom: var(--info);
-}
-
-.tomWarning {
-  --tom: var(--warning);
-}
-
-.tomDanger {
-  --tom: var(--danger);
-}
-
-.tomDangerDeep {
-  --tom: var(--tom-danger-deep);
-}
-
-/* --- status atual -------------------------------------------------------- */
-
-/* Divisória em vez de `gap`: economiza 24px de altura na coluna e é o mesmo
-   ritmo visual de `.list` do globals. */
-.statusLista {
-  display: grid;
-  align-content: start;
-  min-height: 0;
-}
-
-.statusItem {
-  display: flex;
-  align-items: center;
-  gap: var(--sp-3);
-  min-height: 44px;
-  padding: var(--sp-2);
-  border-radius: var(--r-sm);
-}
-
-.statusItem + .statusItem {
-  border-top: 1px solid var(--line);
-}
-
-.statusIcone {
-  display: grid;
-  place-items: center;
-  flex: 0 0 auto;
-  width: 28px;
-  height: 28px;
-  border-radius: var(--r-sm);
-  background: var(--tom-suave);
-  color: var(--tom-texto);
-}
-
-.linhaSuccess {
-  --tom-suave: var(--success-soft);
-  --tom-texto: var(--success-text);
-}
-
-.linhaWarning {
-  --tom-suave: var(--warning-soft);
-  --tom-texto: var(--warning-text);
-}
-
-.linhaInfo {
-  --tom-suave: var(--info-soft);
-  --tom-texto: var(--info-text);
-}
-
-.linhaDanger {
-  --tom-suave: var(--danger-soft);
-  --tom-texto: var(--danger-text);
-}
-
-.statusTexto {
-  min-width: 0;
-  flex: 1 1 auto;
-}
-
-.statusTexto strong {
-  display: block;
-  overflow: hidden;
-  font-size: var(--fs-200);
-  font-weight: var(--fw-semibold);
-  line-height: var(--lh-snug);
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
-.statusTexto span {
-  display: block;
+.kpiContexto {
   color: var(--text-muted);
   font-size: var(--fs-100);
   line-height: var(--lh-snug);
 }
 
-/* Linha de perigo: fundo tinta + ícone + chip "Crítico". A cor é o terceiro
-   sinal, nunca o único. */
-.statusCritico {
+.kpiTendencia {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  padding: 1px var(--sp-2);
+  border-radius: var(--r-pill);
+  font-size: var(--fs-100);
+  font-weight: var(--fw-semibold);
+  font-variant-numeric: tabular-nums;
+}
+
+/* Tom pela DIREÇÃO DE NEGÓCIO, não pelo sinal do número: menos não
+   conformidade é verde mesmo sendo variação negativa. */
+.kpiTendencia[data-direcao="melhora"] {
+  background: var(--success-soft);
+  color: var(--success-text);
+}
+
+.kpiTendencia[data-direcao="piora"] {
   background: var(--danger-soft);
+  color: var(--danger-text);
 }
 
-.statusCritico .statusIcone {
-  background: var(--surface);
+.kpiAcao {
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+  color: var(--accent-strong);
+  font-size: var(--fs-100);
+  font-weight: var(--fw-semibold);
 }
 
-/* --- ofensores ----------------------------------------------------------- */
-
-.ofensores {
-  align-content: start;
+.kpiAcao:hover {
+  color: var(--accent-deep);
+  text-decoration: underline;
 }
 
-.barras {
+/* --- grades -------------------------------------------------------------- */
+
+.duasColunas {
   display: grid;
-  align-content: start;
-  gap: var(--sp-3);
-  min-width: 0;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  align-items: start;
+  gap: var(--sp-5);
 }
 
-.barras li {
+/* O gráfico e a fila de prioridades pedem dois terços; o painel ao lado é
+   leitura de apoio. */
+.duasColunas[data-proporcao="dois-um"] {
+  grid-template-columns: minmax(0, 2fr) minmax(0, 1fr);
+}
+
+/* --- distribuição por faixa ---------------------------------------------- */
+
+.faixas {
   display: grid;
-  grid-template-columns: minmax(120px, 1fr) minmax(120px, 2fr) auto;
+  gap: var(--sp-1);
+}
+
+.faixas li {
+  display: flex;
   align-items: center;
   gap: var(--sp-3);
-  min-width: 0;
+  padding: var(--sp-3) 0;
+  font-size: var(--fs-300);
 }
 
-.barras span:first-child {
+.faixas li + li {
+  border-top: 1px solid var(--line);
+}
+
+/* Só a marca carrega cor, e cada faixa tem o nome escrito ao lado — a cor é
+   reforço, nunca a informação (WCAG 1.4.1). */
+.faixaMarca {
+  flex: 0 0 auto;
+  width: 10px;
+  height: 10px;
+  border-radius: var(--r-pill);
+  background: var(--text-muted);
+}
+
+.faixas li[data-tom="success"] .faixaMarca {
+  background: var(--success);
+}
+
+.faixas li[data-tom="warning"] .faixaMarca {
+  background: var(--warning);
+}
+
+.faixas li[data-tom="danger"] .faixaMarca {
+  background: var(--danger);
+}
+
+.faixaNome {
+  min-width: 0;
+  flex: 1 1 auto;
   overflow: hidden;
-  color: var(--text-soft);
-  font-size: var(--fs-200);
-  font-weight: var(--fw-semibold);
+  color: var(--text);
+  font-weight: var(--fw-medium);
   text-overflow: ellipsis;
   white-space: nowrap;
 }
 
-.trilho {
-  overflow: hidden;
-  height: 10px;
-  border-radius: var(--r-pill);
-  background: var(--surface-muted);
-}
-
-.trilho span {
-  display: block;
-  min-width: 4px;
-  height: 100%;
-  border-radius: inherit;
-  background: var(--accent);
-}
-
-.barras strong {
-  font-weight: var(--fw-bold);
+.faixaValor {
+  display: flex;
+  flex: 0 0 auto;
+  align-items: baseline;
+  gap: var(--sp-2);
   font-variant-numeric: tabular-nums;
 }
 
-.statusGrid {
-  display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: var(--sp-3);
-  margin: 0;
+.faixaValor strong {
+  font-size: var(--fs-400);
+  font-weight: var(--fw-bold);
 }
 
-.statusGrid div {
+.faixaValor small {
+  color: var(--text-muted);
+  font-size: var(--fs-100);
+}
+
+/* Fecho do bloco: o total confere com o KPI de avaliações e evita a dúvida
+   "22% de quê?". */
+.faixaTotal {
+  color: var(--text-muted);
+  font-size: var(--fs-200);
+}
+
+.faixaTotal .faixaValor strong {
+  font-size: var(--fs-300);
+}
+
+/* --- prioridades --------------------------------------------------------- */
+
+.prioridades {
+  display: grid;
+  gap: var(--sp-3);
+}
+
+/* Linha compacta é o padrão; cartão é a exceção do primeiro item. */
+.prioridades li {
   display: grid;
   gap: var(--sp-1);
+  padding: var(--sp-3);
+  border-radius: var(--r-md);
+}
+
+.prioridades li + li {
+  border-top: 1px solid var(--line);
+  border-radius: 0;
+}
+
+/* O primeiro item ganha presença por TINTA LATERAL, não por fundo vermelho:
+   destaque sem parecer alarme. */
+.prioridades li[data-primeira="true"] {
+  gap: var(--sp-2);
+  margin-bottom: var(--sp-2);
   padding: var(--sp-4);
-  border: 1px solid var(--line);
-  border-radius: var(--r-sm);
-  background: var(--surface-muted);
+  border: 1px solid var(--line-strong);
+  background: var(--surface-2);
+  box-shadow: inset 3px 0 0 var(--accent-strong);
 }
 
-.statusGrid dt,
-.statusGrid dd {
-  margin: 0;
+.prioridades li[data-primeira="true"][data-critica="true"] {
+  box-shadow: inset 3px 0 0 var(--danger);
 }
 
-.statusGrid dt {
+.prioridadeTopo {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--sp-2);
+}
+
+.prioridadeSelo {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--sp-1);
+  padding: 1px var(--sp-2);
+  border-radius: var(--r-pill);
+  font-size: var(--fs-100);
+  font-weight: var(--fw-semibold);
+  letter-spacing: var(--tracking-label);
+  text-transform: uppercase;
+}
+
+.prioridadeSelo[data-tom="danger"] {
+  background: var(--danger-soft);
+  color: var(--danger-text);
+}
+
+.prioridadeSelo[data-tom="warning"] {
+  background: var(--warning-soft);
+  color: var(--warning-text);
+}
+
+.prioridadeCodigo {
+  font-size: var(--fs-300);
+  font-weight: var(--fw-semibold);
+  font-variant-numeric: tabular-nums;
+  overflow-wrap: anywhere;
+}
+
+.prioridadeMeta {
   color: var(--text-soft);
+  font-size: var(--fs-200);
+}
+
+.prioridadeNumeros {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--sp-2);
+  margin-left: auto;
+  color: var(--text-soft);
+  font-size: var(--fs-200);
+}
+
+.prioridadeNumeros strong {
+  color: var(--text);
+  font-variant-numeric: tabular-nums;
+}
+
+.prioridades :global(.btn) {
+  justify-self: start;
+}
+
+/* Nas linhas, o CTA é link e não botão: seis botões seguidos competiriam entre
+   si e nenhum leria como "comece por aqui". */
+.prioridadeLink {
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+  justify-self: start;
+  min-height: 32px;
+  color: var(--accent-strong);
   font-size: var(--fs-200);
   font-weight: var(--fw-semibold);
 }
 
-.statusGrid dd {
-  font-size: var(--fs-700);
+.prioridadeLink:hover {
+  color: var(--accent-deep);
+  text-decoration: underline;
+}
+
+/* --- foco da gestão ------------------------------------------------------ */
+
+.foco {
+  display: grid;
+  gap: var(--sp-3);
+}
+
+.focoTopo {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--sp-2);
+}
+
+.focoCriterio {
+  font-size: var(--fs-500);
+  line-height: var(--lh-snug);
+}
+
+.focoNumeros {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: var(--sp-3);
+}
+
+.focoNumeros > div {
+  display: grid;
+  gap: var(--sp-1);
+  padding: var(--sp-3);
+  border-radius: var(--r-md);
+  background: var(--surface-2);
+}
+
+.focoNumeros dt {
+  color: var(--text-muted);
+  font-size: var(--fs-100);
+  font-weight: var(--fw-semibold);
+  letter-spacing: var(--tracking-label);
+  text-transform: uppercase;
+}
+
+.focoNumeros dd {
+  font-size: var(--fs-600);
   font-weight: var(--fw-bold);
   line-height: var(--lh-tight);
   font-variant-numeric: tabular-nums;
 }
 
-.listaEstrategica,
-.listaCarteiras,
-.monitoriasRecentes {
-  display: grid;
-  gap: var(--sp-2);
-  min-width: 0;
-}
-
-.listaEstrategica a,
-.monitoriasRecentes a,
-.listaCarteiras li {
+.focoAcao {
   display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: var(--sp-3);
-  min-width: 0;
+  align-items: flex-start;
+  gap: var(--sp-2);
   padding: var(--sp-3);
-  border: 1px solid var(--line);
-  border-radius: var(--r-sm);
-  background: var(--surface-2);
-}
-
-.monitoriasRecentes a {
-  justify-content: flex-start;
-}
-
-.listaEstrategica span:first-child,
-.listaCarteiras span,
-.monitoriasRecentes span:nth-child(2) {
-  display: grid;
-  gap: 2px;
-  min-width: 0;
-}
-
-.listaEstrategica strong,
-.listaCarteiras strong,
-.monitoriasRecentes strong {
-  overflow: hidden;
+  border: 1px solid var(--accent-soft-strong);
+  border-radius: var(--r-md);
+  background: var(--accent-soft);
+  color: var(--accent-deep);
   font-size: var(--fs-200);
-  font-weight: var(--fw-semibold);
-  text-overflow: ellipsis;
-  white-space: nowrap;
+  line-height: var(--lh-normal);
 }
 
-.listaEstrategica small,
-.listaCarteiras small,
-.monitoriasRecentes small {
-  overflow: hidden;
+.focoAcao > svg {
+  flex: 0 0 auto;
+  margin-top: 2px;
+}
+
+.focoNota {
   color: var(--text-muted);
   font-size: var(--fs-100);
-  text-overflow: ellipsis;
-  white-space: nowrap;
+  line-height: var(--lh-snug);
 }
 
-.monitoriasRecentes :global(.score) {
-  margin-left: auto;
+.foco :global(.btn) {
+  justify-self: start;
+}
+
+/* --- ofensores e carteiras ----------------------------------------------- */
+
+.marcaEliminatoria {
+  display: inline-flex;
+  margin-left: var(--sp-1);
+  color: var(--danger-text);
+  vertical-align: -2px;
+}
+
+.linhaCarteira {
+  padding-block: var(--sp-3);
 }
 
 /* ==========================================================================
-   Responsivo — abaixo de 1200px a garantia de "sem rolagem" cai por terra de
-   propósito: o conteúdo empilha e a página rola como qualquer outra.
+   Responsivo
    ========================================================================== */
 
-@media (max-width: 1200px) {
-  .painel :global(.kpi-grid) {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-  }
-
-  .gradePrincipal,
-  .leituraGrid {
+@media (max-width: 1100px) {
+  .duasColunas,
+  .duasColunas[data-proporcao="dois-um"] {
     grid-template-columns: minmax(0, 1fr);
   }
 }
 
 @media (max-width: 640px) {
-  .painel :global(.kpi-grid) {
-    grid-template-columns: minmax(0, 1fr);
+  .cabecalho {
+    align-items: stretch;
   }
 
-  .cartao,
-  .cartaoBaixo {
-    padding: var(--sp-4);
-  }
-
-  .rosca {
-    grid-template-columns: minmax(0, 1fr);
-    justify-items: center;
-  }
-
-  .roscaLegenda {
+  .filtros {
     width: 100%;
   }
 
-  .barras li,
-  .statusGrid {
+  /* Dois recortes por linha: quatro selects empilhados empurrariam os KPIs
+     para fora da primeira tela no celular. */
+  .filtros .field {
+    flex: 1 1 calc(50% - var(--sp-3));
+    min-width: 0;
+  }
+
+  .kpis {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: var(--sp-3);
+  }
+
+  .kpi {
+    padding: var(--sp-4);
+  }
+
+  .focoNumeros {
     grid-template-columns: minmax(0, 1fr);
+  }
+}
+
+/* ==========================================================================
+   Impressão
+   ========================================================================== */
+
+@media print {
+  .filtros {
+    display: none;
+  }
+
+  .duasColunas,
+  .duasColunas[data-proporcao="dois-um"] {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .kpi {
+    box-shadow: none;
   }
 }

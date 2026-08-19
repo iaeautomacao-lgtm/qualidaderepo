@@ -1,14 +1,8 @@
 /* ==========================================================================
-   Detalhes da Avaliação IA
+   Transcrição de uma gravação — material bruto: áudio + o que foi dito.
 
-   A tela é dividida em ABAS (Resumo, Critérios, Transcrição, Perguntar à IA).
-   Antes era uma coluna única com 9 cartões empilhados mais uma trilha lateral
-   grudada na rolagem: para chegar aos critérios o supervisor rolava por áudio,
-   transcrição, observações e resumo, e o cartão "Seções" — que era o único
-   elemento posicionado da coluna — subia por cima dos cartões vizinhos.
-
-   O que fica FORA das abas: cabeçalho, alertas e o player. Player dentro de aba
-   continuaria tocando sem controle visível quando o usuário trocasse de bloco.
+   Os blocos de julgamento (critérios, resumo executivo, chat) vivem em
+   /avaliacoes/ia/[id]. Este módulo ficou com o cabeçalho, o player e o rodapé.
    ========================================================================== */
 
 .pagina {
@@ -16,11 +10,9 @@
   gap: var(--sp-5);
 }
 
-/* --- cabeçalho ----------------------------------------------------------- */
-
 .hero {
   display: grid;
-  gap: var(--sp-5);
+  gap: var(--sp-4);
   padding: var(--sp-5);
   border: 1px solid var(--line);
   border-radius: var(--r-lg);
@@ -62,6 +54,13 @@
   text-transform: uppercase;
 }
 
+/* O nome do arquivo é o título aqui, e nome de arquivo é longo: tipografia de
+   h2 em vez de h1 para não quebrar em três linhas. */
+.heroIdent h1 {
+  font-size: var(--fs-600);
+  overflow-wrap: anywhere;
+}
+
 .heroLinha {
   display: flex;
   flex-wrap: wrap;
@@ -97,351 +96,8 @@
   gap: var(--sp-2);
 }
 
-/* Cinco números que resumem a análise. A ORDEM é a da decisão: primeiro o que
-   decide (Nota, Não conformes), depois o que qualifica (Confiança), por fim o
-   que identifica (Duração, Persona). Antes Persona abria a linha e a nota vinha
-   em segundo — o olho batia no dado menos acionável primeiro. */
-.kpis {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(min(100%, 172px), 1fr));
-  gap: var(--sp-3);
-}
-
-.kpis > div {
-  display: grid;
-  align-content: start;
-  gap: var(--sp-1);
-  padding: var(--sp-4);
-  border: 1px solid var(--line);
-  border-radius: var(--r-md);
-  background: var(--surface-2);
-}
-
-/* A Nota é o único KPI que decide algo — ela ganha a tinta da marca. */
-.kpis > div[data-destaque="true"] {
-  border-color: var(--accent-soft-strong);
-  background: var(--accent-soft);
-}
-
-.kpis dt {
-  color: var(--text-muted);
-  font-size: var(--fs-100);
-  font-weight: var(--fw-semibold);
-  letter-spacing: var(--tracking-label);
-  text-transform: uppercase;
-}
-
-.kpis dd {
-  font-size: var(--fs-600);
-  font-weight: var(--fw-bold);
-  line-height: var(--lh-tight);
-  font-variant-numeric: tabular-nums;
-  overflow-wrap: anywhere;
-}
-
-.kpis > div[data-destaque="true"] dd {
-  color: var(--accent-strong);
-}
-
-/* Tom por resultado, não por enfeite: o número herda a cor do estado que ele
-   representa. Todo par abaixo passa de 4,5:1 no fundo do cartão, e o texto de
-   apoio (`.kpiNota`) diz em palavras o que a cor sugere. */
-.kpis > div[data-tom="danger"] dd:first-of-type {
-  color: var(--danger-text);
-}
-
-.kpis > div[data-tom="warning"] dd:first-of-type {
-  color: var(--warning-text);
-}
-
-.kpis > div[data-tom="success"] dd:first-of-type {
-  color: var(--success-text);
-}
-
-/* Explicação do indicador: precisa ser visivelmente secundária ao número, senão
-   disputa a leitura com ele. */
-.kpis dd.kpiNota {
-  color: var(--text-muted);
-  font-size: var(--fs-100);
-  font-weight: var(--fw-regular);
-  line-height: var(--lh-snug);
-}
-
-/* --- painéis de aba ------------------------------------------------------ */
-
-/* Cada painel empilha os próprios cartões. `:focus-visible` só no painel em si
-   (ele é focável para o teclado sair da barra de abas direto no conteúdo). */
-.painel {
-  display: grid;
-  align-content: start;
-  gap: var(--sp-5);
-}
-
-.painel[hidden] {
-  display: none;
-}
-
 .cartaoAudio {
   padding-block: var(--sp-4);
-}
-
-/* --- leitura executiva --------------------------------------------------- */
-
-.executivo {
-  display: grid;
-  gap: var(--sp-4);
-}
-
-.gradeExecutiva,
-.gradeGestao,
-.gradeListas {
-  display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
-  gap: var(--sp-4);
-}
-
-.gradeExecutiva article,
-.achados {
-  display: grid;
-  align-content: start;
-  gap: var(--sp-3);
-  min-width: 0;
-  padding: var(--sp-4);
-  border: 1px solid var(--line);
-  border-radius: var(--r-md);
-  background: var(--surface-2);
-}
-
-.gradeExecutiva h3,
-.achados h3 {
-  display: flex;
-  align-items: center;
-  gap: var(--sp-2);
-  font-size: var(--fs-300);
-  font-weight: var(--fw-semibold);
-}
-
-.gradeExecutiva p,
-.achados p,
-.achados span {
-  color: var(--text-soft);
-  font-size: var(--fs-200);
-  line-height: var(--lh-normal);
-}
-
-.resumoExecutivo {
-  display: grid;
-  gap: var(--sp-2);
-  padding: var(--sp-3);
-  border: 1px solid var(--line);
-  border-radius: var(--r-md);
-  background: var(--surface-2);
-}
-
-.resumoExecutivo li {
-  color: var(--text-soft);
-  font-size: var(--fs-300);
-  line-height: var(--lh-normal);
-}
-
-.achados ul {
-  display: grid;
-  gap: var(--sp-3);
-}
-
-.achados li {
-  display: grid;
-  gap: var(--sp-1);
-  padding-left: var(--sp-3);
-  border-left: 2px solid var(--line);
-}
-
-.achados strong {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  gap: var(--sp-2);
-  font-size: var(--fs-200);
-  font-weight: var(--fw-semibold);
-}
-
-.achadosdanger li {
-  border-left-color: var(--danger);
-}
-
-.achadossuccess li {
-  border-left-color: var(--success);
-}
-
-.achadoswarning li {
-  border-left-color: var(--warning);
-}
-
-/* Peso do critério colado no nome: é o número que ordena a fila de feedback. */
-.pesoFalha {
-  flex: 0 0 auto;
-  padding: 1px var(--sp-2);
-  border: 1px solid var(--line-strong);
-  border-radius: var(--r-pill);
-  background: var(--surface);
-  color: var(--text-soft);
-  font-size: var(--fs-100);
-  font-weight: var(--fw-bold);
-  font-variant-numeric: tabular-nums;
-}
-
-/* --- onde a nota foi perdida -------------------------------------------- */
-
-.impacto {
-  display: grid;
-  gap: var(--sp-4);
-}
-
-.filaFalhas {
-  display: grid;
-  gap: var(--sp-2);
-  padding: var(--sp-3);
-  border: 1px solid var(--line);
-  border-radius: var(--r-md);
-  background: var(--surface-2);
-}
-
-.filaFalhas ul {
-  display: grid;
-  gap: var(--sp-2);
-}
-
-.filaFalhas li {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  justify-content: space-between;
-  gap: var(--sp-3);
-  font-size: var(--fs-200);
-}
-
-.filaFalhas strong {
-  min-width: 0;
-  font-weight: var(--fw-semibold);
-}
-
-/* --- critérios ---------------------------------------------------------- */
-
-/* Filtro de status + índice das seções. Gruda abaixo da barra de abas: com 24
-   critérios abertos, o filtro sumia da tela na primeira rolagem. */
-.barraCriterios {
-  position: sticky;
-  top: calc(var(--topbar-h) + 60px);
-  z-index: 1;
-  display: grid;
-  gap: var(--sp-3);
-  /* Sangra até a borda do cartão: com o fundo limitado à coluna de conteúdo, os
-     cartões de critério apareciam pelas laterais ao passar por baixo da barra. */
-  margin: 0 calc(var(--sp-5) * -1) var(--sp-5);
-  padding: var(--sp-3) var(--sp-5);
-  border-bottom: 1px solid var(--line);
-  background: var(--surface);
-}
-
-.indiceSecoes {
-  display: grid;
-  gap: var(--sp-2);
-}
-
-.secoes {
-  display: grid;
-  gap: var(--sp-6);
-}
-
-.secao {
-  display: grid;
-  gap: var(--sp-4);
-  /* Topbar + barra de abas + barra de filtro: sem isso a âncora para atrás das
-     três e o título da seção fica invisível. */
-  scroll-margin-top: calc(var(--topbar-h) + 172px);
-}
-
-.secaoCabecalho {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  justify-content: space-between;
-  gap: var(--sp-3);
-  padding: var(--sp-4);
-  border: 1px solid var(--accent-soft-strong);
-  border-radius: var(--r-md);
-  background: linear-gradient(100deg, var(--accent-soft) 0%, var(--surface-3) 100%);
-}
-
-.secaoCabecalho > div {
-  min-width: 0;
-  display: grid;
-  gap: var(--sp-2);
-}
-
-.secaoCabecalho h3 {
-  font-size: var(--fs-500);
-}
-
-.secaoCabecalho p {
-  color: var(--text-soft);
-  font-size: var(--fs-200);
-  line-height: var(--lh-normal);
-}
-
-.criterios {
-  display: grid;
-  gap: var(--sp-4);
-}
-
-/* --- transcrição -------------------------------------------------------- */
-
-.textoCorrido {
-  color: var(--text-soft);
-  font-size: var(--fs-300);
-  line-height: var(--lh-normal);
-}
-
-.textoCorrido + .textoCorrido {
-  margin-top: var(--sp-3);
-}
-
-/* --- insights / riscos / próximos passos -------------------------------- */
-
-.listas {
-  display: grid;
-  gap: var(--sp-4);
-}
-
-.listas h3 {
-  display: flex;
-  align-items: center;
-  gap: var(--sp-2);
-  margin-bottom: var(--sp-2);
-  font-size: var(--fs-300);
-}
-
-.listas h3 > svg {
-  color: var(--accent);
-}
-
-.listas ul {
-  display: grid;
-  gap: var(--sp-2);
-}
-
-.listas li {
-  padding-left: var(--sp-4);
-  border-left: 2px solid var(--line);
-  color: var(--text-soft);
-  font-size: var(--fs-300);
-  line-height: var(--lh-normal);
-}
-
-.tituloLateral {
-  margin-bottom: var(--sp-3);
-  font-size: var(--fs-500);
-  font-weight: var(--fw-semibold);
 }
 
 .rodape {
@@ -460,12 +116,7 @@
 }
 
 .esqueletoHero {
-  height: 120px;
-  border-radius: var(--r-lg);
-}
-
-.esqueletoKpis {
-  height: 96px;
+  height: 132px;
   border-radius: var(--r-lg);
 }
 
@@ -475,26 +126,13 @@
 }
 
 .esqueletoBlocoAlto {
-  height: 280px;
+  height: 320px;
   border-radius: var(--r-lg);
-}
-
-/* ==========================================================================
-   Responsivo
-   ========================================================================== */
-
-@media (max-width: 1100px) {
-  .gradeExecutiva,
-  .gradeGestao,
-  .gradeListas {
-    grid-template-columns: minmax(0, 1fr);
-  }
 }
 
 @media (max-width: 640px) {
   .hero {
     padding: var(--sp-4);
-    gap: var(--sp-4);
   }
 
   .heroAcoes {
@@ -505,56 +143,20 @@
     flex: 1 1 140px;
   }
 
-  .kpis {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-    gap: var(--sp-3);
-  }
-
-  .kpis > div {
-    padding: var(--sp-3);
-  }
-
-  .kpis dd {
-    font-size: var(--fs-500);
-  }
-
-  /* Em celular a barra de filtro grudada comeria metade da tela: ela volta a
-     rolar com o conteúdo, e sem a sangria (o cartão já tem menos padding). */
-  .barraCriterios {
-    position: static;
-    margin: 0 0 var(--sp-4);
-    padding: 0 0 var(--sp-3);
-  }
-
-  .secao {
-    scroll-margin-top: calc(var(--topbar-h) + 72px);
-  }
-
   .rodape :global(.btn) {
     flex: 1 1 100%;
   }
 }
 
-/* ==========================================================================
-   Impressão — a ficha IA também é documento de monitoria. O @media print de
-   globals.css reabre todos os painéis de aba, então o papel sai completo.
-   ========================================================================== */
-
 @media print {
   .heroIcone,
   .heroAcoes,
-  .barraCriterios,
   .rodape {
     display: none;
   }
 
-  .hero,
-  .secaoCabecalho {
+  .hero {
     background: none;
     box-shadow: none;
-  }
-
-  .secao {
-    break-inside: avoid;
   }
 }

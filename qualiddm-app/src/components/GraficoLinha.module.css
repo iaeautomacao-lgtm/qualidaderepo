@@ -1,0 +1,66 @@
+/* Gráfico de linha da evolução da qualidade.
+
+   As cores vêm dos tokens de gráfico de globals.css, então o tema escuro
+   acompanha sem regra extra aqui. */
+
+.figura {
+  display: grid;
+  gap: var(--sp-2);
+}
+
+.moldura {
+  width: 100%;
+}
+
+.moldura svg {
+  display: block;
+  width: 100%;
+  height: auto;
+}
+
+.guia {
+  stroke: var(--chart-grid);
+  stroke-width: 1;
+}
+
+.rotuloY,
+.rotuloX {
+  fill: var(--text-muted);
+  font-size: 11px;
+  font-variant-numeric: tabular-nums;
+}
+
+/* Barra de volume: ornamento de contexto, abaixo de 3:1 de propósito. O número
+   exato de monitorias do dia está na tabela equivalente. */
+.volume {
+  fill: var(--chart-track);
+}
+
+.area {
+  fill: color-mix(in srgb, var(--chart-bar) 12%, transparent);
+  stroke: none;
+}
+
+.linha {
+  fill: none;
+  stroke: var(--chart-bar);
+  stroke-width: 2.5;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+.ponto {
+  fill: var(--surface);
+  stroke: var(--chart-bar);
+  stroke-width: 2;
+}
+
+@media print {
+  .area {
+    fill: none;
+  }
+
+  .linha {
+    stroke: #000;
+  }
+}

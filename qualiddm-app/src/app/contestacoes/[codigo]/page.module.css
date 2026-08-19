@@ -1,0 +1,349 @@
+/* ==========================================================================
+   Contestar uma monitoria, item por item.
+   ========================================================================== */
+
+.cabecalho {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--sp-4);
+  padding: var(--sp-4);
+}
+
+.identidade {
+  display: flex;
+  min-width: 0;
+  align-items: center;
+  gap: var(--sp-3);
+}
+
+.identidade h1 {
+  font-size: var(--fs-600);
+  line-height: var(--lh-tight);
+  overflow-wrap: anywhere;
+}
+
+.linhaId {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--sp-2);
+  margin-top: 2px;
+  color: var(--text-soft);
+  font-size: var(--fs-200);
+}
+
+.cabecalhoAcoes {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--sp-2);
+}
+
+/* --- cartões de identificação -------------------------------------------- */
+
+.fichas {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 170px), 1fr));
+  gap: var(--sp-3);
+}
+
+.fichas > div {
+  display: grid;
+  gap: 2px;
+  padding: var(--sp-3) var(--sp-4);
+  border: 1px solid var(--line);
+  border-radius: var(--r-md);
+  background: var(--surface);
+}
+
+.fichas dt {
+  color: var(--text-muted);
+  font-size: var(--fs-100);
+  font-weight: var(--fw-semibold);
+  letter-spacing: var(--tracking-label);
+  text-transform: uppercase;
+}
+
+.fichas dd {
+  font-size: var(--fs-300);
+  font-weight: var(--fw-semibold);
+  overflow-wrap: anywhere;
+}
+
+.numero {
+  font-variant-numeric: tabular-nums;
+}
+
+.fichas dd[data-tom="success"] {
+  color: var(--success-text);
+}
+
+.fichas dd[data-tom="warning"] {
+  color: var(--warning-text);
+}
+
+.fichas dd[data-tom="danger"] {
+  color: var(--danger-text);
+}
+
+/* --- pedidos já registrados ---------------------------------------------- */
+
+.pedidos {
+  display: grid;
+  gap: var(--sp-3);
+  list-style: none;
+}
+
+.pedidos > li {
+  display: grid;
+  gap: var(--sp-3);
+  padding: var(--sp-4);
+  border: 1px solid var(--line);
+  border-radius: var(--r-md);
+  background: var(--surface-2);
+}
+
+.pedidoTopo {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--sp-2);
+}
+
+.pedidoMeta {
+  color: var(--text-soft);
+  font-size: var(--fs-100);
+}
+
+.pedidoItens {
+  display: grid;
+  gap: var(--sp-3);
+  list-style: none;
+}
+
+.pedidoItens > li {
+  display: grid;
+  gap: var(--sp-1);
+  padding-left: var(--sp-3);
+  border-left: 2px solid var(--accent-soft-strong);
+  font-size: var(--fs-200);
+  line-height: var(--lh-normal);
+}
+
+.parecer {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--sp-2);
+  padding: var(--sp-2) var(--sp-3);
+  border-radius: var(--r-sm);
+  background: var(--surface-3);
+  color: var(--text-soft);
+}
+
+.parecer > svg {
+  flex: 0 0 auto;
+  margin-top: 2px;
+}
+
+.notaMudou {
+  font-size: var(--fs-200);
+  font-variant-numeric: tabular-nums;
+}
+
+/* --- seções e itens ------------------------------------------------------ */
+
+.secoes {
+  display: grid;
+  gap: var(--sp-5);
+}
+
+.secao {
+  display: grid;
+  gap: var(--sp-3);
+}
+
+.secaoTopo {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--sp-3);
+  padding-bottom: var(--sp-2);
+  border-bottom: 2px solid var(--line);
+}
+
+.secaoTopo h3 {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--sp-2);
+  font-size: var(--fs-400);
+}
+
+.itens {
+  display: grid;
+  gap: var(--sp-3);
+  list-style: none;
+}
+
+.item {
+  display: grid;
+  gap: var(--sp-3);
+  padding: var(--sp-4);
+  border: 1px solid var(--line);
+  border-radius: var(--r-md);
+  background: var(--surface);
+}
+
+/* Item marcado ganha borda de acento: numa lista de dez, saber o que já entrou
+   no pedido tem de ser possível sem reler cada checkbox. */
+.item[data-marcado="true"] {
+  border-color: var(--accent-strong);
+  box-shadow: inset 3px 0 0 0 var(--accent-strong);
+}
+
+.itemTopo {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: var(--sp-3);
+}
+
+.itemIdent {
+  display: grid;
+  min-width: 0;
+  gap: var(--sp-2);
+}
+
+.itemIdent strong {
+  font-size: var(--fs-400);
+  overflow-wrap: anywhere;
+}
+
+.itemChips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--sp-2);
+}
+
+.marcar {
+  display: inline-flex;
+  flex: 0 0 auto;
+  align-items: center;
+  gap: var(--sp-2);
+  padding: var(--sp-2) var(--sp-3);
+  border: 1px solid var(--border-control);
+  border-radius: var(--r-sm);
+  font-size: var(--fs-200);
+  font-weight: var(--fw-semibold);
+  cursor: pointer;
+}
+
+.marcar:hover {
+  border-color: var(--accent-strong);
+  background: var(--accent-soft);
+}
+
+.marcar input {
+  width: 16px;
+  height: 16px;
+  accent-color: var(--accent);
+  cursor: pointer;
+}
+
+.marcar:has(input:disabled) {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.enunciado {
+  color: var(--text-soft);
+  font-size: var(--fs-200);
+  line-height: var(--lh-normal);
+}
+
+.observacao {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--sp-2);
+  padding: var(--sp-3);
+  border: 1px solid var(--info);
+  border-radius: var(--r-md);
+  background: var(--info-soft);
+  color: var(--info-text);
+  font-size: var(--fs-200);
+  line-height: var(--lh-normal);
+}
+
+.observacao > svg {
+  flex: 0 0 auto;
+  margin-top: 2px;
+}
+
+.itemForm {
+  display: grid;
+  grid-template-columns: minmax(0, 260px) minmax(0, 1fr);
+  gap: var(--sp-4);
+  padding-top: var(--sp-3);
+  border-top: 1px dashed var(--line);
+  align-items: start;
+}
+
+.area {
+  min-height: 84px;
+  resize: vertical;
+}
+
+/* Contador em vermelho enquanto o texto é curto: o botão de envio fica
+   desabilitado, e sem isso não se sabe qual dos itens o está travando. */
+.itemForm [data-curta="true"] {
+  color: var(--danger-text);
+  font-weight: var(--fw-semibold);
+}
+
+/* --- rodapé ------------------------------------------------------------- */
+
+.rodape {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--sp-3);
+  margin-top: var(--sp-5);
+  padding-top: var(--sp-4);
+  border-top: 1px solid var(--line);
+}
+
+.rodapeResumo {
+  color: var(--text-soft);
+  font-size: var(--fs-200);
+}
+
+/* --- esqueleto ---------------------------------------------------------- */
+
+.esqueleto {
+  display: grid;
+  gap: var(--sp-4);
+}
+
+.esqueleto > span:nth-child(1) {
+  height: 104px;
+  border-radius: var(--r-lg);
+}
+
+.esqueleto > span:nth-child(2) {
+  height: 360px;
+  border-radius: var(--r-lg);
+}
+
+@media (max-width: 720px) {
+  .itemForm {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .itemTopo {
+    flex-direction: column;
+  }
+}

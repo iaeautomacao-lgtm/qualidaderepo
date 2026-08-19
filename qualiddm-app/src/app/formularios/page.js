@@ -9,8 +9,8 @@ import styles from "./page.module.css";
 const ACOES = [
   {
     id: "cadastro",
-    titulo: "Cadastro de Formulários",
-    detalhe: "Crie e configure novos Formulários de avaliação",
+    titulo: "Gerenciamento de Formulários",
+    detalhe: "Crie, edite e configure os Formulários de avaliação",
     icon: "plus",
     tom: "blue",
     href: "/formularios/novo",
@@ -32,12 +32,12 @@ const ACOES = [
     href: "/avaliacoes",
   },
   {
-    id: "justificativas",
-    titulo: "Visualizar justificativas",
-    detalhe: "Veja, edite e exclua justificativas lançadas",
-    icon: "review",
+    id: "dashboard",
+    titulo: "Dashboard de Formulários",
+    detalhe: "Análises e métricas das avaliações aplicadas",
+    icon: "metrics",
     tom: "orange",
-    href: "/formularios/justificativas",
+    href: "/dashboard-formularios",
   },
 ];
 

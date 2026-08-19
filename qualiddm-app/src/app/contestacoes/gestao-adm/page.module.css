@@ -6,11 +6,13 @@
 
 /* --- faixa de situações --------------------------------------------------- */
 
-/* Três cards que são também o filtro. minmax com min(100%) resolve o mobile sem
-   media query: no celular cada card ocupa a linha inteira. */
+/* Cinco cards de leitura. minmax com min(100%) resolve o mobile sem media
+   query: no celular cada card ocupa a linha inteira. 200px e não 260px porque
+   com 260 os cinco quebram em 4 + 1 num monitor de 1440px, e o card órfão da
+   segunda linha lê como se fosse outra coisa. */
 .situacoes {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(min(100%, 260px), 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 200px), 1fr));
   gap: var(--sp-4);
 }
 
@@ -95,14 +97,19 @@
 /* Nome de formulário é o campo longo desta tabela ("FIRJAN >>> Formulário de
    monitoria ONLINE (CHAT - WhatsApp - Redes Sociais)"). Abaixo desta largura o
    contêiner .table-scroll assume a rolagem horizontal. */
+/* Oito colunas cabem em 1440px sem rolagem horizontal. A informação que saiu
+   para isso acontecer foi a data de abertura, que virou sub-linha do prazo: o
+   botão de julgar não pode ficar atrás de uma barra de rolagem. */
 .tabela {
-  min-width: 1100px;
+  min-width: 900px;
 }
 
+/* Sem `white-space: nowrap` geral: com campanha e monitor empilhados, nome
+   comprido pode quebrar em duas linhas. Forçar linha única empurrava a tabela
+   para além do container e escondia a coluna de ações. */
 .tabela td,
 .tabela th[scope="row"] {
   vertical-align: middle;
-  white-space: nowrap;
 }
 
 /* O botão de 44px dentro da célula não deve inflar a linha inteira. */
@@ -117,7 +124,7 @@
   display: flex;
   align-items: center;
   gap: var(--sp-2);
-  max-width: 52ch;
+  max-width: 34ch;
 }
 
 .formularioNome {
@@ -141,4 +148,36 @@
   .buscas {
     grid-template-columns: minmax(0, 1fr);
   }
+}
+
+/* Prazo em cima, abertura embaixo: o prazo é o que decide a ordem de trabalho
+   do ADM, e a data de abertura só explica de onde ele veio. */
+.celulaPrazo {
+  display: grid;
+  gap: 2px;
+  font-variant-numeric: tabular-nums;
+}
+
+.celulaPrazo > span {
+  color: var(--text-muted);
+  font-size: var(--fs-100);
+  font-weight: var(--fw-regular);
+  white-space: nowrap;
+}
+
+.celulaEmpilhada {
+  display: grid;
+  gap: 2px;
+}
+
+.celulaSecundaria {
+  color: var(--text-soft);
+  font-size: var(--fs-100);
+  font-weight: var(--fw-regular);
+}
+
+/* "Ver parecer" em uma linha: rótulo de ação quebrado em duas parece dois
+   controles. */
+.tabela td:last-child :global(.btn) {
+  white-space: nowrap;
 }

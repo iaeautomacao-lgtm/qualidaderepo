@@ -1,5 +1,5 @@
 import { isMissingSchemaError, one, paraLike, query, transaction } from "../db";
-import { notFound } from "../errors";
+import { conflict, notFound } from "../errors";
 import { formatarDataHora, formatarDataIso, formatarHora, inteiro } from "../format";
 
 // Os 5 cards da tela de Feedback particionam o total: na captura de
@@ -352,4 +352,117 @@ export async function listarConfiguracoesStatus() {
     if (isMissingSchemaError(error)) return [];
     return [];
   }
+}
+
+/* ==========================================================================
+   Abas "Edições" e "Histórico" da tela compacta de feedback
+   ========================================================================== */
+
+// Mínimo do comentário de histórico. Menor que o do feedback formal (20) de
+// propósito: "operador ciente" é um comentário legítimo, e cobrar 20 caracteres
+// aí só ensinaria a encher linguiça.
+export const MIN_CARACTERES_COMENTARIO = 5;
+
+/**
+ * Aba "Edições": o que foi alterado nesta monitoria depois de lançada.
+ *
+ * Lê `avaliacao_edicoes` — a mesma tabela do relatório "Monitorias editadas".
+ * Uma linha por campo alterado, com valor anterior e novo, que é o que responde
+ * a pergunta da supervisão: "o que mudou e por quê".
+ */
+export async function listarEdicoesDaAvaliacao(codigo) {
+  try {
+    const rows = await query(
+      `SELECT e.campo, e.valor_anterior, e.valor_novo, e.motivo,
+              e.created_at, u.name AS editado_por
+         FROM avaliacao_edicoes e
+         JOIN avaliacoes a ON a.id = e.avaliacao_id
+         LEFT JOIN users u ON u.id = e.editado_por_id
+        WHERE a.codigo = :codigo
+        ORDER BY e.created_at DESC, e.id DESC
+        LIMIT 50`,
+      { codigo },
+    );
+
+    return rows.map((row) => ({
+      campo: row.campo,
+      valorAnterior: row.valor_anterior,
+      valorNovo: row.valor_novo,
+      motivo: row.motivo || null,
+      // Usuário desligado sai do JOIN com nome nulo. "Usuário removido" e não
+      // "N/A": a edição aconteceu e alguém a fez.
+      editadoPor: row.editado_por || "Usuário removido",
+      editadoEm: formatarDataHora(row.created_at),
+    }));
+  } catch (error) {
+    if (isMissingSchemaError(error)) return [];
+    return [];
+  }
+}
+
+/**
+ * Aba "Histórico": comentários do supervisor sobre a monitoria.
+ *
+ * `suportado: false` quando a migration 006 ainda não rodou — a tela explica a
+ * ausência e desabilita a caixa em vez de mostrar um histórico vazio que
+ * pareceria "ninguém comentou nada".
+ */
+export async function listarComentariosDaAvaliacao(codigo) {
+  try {
+    const rows = await query(
+      `SELECT fc.comentario, fc.created_at, u.name AS autor, u.role AS papel
+         FROM feedback_comentarios fc
+         JOIN avaliacoes a ON a.id = fc.avaliacao_id
+         LEFT JOIN users u ON u.id = fc.autor_id
+        WHERE a.codigo = :codigo
+        ORDER BY fc.created_at DESC, fc.id DESC
+        LIMIT 100`,
+      { codigo },
+    );
+
+    return {
+      suportado: true,
+      itens: rows.map((row) => ({
+        comentario: row.comentario,
+        autor: row.autor || "Usuário removido",
+        papel: row.papel || null,
+        criadoEm: formatarDataHora(row.created_at),
+      })),
+    };
+  } catch (error) {
+    if (isMissingSchemaError(error)) return { suportado: false, itens: [] };
+    throw error;
+  }
+}
+
+/**
+ * Registra um comentário no histórico.
+ *
+ * Sem UPDATE nem DELETE: histórico de comentário não se reescreve — corrigir é
+ * comentar de novo. Assim quem lê depois vê a conversa como ela aconteceu.
+ */
+export async function adicionarComentario({ codigo, autorId, comentario }) {
+  const ficha = await one(
+    `SELECT id FROM avaliacoes WHERE codigo = :codigo AND excluida_em IS NULL LIMIT 1`,
+    { codigo },
+  );
+
+  if (!ficha) throw notFound("Avaliação não encontrada.");
+
+  try {
+    await query(
+      `INSERT INTO feedback_comentarios (avaliacao_id, autor_id, comentario)
+       VALUES (:avaliacaoId, :autorId, :comentario)`,
+      { avaliacaoId: ficha.id, autorId, comentario },
+    );
+  } catch (error) {
+    if (isMissingSchemaError(error)) {
+      throw conflict(
+        "O histórico de comentários ainda não está disponível neste banco. Rode a migration 006_feedback_comentarios_e_motivo_contestacao.sql.",
+      );
+    }
+    throw error;
+  }
+
+  return listarComentariosDaAvaliacao(codigo);
 }

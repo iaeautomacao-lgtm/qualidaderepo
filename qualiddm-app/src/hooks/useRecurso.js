@@ -58,5 +58,17 @@ export default function useRecurso(url, inicial = null) {
 
   const recarregar = useCallback(() => setTentativa((numero) => numero + 1), []);
 
-  return { dados, carregando, erro, recarregar };
+  /**
+   * Substitui os dados sem ir ao servidor.
+   *
+   * Para quando um POST já devolve o recurso atualizado — registrar a tratativa
+   * de uma análise IA, por exemplo. Sem isso a tela precisaria de um GET extra
+   * para mostrar o que a resposta anterior já trouxe.
+   */
+  const definir = useCallback((proximos) => {
+    setDados(proximos);
+    setErro("");
+  }, []);
+
+  return { dados, carregando, erro, recarregar, definir };
 }

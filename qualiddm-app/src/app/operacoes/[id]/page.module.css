@@ -1,0 +1,365 @@
+/* ==========================================================================
+   Campanhas de uma operação, agrupadas por canal.
+   ========================================================================== */
+
+.cabecalho {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--sp-4);
+}
+
+.cabecalhoIdent {
+  display: flex;
+  min-width: 0;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--sp-3);
+}
+
+.cabecalhoIdent h1 {
+  font-size: var(--fs-700);
+  overflow-wrap: anywhere;
+}
+
+.cabecalhoIdent p {
+  margin-top: var(--sp-1);
+  color: var(--text-soft);
+  font-size: var(--fs-200);
+}
+
+.marca {
+  display: grid;
+  place-items: center;
+  flex: 0 0 auto;
+  width: 44px;
+  height: 44px;
+  border: 1px solid var(--accent-soft-strong);
+  border-radius: var(--r-md);
+  background: var(--accent-soft);
+  color: var(--accent);
+}
+
+.cabecalhoAcoes {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--sp-2);
+}
+
+/* --- resumo da operação -------------------------------------------------- */
+
+.resumo {
+  display: grid;
+  gap: var(--sp-4);
+}
+
+.resumoNumeros {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 150px), 1fr));
+  gap: var(--sp-3);
+}
+
+.resumoNumeros > div {
+  display: grid;
+  gap: var(--sp-1);
+  padding: var(--sp-3) var(--sp-4);
+  border-radius: var(--r-md);
+  background: var(--surface-2);
+}
+
+.resumoNumeros dt {
+  color: var(--text-muted);
+  font-size: var(--fs-100);
+  font-weight: var(--fw-semibold);
+  letter-spacing: var(--tracking-label);
+  text-transform: uppercase;
+}
+
+.resumoNumeros dd {
+  font-size: var(--fs-600);
+  font-weight: var(--fw-bold);
+  line-height: var(--lh-tight);
+  font-variant-numeric: tabular-nums;
+}
+
+.resumoNumeros dd[data-tom="accent"] {
+  color: var(--accent-strong);
+}
+
+.resumoNumeros dd[data-tom="danger"] {
+  color: var(--danger-text);
+}
+
+.resumoNumeros dd[data-tom="warning"] {
+  color: var(--warning-text);
+}
+
+/* Quebra por canal em linha: é comparação, não ranking. */
+.canaisResumo {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 220px), 1fr));
+  gap: var(--sp-3);
+}
+
+.canaisResumo li {
+  display: grid;
+  gap: 2px;
+  padding: var(--sp-3) var(--sp-4);
+  border: 1px solid var(--line);
+  border-radius: var(--r-md);
+}
+
+.canaisResumo li[data-vazio="true"] {
+  opacity: 0.65;
+}
+
+.canalRotulo {
+  color: var(--text-muted);
+  font-size: var(--fs-100);
+  font-weight: var(--fw-semibold);
+  letter-spacing: var(--tracking-label);
+  text-transform: uppercase;
+}
+
+.canalNota {
+  font-size: var(--fs-600);
+  font-weight: var(--fw-bold);
+  font-variant-numeric: tabular-nums;
+}
+
+.canalMeta {
+  color: var(--text-soft);
+  font-size: var(--fs-200);
+}
+
+.insight,
+.insightCartao {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--sp-2);
+  padding: var(--sp-3);
+  border: 1px solid var(--accent-soft-strong);
+  border-radius: var(--r-md);
+  background: var(--accent-soft);
+  color: var(--accent-deep);
+  font-size: var(--fs-200);
+  line-height: var(--lh-normal);
+}
+
+.insight > svg,
+.insightCartao > svg {
+  flex: 0 0 auto;
+  margin-top: 2px;
+}
+
+/* --- formulário ---------------------------------------------------------- */
+
+.formulario {
+  border-color: var(--accent-soft-strong);
+}
+
+.formGrade {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 240px), 1fr));
+  gap: var(--sp-4);
+  align-items: start;
+}
+
+.formGrade > :global(.btn-row) {
+  grid-column: 1 / -1;
+}
+
+/* --- grupos por canal ---------------------------------------------------- */
+
+.grupo {
+  display: grid;
+  gap: var(--sp-3);
+}
+
+.grupoTopo {
+  display: flex;
+  align-items: center;
+  gap: var(--sp-3);
+  padding-bottom: var(--sp-2);
+  border-bottom: 2px solid var(--line);
+}
+
+.grupoTopo h2 {
+  flex: 1 1 auto;
+  font-size: var(--fs-500);
+}
+
+.grupoIcone {
+  display: grid;
+  place-items: center;
+  flex: 0 0 auto;
+  width: 32px;
+  height: 32px;
+  border-radius: var(--r-sm);
+  background: var(--surface-3);
+  color: var(--text-soft);
+}
+
+.grupoVazio {
+  color: var(--text-muted);
+  font-size: var(--fs-200);
+}
+
+.grade {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(min(100%, 360px), 1fr));
+  gap: var(--sp-4);
+}
+
+.grade > li {
+  display: grid;
+}
+
+.cartao {
+  display: grid;
+  align-content: start;
+  gap: var(--sp-3);
+  height: 100%;
+}
+
+.cartao[data-inativo="true"] {
+  background: var(--surface-2);
+}
+
+.cartaoTopo {
+  display: flex;
+  align-items: center;
+  gap: var(--sp-3);
+}
+
+.cartaoTopo h3 {
+  flex: 1 1 auto;
+  min-width: 0;
+  font-size: var(--fs-500);
+  overflow-wrap: anywhere;
+}
+
+.cartaoIcone {
+  display: grid;
+  place-items: center;
+  flex: 0 0 auto;
+  width: 40px;
+  height: 40px;
+  border-radius: var(--r-md);
+  background: var(--accent-soft);
+  color: var(--accent-strong);
+}
+
+.cartaoCampos {
+  display: grid;
+  gap: var(--sp-1);
+  padding: var(--sp-3);
+  border-radius: var(--r-md);
+  background: var(--surface-2);
+}
+
+.cartaoCampos > div {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: var(--sp-3);
+  font-size: var(--fs-200);
+}
+
+.cartaoCampos dt {
+  color: var(--text-soft);
+}
+
+.cartaoCampos dd {
+  font-weight: var(--fw-semibold);
+  text-align: right;
+}
+
+.cartaoDesempenho {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: var(--sp-2);
+}
+
+.cartaoDesempenho > div {
+  display: grid;
+  gap: 2px;
+}
+
+.cartaoDesempenho dt {
+  color: var(--text-muted);
+  font-size: var(--fs-100);
+  font-weight: var(--fw-semibold);
+}
+
+.cartaoDesempenho dd {
+  font-size: var(--fs-400);
+  font-weight: var(--fw-bold);
+  font-variant-numeric: tabular-nums;
+}
+
+.cartaoDesempenho dd[data-tom="accent"] {
+  color: var(--accent-strong);
+}
+
+.cartaoDesempenho dd[data-tom="danger"] {
+  color: var(--danger-text);
+}
+
+.cartaoDesempenho dd[data-tom="warning"] {
+  color: var(--warning-text);
+}
+
+.cartaoAcoes {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--sp-2);
+  margin-top: auto;
+  padding-top: var(--sp-2);
+}
+
+.confirmar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--sp-2);
+  font-size: var(--fs-200);
+  font-weight: var(--fw-semibold);
+}
+
+/* --- esqueleto ---------------------------------------------------------- */
+
+.esqueleto {
+  display: grid;
+  gap: var(--sp-5);
+}
+
+.esqueletoHero {
+  height: 120px;
+  border-radius: var(--r-lg);
+}
+
+.esqueletoBloco {
+  height: 280px;
+  border-radius: var(--r-lg);
+}
+
+@media (max-width: 640px) {
+  .cabecalho {
+    align-items: stretch;
+  }
+
+  .cabecalhoAcoes {
+    width: 100%;
+  }
+
+  .cabecalhoAcoes :global(.btn) {
+    flex: 1 1 auto;
+  }
+
+  .cartaoDesempenho {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}

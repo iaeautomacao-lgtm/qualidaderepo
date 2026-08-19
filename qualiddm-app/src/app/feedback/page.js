@@ -465,14 +465,13 @@ export default function FeedbackPage() {
                       <tr key={item.id}>
                         <th scope="row">
                           <span className="cell-id">
-                            {/* O ID abre a ficha de monitoria. No QualiTalk a ficha
-                                é um modal sobre esta lista; aqui é a página
-                                /avaliacoes/[id], que já existe e mantém deep-link,
-                                histórico e impressão. `voltar` traz o rodapé de
-                                volta para cá. */}
+                            {/* O ID abre a ficha COMPACTA de feedback. No QualiTalk
+                                a ficha é um modal sobre esta lista; aqui é a
+                                página /feedback/[id], que cabe na tela, mantém
+                                deep-link e leva à avaliação inteira num clique. */}
                             <Link
                               className="table-link"
-                              href={`/avaliacoes/${encodeURIComponent(item.id)}?voltar=feedback`}
+                              href={`/feedback/${encodeURIComponent(item.id)}`}
                             >
                               {item.id}
                             </Link>
@@ -494,13 +493,13 @@ export default function FeedbackPage() {
                         <td>{item.codGravacao}</td>
                         <td>
                           {/* Rótulo com o ID: numa tabela de 50 linhas, 50 links
-                              chamados "Ver ficha" não dizem nada em leitor de tela. */}
+                              chamados "Dar feedback" não dizem nada em leitor de tela. */}
                           <Link
                             className={`btn ghost ${styles.acaoLinha}`}
-                            href={`/avaliacoes/${encodeURIComponent(item.id)}?voltar=feedback`}
+                            href={`/feedback/${encodeURIComponent(item.id)}`}
                           >
-                            <Icon name="review" size={15} />
-                            Ver ficha
+                            <Icon name="feedback" size={15} />
+                            Dar feedback
                             <span className="sr-only"> da monitoria {item.id}</span>
                           </Link>
                         </td>

@@ -47,6 +47,16 @@ export async function enviarApi(url, corpo, { signal, metodo = "POST" } = {}) {
   );
 }
 
+/**
+ * DELETE sem corpo.
+ *
+ * Existe como função própria porque `enviarApi(url, {}, { metodo: "DELETE" })`
+ * mandaria `{}` como corpo, e servidor que valida corpo em DELETE recusaria.
+ */
+export async function excluirApi(url, { signal } = {}) {
+  return ler(await fetch(url, { method: "DELETE", signal }));
+}
+
 /** POST em multipart — upload de arquivo não passa por JSON. */
 export async function enviarArquivos(url, formData, { signal } = {}) {
   return ler(await fetch(url, { method: "POST", body: formData, signal }));
