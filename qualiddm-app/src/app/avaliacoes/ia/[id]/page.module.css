@@ -152,15 +152,14 @@
 
 /* --- corpo em duas colunas ----------------------------------------------- */
 
+/* Uma coluna só: o resumo saiu da lateral e virou faixa no topo, então não há
+   mais coluna de apoio para grudar. */
 .corpo {
   display: grid;
-  grid-template-columns: minmax(0, 2fr) minmax(0, 1fr);
-  align-items: start;
   gap: var(--sp-5);
 }
 
-.principal,
-.trilha {
+.principal {
   display: grid;
   align-content: start;
   gap: var(--sp-5);
@@ -374,21 +373,33 @@
   font-style: italic;
 }
 
-/* --- coluna de apoio ----------------------------------------------------- */
+/* --- resumo em faixa no topo --------------------------------------------- */
 
-.resumoLateral {
+/* Três faixas na horizontal: o parágrafo ganha o dobro porque é texto corrido;
+   as contagens e os problemas são listas curtas e de largura previsível. */
+.resumoTopo {
   display: grid;
-  gap: var(--sp-4);
+  grid-template-columns: minmax(0, 2fr) minmax(0, 1fr) minmax(0, 1.1fr);
+  gap: var(--sp-5);
+  align-items: start;
 }
 
-.tituloLateral {
+.resumoTexto {
+  display: grid;
+  gap: var(--sp-3);
+  min-width: 0;
+}
+
+.resumoTexto h2 {
   font-size: var(--fs-500);
   font-weight: var(--fw-semibold);
 }
 
-.resumoTexto {
-  color: var(--text-soft);
-  font-size: var(--fs-200);
+/* O resumo é o texto que explica a nota: tamanho de leitura, não de legenda.
+   Na lateral ele era fs-200 porque a coluna era estreita. */
+.resumoTexto p {
+  color: var(--text);
+  font-size: var(--fs-300);
   line-height: var(--lh-normal);
 }
 
@@ -396,6 +407,7 @@
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: var(--sp-2);
+  min-width: 0;
 }
 
 .contagens > div {
@@ -604,4 +616,32 @@
   color: var(--text-soft);
   font-size: var(--fs-200);
   line-height: var(--lh-normal);
+}
+
+/* --- faixa do resumo: ajustes de coluna --------------------------------- */
+
+.resumoTopo .problemas {
+  min-width: 0;
+}
+
+/* O botão fecha a faixa e é a única ação dela — largura cheia da coluna para
+   não ficar orfão ao lado dos problemas. */
+.resumoTopo .problemas :global(.btn) {
+  justify-content: center;
+  margin-top: var(--sp-2);
+}
+
+/* Abaixo de 1024px as três faixas viram pilha: em 3 colunas estreitas o resumo
+   quebraria em coluna de jornal. */
+@media (max-width: 1023px) {
+  .resumoTopo {
+    grid-template-columns: minmax(0, 1fr);
+    gap: var(--sp-4);
+  }
+}
+
+@media (max-width: 520px) {
+  .contagens {
+    grid-template-columns: minmax(0, 1fr);
+  }
 }

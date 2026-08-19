@@ -28,6 +28,8 @@ export async function receberGravacoes({
   clienteId = null,
   campanhaId = null,
   avaliadoId = null,
+  // Canal declarado na tela de upload: "chat" ou "telefone".
+  canal = null,
   contexto = {},
 }) {
   if (Array.isArray(files) && files.length > MAX_ARQUIVOS_POR_ENVIO) {
@@ -66,6 +68,7 @@ export async function receberGravacoes({
     clienteId,
     campanhaId,
     avaliadoId,
+    canal,
   });
 
   if (transcreverAutomatico) {

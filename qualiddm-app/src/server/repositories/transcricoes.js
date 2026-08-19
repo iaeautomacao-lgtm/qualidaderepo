@@ -74,6 +74,20 @@ export async function temColunaExclusaoGravacao() {
   return colunaExclusao;
 }
 
+/** Coluna de canal declarado (migration 010). Mesma memoização das outras. */
+let colunaCanal = null;
+
+export async function temColunaCanalGravacao() {
+  if (colunaCanal !== null) return colunaCanal;
+  try {
+    const rows = await query("SHOW COLUMNS FROM gravacoes LIKE 'canal'");
+    colunaCanal = rows.length > 0;
+  } catch {
+    colunaCanal = false;
+  }
+  return colunaCanal;
+}
+
 function montarFiltros(filtros = {}, { ocultarExcluidas = false } = {}) {
   const condicoes = ocultarExcluidas ? ["g.excluida_em IS NULL"] : [];
   const params = {};
@@ -389,6 +403,8 @@ function parseSegmentos(valor) {
  * arquivo é uma transação própria — um duplicado no meio do lote não desfaz os
  * que já entraram.
  */
+export const CANAIS_GRAVACAO = ["chat", "telefone"];
+
 export async function registrarGravacoes({
   arquivos,
   userId,
@@ -397,8 +413,12 @@ export async function registrarGravacoes({
   campanhaId = null,
   avaliadoId = null,
   origem = "upload",
+  canal = null,
 }) {
   const resultados = [];
+  // Canal declarado na tela de upload (migration 010). Sem a coluna, o envio
+  // continua funcionando e o canal volta a ser deduzido no agregado.
+  const temCanal = await temColunaCanalGravacao();
 
   for (const arquivo of arquivos) {
     const resultado = await transaction(async (connection) => {
@@ -432,12 +452,14 @@ export async function registrarGravacoes({
                       nome_arquivo = :nome,
                       status_transcricao = :status,
                       enviado_por_id = :userId
+                      ${temCanal ? ", canal = :canal" : ""}
                 WHERE id = :id`,
               {
                 id: anterior.id,
                 nome: arquivo.nome,
                 status: transcreverAutomatico ? "pendente" : "nao_solicitada",
                 userId,
+                ...(temCanal ? { canal: CANAIS_GRAVACAO.includes(canal) ? canal : null } : {}),
               },
             );
 
@@ -467,11 +489,13 @@ export async function registrarGravacoes({
         `INSERT INTO gravacoes
            (nome_arquivo, storage_path, mime_type, tamanho_bytes, duracao_segundos,
             hash_sha256, origem, cliente_id, campanha_id, avaliado_id,
-            enviado_por_id, status_transcricao, transcrever_automatico)
+            enviado_por_id, status_transcricao, transcrever_automatico
+            ${temCanal ? ", canal" : ""})
          VALUES
            (:nome, :storagePath, :mimeType, :tamanho, :duracao,
             :hash, :origem, :clienteId, :campanhaId, :avaliadoId,
-            :userId, :status, :transcrever)`,
+            :userId, :status, :transcrever
+            ${temCanal ? ", :canal" : ""})`,
         {
           nome: arquivo.nome,
           storagePath: arquivo.storagePath ?? null,
@@ -480,6 +504,7 @@ export async function registrarGravacoes({
           duracao: arquivo.duracaoSegundos ?? null,
           hash: arquivo.hash ?? null,
           origem,
+          ...(temCanal ? { canal: CANAIS_GRAVACAO.includes(canal) ? canal : null } : {}),
           clienteId,
           campanhaId,
           avaliadoId,

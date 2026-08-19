@@ -4,6 +4,7 @@ import { useEffect, useId, useMemo, useRef, useState } from "react";
 import Link from "next/link";
 import AppShell from "@/components/AppShell";
 import { Icon } from "@/components/icons";
+import styles from "./page.module.css";
 
 const ACCEPT = ".mp3,.mpeg,.wav,.m4a,.mp4,.pdf,.txt,.csv,.xls,.xlsx,audio/*,application/pdf,text/plain,text/csv,application/vnd.ms-excel,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet";
 
@@ -20,6 +21,30 @@ function formatSize(bytes) {
   if (bytes < 1024 * 1024) return `${Math.round(bytes / 1024)} KB`;
   return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
 }
+
+/**
+ * O que a pessoa está enviando.
+ *
+ * Substitui a pergunta que a tela fazia antes ("qual ficha?"), que só tinha
+ * resposta útil quando havia formulário cadastrado para a carteira. Esta tem
+ * resposta sempre, e é a informação que faltava: o canal era DEDUZIDO do tipo do
+ * arquivo, e um PDF com transcrição de ligação entrava como chat sem ninguém
+ * perceber.
+ */
+const CANAIS = [
+  {
+    id: "telefone",
+    rotulo: "Ligação",
+    descricao: "Atendimento por telefone — áudio ou transcrição da chamada.",
+    icone: "mic",
+  },
+  {
+    id: "chat",
+    rotulo: "Chat",
+    descricao: "Atendimento escrito — chat, WhatsApp ou rede social.",
+    icone: "feedback",
+  },
+];
 
 /**
  * Para onde o botão de resultado leva depois de um envio SEM formulário.
@@ -62,6 +87,7 @@ export default function UploadPage() {
   const [campanhaId, setCampanhaId] = useState("");
   const [formularios, setFormularios] = useState([]);
   const [formularioId, setFormularioId] = useState("");
+  const [canal, setCanal] = useState("");
   const [dragging, setDragging] = useState(false);
   // idle | sending | done | error
   const [status, setStatus] = useState("idle");
@@ -245,6 +271,7 @@ export default function UploadPage() {
         if (campanhaId) body.append("campanhaId", campanhaId);
         if (campanhaSelecionada?.nome) body.append("campanhaNome", campanhaSelecionada.nome);
         body.append("transcrever", "true");
+        if (canal) body.append("canal", canal);
 
         const resposta = await fetch("/api/transcricoes", { method: "POST", body });
         const gravacoes = await readApiResponse(resposta);
@@ -362,31 +389,74 @@ export default function UploadPage() {
               </select>
             </div>
 
-            <div className="field">
-              <label htmlFor="formulario-upload">Ficha de avaliacao opcional</label>
-              <select
-                className="select"
-                id="formulario-upload"
-                value={formularioId}
-                onChange={(evento) => {
-                  setFormularioId(evento.target.value);
-                  setStatus("idle");
-                  setError("");
-                  setResult(null);
-                }}
-              >
-                <option value="">Sem ficha - gerar análise IA livre</option>
-                {formulariosDisponiveis.map((formulario) => (
-                  <option key={formulario.id} value={formulario.id}>
-                    {[formulario.nome, formulario.cliente, formulario.campanha].filter(Boolean).join(" - ")}
-                  </option>
+            {/* A pergunta que a tela faz agora é "o que é este arquivo?".
+                O canal era deduzido do tipo do arquivo — áudio virava ligação,
+                o resto virava chat — e o palpite errava calado em PDF de
+                transcrição de ligação. Quem envia sabe; a tela pergunta. */}
+            <fieldset className="field">
+              <legend>Tipo de atendimento</legend>
+              <div className={styles.canais}>
+                {CANAIS.map((item) => (
+                  <label className={styles.canal} key={item.id} data-escolhido={canal === item.id}>
+                    <input
+                      type="radio"
+                      name="canal-upload"
+                      value={item.id}
+                      checked={canal === item.id}
+                      onChange={() => {
+                        setCanal(item.id);
+                        setStatus("idle");
+                        setError("");
+                        setResult(null);
+                      }}
+                    />
+                    <span className={styles.canalTexto}>
+                      <span className={styles.canalRotulo}>
+                        <Icon name={item.icone} size={16} />
+                        {item.rotulo}
+                      </span>
+                      <span className={styles.canalDescricao}>{item.descricao}</span>
+                    </span>
+                  </label>
                 ))}
-              </select>
+              </div>
               <span className="field-hint">
-                Com ficha, a IA usa os critérios cadastrados. Sem ficha, gera análise livre com
-                transcrição, nota, evidências e insights.
+                Separa o desempenho de chat e ligação em Operações, Campanhas e Avaliados. Sem
+                escolher, o canal é deduzido do tipo do arquivo — e a dedução erra em transcrição de
+                ligação em PDF.
               </span>
-            </div>
+            </fieldset>
+
+            {/* A ficha só aparece quando existe alguma cadastrada para o recorte
+                escolhido. Antes o campo ficava sempre visível com uma única opção
+                ("sem ficha"), que não é escolha nenhuma. */}
+            {formulariosDisponiveis.length > 0 ? (
+              <div className="field">
+                <label htmlFor="formulario-upload">Avaliar por ficha (opcional)</label>
+                <select
+                  className="select"
+                  id="formulario-upload"
+                  value={formularioId}
+                  onChange={(evento) => {
+                    setFormularioId(evento.target.value);
+                    setStatus("idle");
+                    setError("");
+                    setResult(null);
+                  }}
+                >
+                  <option value="">Sem ficha - gerar análise IA livre</option>
+                  {formulariosDisponiveis.map((formulario) => (
+                    <option key={formulario.id} value={formulario.id}>
+                      {[formulario.nome, formulario.cliente, formulario.campanha].filter(Boolean).join(" - ")}
+                    </option>
+                  ))}
+                </select>
+                <span className="field-hint">
+                  Com ficha, a IA usa os critérios cadastrados. Sem ficha, gera análise livre com
+                  transcrição, nota, evidências e insights.
+                </span>
+              </div>
+            ) : null}
           </div>
 
           {formError ? (

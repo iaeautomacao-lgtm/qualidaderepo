@@ -9,7 +9,12 @@ import {
 } from "@/server/validation";
 import { badRequest } from "@/server/errors";
 import { one, query } from "@/server/db";
-import { FILTRO_STATUS, ORIGENS, listarGravacoes } from "@/server/repositories/transcricoes";
+import {
+  CANAIS_GRAVACAO,
+  FILTRO_STATUS,
+  ORIGENS,
+  listarGravacoes,
+} from "@/server/repositories/transcricoes";
 import { receberGravacoes } from "@/server/services/transcricao-service";
 
 export async function GET(request) {
@@ -66,6 +71,10 @@ export async function POST(request) {
       clienteId,
       campanhaId,
       avaliadoId: lerId(formData.get("avaliadoId"), "avaliadoId"),
+      // Canal declarado na tela: "chat" ou "telefone". Valor fora da lista é
+      // recusado em vez de virar `null` calado — quem manda canal inválido está
+      // mandando errado, e engolir isso reintroduz o palpite que a 010 removeu.
+      canal: lerCanal(formData.get("canal")),
       contexto: {
         cliente: clienteNome,
         campanha: campanhaNome,
@@ -74,6 +83,15 @@ export async function POST(request) {
 
     return created(resultado);
   });
+}
+
+function lerCanal(valor) {
+  if (valor == null || valor === "") return null;
+  const canal = String(valor).toLowerCase();
+  if (!CANAIS_GRAVACAO.includes(canal)) {
+    throw badRequest(`Canal inválido: use ${CANAIS_GRAVACAO.join(" ou ")}.`);
+  }
+  return canal;
 }
 
 function lerBooleano(valor, padrao) {

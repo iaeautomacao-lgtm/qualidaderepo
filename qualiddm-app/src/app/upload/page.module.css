@@ -1,0 +1,76 @@
+/* ==========================================================================
+   Central de upload — só a escolha do tipo de atendimento.
+   O resto da tela usa as primitivas de globals.css (.upload-board, .card, .btn).
+   ========================================================================== */
+
+/* Duas opções lado a lado: são mutuamente exclusivas e do mesmo peso, então
+   nenhuma pode parecer o padrão. Radio de verdade por baixo — seta do teclado e
+   leitor de tela funcionam de graça. */
+.canais {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 220px), 1fr));
+  gap: var(--sp-3);
+}
+
+.canal {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--sp-3);
+  padding: var(--sp-3) var(--sp-4);
+  border: 1px solid var(--border-control);
+  border-radius: var(--r-md);
+  background: var(--surface);
+  cursor: pointer;
+  transition: border-color var(--dur) var(--ease), background var(--dur) var(--ease);
+}
+
+.canal:hover {
+  border-color: var(--accent-strong);
+}
+
+/* Escolhido ganha borda, fundo e cor de texto juntos — cor sozinha não informa
+   (WCAG 1.4.1), e o radio marcado já cobre quem usa leitor de tela. */
+.canal[data-escolhido="true"] {
+  border-color: var(--accent-strong);
+  background: var(--accent-soft);
+  color: var(--accent-deep);
+}
+
+.canal:focus-within {
+  outline: var(--focus-width) solid var(--accent-mid);
+  outline-offset: 2px;
+}
+
+.canal input {
+  flex: 0 0 auto;
+  width: 18px;
+  height: 18px;
+  margin-top: 2px;
+  accent-color: var(--accent);
+  cursor: pointer;
+}
+
+.canalTexto {
+  display: grid;
+  gap: 2px;
+  min-width: 0;
+}
+
+.canalRotulo {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--sp-2);
+  font-size: var(--fs-300);
+  font-weight: var(--fw-semibold);
+}
+
+.canalDescricao {
+  color: var(--text-soft);
+  font-size: var(--fs-100);
+  line-height: var(--lh-normal);
+}
+
+.canal[data-escolhido="true"] .canalDescricao {
+  color: var(--accent-deep);
+  opacity: 0.85;
+}

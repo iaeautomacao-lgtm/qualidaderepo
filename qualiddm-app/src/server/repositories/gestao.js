@@ -108,7 +108,8 @@ async function carregarMonitorias({ periodoDias = 31 } = {}) {
               COALESCE(a.zerada, 0) AS zerada,
               COALESCE(a.total_nao_conformes, 0) AS nao_conformes,
               ca.canal,
-              g.mime_type
+              g.mime_type,
+              ${selectCanal}
          FROM avaliacoes a
          LEFT JOIN campanhas ca ON ca.id = a.campanha_id
          LEFT JOIN gravacoes g ON g.avaliacao_id = a.id
@@ -123,10 +124,16 @@ async function carregarMonitorias({ periodoDias = 31 } = {}) {
     ? "AND g.excluida_em IS NULL"
     : "";
 
+  // Canal declarado no upload (migration 010). Quando existe, ele MANDA — ver a
+  // ordem de precedência em `canalDe`.
+  const temCanal = await temColunaGestao("gravacoes", "canal");
+  const selectCanal = temCanal ? "g.canal AS canal_declarado" : "NULL AS canal_declarado";
+
   const analises = await seguro("analisesIa", [], () =>
     query(
       `SELECT g.cliente_id, g.campanha_id, g.avaliado_id, g.mime_type,
               ca.canal,
+              ${selectCanal},
               t.segmentos_json
          FROM gravacoes g
          JOIN transcricoes t
@@ -142,7 +149,19 @@ async function carregarMonitorias({ periodoDias = 31 } = {}) {
     ),
   );
 
-  const canalDe = (canal, mimeType) => {
+  /**
+   * Canal de uma monitoria, em ordem de confiança:
+   *
+   *   1. o que a pessoa DECLAROU no upload (`gravacoes.canal`, migration 010)
+   *   2. o cadastro da campanha (`campanhas.canal`)
+   *   3. palpite pelo tipo do arquivo — último recurso, só para registro antigo
+   *
+   * A declaração vem primeiro porque é a única das três que não é inferência:
+   * um PDF com transcrição de ligação era contado como chat pelo palpite, e o
+   * erro entrava calado na média por canal.
+   */
+  const canalDe = (canal, mimeType, declarado) => {
+    if (declarado === "telefone" || declarado === "chat") return declarado;
     if (canal === "telefone" || canal === "chat") return canal;
     if (canal === "whatsapp" || canal === "email") return "chat";
     return String(mimeType || "").startsWith("audio/") ? "telefone" : "chat";
@@ -152,7 +171,7 @@ async function carregarMonitorias({ periodoDias = 31 } = {}) {
     clienteId: row.cliente_id == null ? null : String(row.cliente_id),
     campanhaId: row.campanha_id == null ? null : String(row.campanha_id),
     avaliadoId: row.avaliado_id == null ? null : String(row.avaliado_id),
-    canal: canalDe(row.canal, row.mime_type),
+    canal: canalDe(row.canal, row.mime_type, row.canal_declarado),
     score: numero(row.score, NaN),
     naoConformes: numero(row.nao_conformes),
     critica: numero(row.zerada) === 1 || numero(row.score) === 0,
@@ -167,7 +186,7 @@ async function carregarMonitorias({ periodoDias = 31 } = {}) {
       clienteId: row.cliente_id == null ? null : String(row.cliente_id),
       campanhaId: row.campanha_id == null ? null : String(row.campanha_id),
       avaliadoId: row.avaliado_id == null ? null : String(row.avaliado_id),
-      canal: canalDe(row.canal, row.mime_type),
+      canal: canalDe(row.canal, row.mime_type, row.canal_declarado),
       score,
       naoConformes: numero(analise.resumoConformidade?.naoConformes),
       critica: Boolean(analise.zerada) || score === 0,

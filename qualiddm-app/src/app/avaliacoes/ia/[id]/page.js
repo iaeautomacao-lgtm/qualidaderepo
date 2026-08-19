@@ -318,6 +318,69 @@ export default function AvaliacaoIaPage() {
           </p>
         ) : null}
 
+        {/* O resumo abre a avaliação, na horizontal e em largura cheia.
+            Antes ele morava na coluna lateral: quem chegava lia primeiro os 17
+            critérios e só depois o parágrafo que os explica. A ordem certa é a
+            contrária — o que aconteceu, quanto valeu, o que falhou, e só então o
+            detalhe critério por critério. */}
+        <section className={`card pad ${styles.resumoTopo}`} aria-labelledby="resumo-avaliacao">
+          <div className={styles.resumoTexto}>
+            <h2 id="resumo-avaliacao">Resumo da avaliação</h2>
+            {analise.resumo ? <p>{analise.resumo}</p> : <p className="subtle-text">A IA não devolveu resumo para esta avaliação.</p>}
+            {impacto.total > 0 ? (
+              <p className={styles.pontos}>
+                Pontuação: <strong>{impacto.obtido}</strong> de <strong>{impacto.total}</strong>{" "}
+                pontos aplicáveis
+                {impacto.perdido > 0 ? ` (−${impacto.perdido})` : ""}.
+              </p>
+            ) : null}
+          </div>
+
+          <dl className={styles.contagens}>
+            <div data-tom="success">
+              <dt>Conformes</dt>
+              <dd>{resumo.conformes}</dd>
+            </div>
+            <div data-tom="danger">
+              <dt>Não conformes</dt>
+              <dd>{resumo.naoConformes}</dd>
+            </div>
+            <div data-tom="warning">
+              <dt>Não aplicáveis</dt>
+              <dd>{resumo.naoAplicaveis}</dd>
+            </div>
+            <div>
+              <dt>Total</dt>
+              <dd>{resumo.total}</dd>
+            </div>
+          </dl>
+
+          <div className={styles.problemas}>
+            <span className="label-micro">Principais problemas</span>
+            {problemas.length === 0 ? (
+              <p className="subtle-text">Nenhum critério não conforme nesta avaliação.</p>
+            ) : (
+              <ul>
+                {problemas.slice(0, 3).map((problema) => (
+                  <li data-severidade={problema.severidade} key={`prob-${problema.id}`}>
+                    <a href={`#${problema.ancora}`}>
+                      <strong>{problema.nome}</strong>
+                      <span>
+                        {ROTULO_SEVERIDADE[problema.severidade]}
+                        {problema.eliminatoria ? " · eliminatório" : ` · ${problema.peso} pts`}
+                      </span>
+                    </a>
+                  </li>
+                ))}
+              </ul>
+            )}
+            <a className="btn primary" href="#perguntar-ia">
+              <Icon name="sparkles" size={16} />
+              Perguntar à IA
+            </a>
+          </div>
+        </section>
+
         {/* O player vem logo depois do resultado: é a fonte de tudo o que a IA
             afirma, e o caminho evidência -> áudio tem de ser curto. */}
         <section className={`card pad ${styles.cartaoAudio}`}>
@@ -424,71 +487,6 @@ export default function AvaliacaoIaPage() {
               />
             </section>
           </div>
-
-          {/* Coluna de apoio: gruda a COLUNA, nunca um cartão dentro dela —
-              cartão grudado é elemento posicionado e passa por cima dos irmãos. */}
-          <aside className={`sticky-rail ${styles.trilha}`}>
-            <section className={`card pad ${styles.resumoLateral}`} aria-labelledby="resumo-avaliacao">
-              <h2 className={styles.tituloLateral} id="resumo-avaliacao">
-                Resumo da avaliação
-              </h2>
-
-              {analise.resumo ? <p className={styles.resumoTexto}>{analise.resumo}</p> : null}
-
-              <dl className={styles.contagens}>
-                <div data-tom="success">
-                  <dt>Conformes</dt>
-                  <dd>{resumo.conformes}</dd>
-                </div>
-                <div data-tom="danger">
-                  <dt>Não conformes</dt>
-                  <dd>{resumo.naoConformes}</dd>
-                </div>
-                <div data-tom="warning">
-                  <dt>Não aplicáveis</dt>
-                  <dd>{resumo.naoAplicaveis}</dd>
-                </div>
-                <div>
-                  <dt>Total</dt>
-                  <dd>{resumo.total}</dd>
-                </div>
-              </dl>
-
-              {impacto.total > 0 ? (
-                <p className={styles.pontos}>
-                  Pontuação: <strong>{impacto.obtido}</strong> de <strong>{impacto.total}</strong>{" "}
-                  pontos aplicáveis
-                  {impacto.perdido > 0 ? ` (−${impacto.perdido})` : ""}.
-                </p>
-              ) : null}
-
-              <div className={styles.problemas}>
-                <span className="label-micro">Principais problemas</span>
-                {problemas.length === 0 ? (
-                  <p className="subtle-text">Nenhum critério não conforme nesta avaliação.</p>
-                ) : (
-                  <ul>
-                    {problemas.slice(0, 3).map((problema) => (
-                      <li data-severidade={problema.severidade} key={`prob-${problema.id}`}>
-                        <a href={`#${problema.ancora}`}>
-                          <strong>{problema.nome}</strong>
-                          <span>
-                            {ROTULO_SEVERIDADE[problema.severidade]}
-                            {problema.eliminatoria ? " · eliminatório" : ` · ${problema.peso} pts`}
-                          </span>
-                        </a>
-                      </li>
-                    ))}
-                  </ul>
-                )}
-              </div>
-
-              <a className="btn primary" href="#perguntar-ia">
-                <Icon name="sparkles" size={16} />
-                Perguntar à IA sobre esta avaliação
-              </a>
-            </section>
-          </aside>
         </div>
 
         <footer className={styles.rodape}>
