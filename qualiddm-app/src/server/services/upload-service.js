@@ -1,5 +1,6 @@
 import { config } from "../config";
 import { badRequest } from "../errors";
+import { mimeParaAnalise } from "./arquivo-storage";
 import { mkdir, writeFile } from "fs/promises";
 import { extname, isAbsolute, join, resolve } from "path";
 
@@ -31,7 +32,11 @@ export function validateUploadFiles(files) {
     }
     return {
       name: file.name.slice(0, 180),
-      type: file.type || "application/octet-stream",
+      // Mime resolvido pela extensão quando o navegador declara algo que
+      // contradiz o arquivo. Sem isto, um `.mpeg` de ligação chega à IA como
+      // `video/mpeg` (ou `application/octet-stream`) e é recusado lá — o upload
+      // aceitava e a análise falhava depois, o que é o pior lugar para falhar.
+      type: mimeParaAnalise(file.name, file.type),
       size: file.size,
     };
   });

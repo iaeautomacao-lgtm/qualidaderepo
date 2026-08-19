@@ -6,7 +6,10 @@ import AppShell from "@/components/AppShell";
 import { Icon } from "@/components/icons";
 import styles from "./page.module.css";
 
-const ACCEPT = ".mp3,.mpeg,.wav,.m4a,.mp4,.pdf,.txt,.csv,.xls,.xlsx,audio/*,application/pdf,text/plain,text/csv,application/vnd.ms-excel,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet";
+// `video/mpeg` e `video/mp4` entram na lista porque e o rotulo que o Windows da
+// para `.mpeg` e `.mp4` de audio -- sem eles o seletor de arquivos do sistema
+// esconde gravacao de ligacao legitima.
+const ACCEPT = ".mp3,.mpeg,.mpg,.mpga,.wav,.m4a,.mp4,.aac,.ogg,.opus,.webm,.flac,.pdf,.txt,.csv,.xls,.xlsx,audio/*,video/mpeg,video/mp4,application/pdf,text/plain,text/csv,application/vnd.ms-excel,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet";
 
 async function readApiResponse(response) {
   const payload = await response.json();
@@ -484,7 +487,7 @@ export default function UploadPage() {
 
               <h2>{dragging ? "Solte para adicionar" : "Arraste arquivos aqui"}</h2>
               <p>
-                Áudios MP3, WAV ou M4A e documentos PDF. Envie para análise e acompanhe o
+                Áudios MP3, MPEG, WAV, M4A, OGG ou FLAC e documentos PDF. Envie para análise e acompanhe o
                 processamento nesta fila.
               </p>
 

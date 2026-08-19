@@ -29,6 +29,8 @@ const MIME_POR_EXTENSAO = {
   ".ogg": "audio/ogg",
   ".opus": "audio/opus",
   ".webm": "audio/webm",
+  ".flac": "audio/flac",
+  ".mpg": "audio/mpeg",
   ".pdf": "application/pdf",
   ".txt": "text/plain; charset=utf-8",
   ".csv": "text/csv; charset=utf-8",
@@ -88,7 +90,38 @@ export async function arquivoExiste(caminhoRelativo) {
 export function mimeDoArquivo(nomeArquivo, mimeSalvo) {
   const declarado = String(mimeSalvo || "").trim().toLowerCase();
   if (declarado && !MIME_GENERICOS.has(declarado)) return declarado;
-  return MIME_POR_EXTENSAO[extname(String(nomeArquivo || "")).toLowerCase()] || "application/octet-stream";
+  return mimePorExtensao(nomeArquivo) || "application/octet-stream";
+}
+
+/** O mime que a EXTENSÃO indica, sem olhar o que o navegador declarou. */
+export function mimePorExtensao(nomeArquivo) {
+  return MIME_POR_EXTENSAO[extname(String(nomeArquivo || "")).toLowerCase()] || null;
+}
+
+/**
+ * O mime que deve ser USADO para este arquivo, resolvendo desacordo entre o que
+ * o navegador declarou e o que a extensão indica.
+ *
+ * A extensão ganha quando ela aponta para áudio e o declarado não é áudio. É o
+ * caso do `.mpeg`: Windows e Chrome costumam declará-lo como `video/mpeg`, e com
+ * esse mime a IA tenta processar o arquivo como vídeo e recusa — sendo que é
+ * gravação de ligação, áudio puro. O mesmo vale para `.mp4`/`.m4a` de áudio, que
+ * chegam como `video/mp4`.
+ *
+ * Fora desse desacordo, o declarado manda: ele distingue coisas que a extensão
+ * não distingue (um `.txt` que é CSV, por exemplo).
+ */
+export function mimeParaAnalise(nomeArquivo, mimeDeclarado) {
+  const declarado = String(mimeDeclarado || "").trim().toLowerCase();
+  const porExtensao = mimePorExtensao(nomeArquivo);
+
+  if (!declarado || MIME_GENERICOS.has(declarado)) {
+    return porExtensao || "application/octet-stream";
+  }
+  if (porExtensao?.startsWith("audio/") && !declarado.startsWith("audio/")) {
+    return porExtensao;
+  }
+  return declarado;
 }
 
 // Nome de arquivo entra num header HTTP: aspas e quebra de linha ali dentro

@@ -53,13 +53,18 @@ export const config = {
     storageDir: process.env.UPLOAD_STORAGE_DIR || "storage/uploads",
     allowedMimeTypes: (
       process.env.UPLOAD_ALLOWED_MIME_TYPES ||
-      "audio/mpeg,audio/mp3,audio/wav,audio/x-wav,audio/mp4,audio/m4a,application/pdf,text/plain,text/csv,application/csv,application/vnd.ms-excel,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+      // `video/mpeg` e `video/mp4` estão aqui porque é o que o Windows e o
+      // Chrome declaram para `.mpeg`, `.mpg` e `.mp4` de ÁUDIO. Recusar por esse
+      // rótulo barraria gravação de ligação legítima; o mime enviado à IA é
+      // corrigido pela extensão em `mimeParaAnalise`.
+      "audio/mpeg,audio/mp3,audio/x-mpeg,audio/mpeg3,audio/x-mpeg-3,audio/wav,audio/x-wav,audio/wave,audio/mp4,audio/m4a,audio/x-m4a,audio/aac,audio/ogg,audio/opus,audio/webm,audio/flac,video/mpeg,video/mp4,application/pdf,text/plain,text/csv,application/csv,application/vnd.ms-excel,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
     )
       .split(",")
       .map((item) => item.trim())
       .filter(Boolean),
     allowedExtensions: (
-      process.env.UPLOAD_ALLOWED_EXTENSIONS || ".mp3,.mpeg,.wav,.m4a,.mp4,.pdf,.txt,.csv,.xls,.xlsx"
+      process.env.UPLOAD_ALLOWED_EXTENSIONS ||
+      ".mp3,.mpeg,.mpg,.mpga,.wav,.m4a,.mp4,.aac,.ogg,.opus,.webm,.flac,.pdf,.txt,.csv,.xls,.xlsx"
     )
       .split(",")
       .map((item) => item.trim().toLowerCase())
