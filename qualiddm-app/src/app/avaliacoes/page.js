@@ -4,6 +4,7 @@ import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import AppShell from "@/components/AppShell";
 import { Icon } from "@/components/icons";
+import { excluirApi } from "@/lib/api";
 import styles from "./page.module.css";
 
 const TODOS = "todos";
@@ -76,6 +77,12 @@ export default function AvaliacoesPage() {
   const [avaliacoes, setAvaliacoes] = useState([]);
   const [opcoesBanco, setOpcoesBanco] = useState(null);
   const [erro, setErro] = useState("");
+  // Qual cartão está pedindo confirmação, qual está em voo e o que falhou.
+  // Confirmação inline em vez de window.confirm: o diálogo nativo não diz de
+  // qual monitoria se trata, e aqui o cartão inteiro fica à vista.
+  const [confirmando, setConfirmando] = useState(null);
+  const [excluindo, setExcluindo] = useState(null);
+  const [erroExclusao, setErroExclusao] = useState("");
 
   useEffect(() => {
     let ativo = true;
@@ -118,6 +125,37 @@ export default function AvaliacoesPage() {
     }),
     [avaliacoes, opcoesBanco],
   );
+
+  /**
+   * Exclui a monitoria do cartão.
+   *
+   * Dois destinos porque são duas coisas diferentes com o mesmo cartão:
+   * monitoria com formulário é uma ficha (`/api/avaliacoes/[codigo]`); análise
+   * livre da IA é uma gravação (`/api/transcricoes/[gravacaoId]`), porque o
+   * código MIA-… é derivado e não é chave de nada.
+   *
+   * A linha sai da lista sem recarregar tudo: recarga de 500 itens para apagar
+   * um faria a página piscar inteira.
+   */
+  async function excluir(item) {
+    const url =
+      item.origem === "ia" && item.gravacaoId
+        ? `/api/transcricoes/${encodeURIComponent(item.gravacaoId)}`
+        : `/api/avaliacoes/${encodeURIComponent(item.id)}`;
+
+    setErroExclusao("");
+    setExcluindo(item.id);
+
+    try {
+      await excluirApi(url);
+      setAvaliacoes((atuais) => atuais.filter((linha) => linha.id !== item.id));
+      setConfirmando(null);
+    } catch (causa) {
+      setErroExclusao(`${item.id}: ${causa.message}`);
+    } finally {
+      setExcluindo(null);
+    }
+  }
 
   const filtradas = useMemo(() => {
     const busca = normalizar(filtros.busca);
@@ -335,6 +373,18 @@ export default function AvaliacoesPage() {
 
         <section className="card" aria-labelledby="lista-avaliacoes">
           <h2 className="sr-only" id="lista-avaliacoes">Lista de avaliações</h2>
+          {/* Falha de exclusão fica acima da lista, e não dentro do cartão: o
+              cartão pode ter saído da página visível quando a resposta chegar. */}
+          {erroExclusao ? (
+            <p className="alert danger">
+              <Icon name="alert" size={16} />
+              <span className="alert-body">
+                <strong>Não foi possível excluir</strong>
+                <span>{erroExclusao}</span>
+              </span>
+            </p>
+          ) : null}
+
           {erro ? (
             <div className="empty-state">
               <Icon name="error" size={38} />
@@ -383,12 +433,49 @@ export default function AvaliacoesPage() {
                           <Icon name="edit" size={15} />
                           Editar
                         </Link>
-                        <button className="btn ghost icon-only" type="button">
-                          <Icon name="calendar" size={15} label="Agendar" />
-                        </button>
-                        <button className="btn ghost icon-only danger" type="button">
-                          <Icon name="close" size={15} label="Excluir" />
-                        </button>
+                        {/* O botão de agendar saiu: não havia agendamento por
+                            trás dele, e controle que não faz nada é pior que
+                            controle ausente. */}
+                        {confirmando === item.id ? (
+                          <span className={styles.confirmarExclusao}>
+                            Excluir esta monitoria?
+                            <button
+                              className="btn danger"
+                              type="button"
+                              disabled={excluindo === item.id}
+                              onClick={() => excluir(item)}
+                            >
+                              <Icon
+                                name={excluindo === item.id ? "spinner" : "trash"}
+                                size={15}
+                              />
+                              {excluindo === item.id ? "Excluindo..." : "Confirmar"}
+                            </button>
+                            <button
+                              className="btn ghost"
+                              type="button"
+                              disabled={excluindo === item.id}
+                              onClick={() => setConfirmando(null)}
+                            >
+                              Cancelar
+                            </button>
+                          </span>
+                        ) : (
+                          <button
+                            className="btn ghost icon-only danger"
+                            type="button"
+                            onClick={() => {
+                              setErroExclusao("");
+                              setConfirmando(item.id);
+                            }}
+                          >
+                            <Icon
+                              name="close"
+                              size={15}
+                              label={`Excluir a monitoria ${item.id}`}
+                            />
+                          </button>
+                        )}
                       </div>
                     </div>
 

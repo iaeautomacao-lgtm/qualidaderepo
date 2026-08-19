@@ -21,6 +21,38 @@ function formatSize(bytes) {
   return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
 }
 
+/**
+ * Para onde o botão de resultado leva depois de um envio SEM formulário.
+ *
+ * A análise da IA vive na gravação, e a tela dela é `/avaliacoes/ia/[id]`.
+ * `/transcricoes/[id]` mostra só o texto do atendimento — mandar o upload para
+ * lá fazia o fluxo terminar num beco, porque aquela tela não leva à avaliação.
+ *
+ * Três casos, nesta ordem:
+ *   1. análise falhou -> a transcrição, que é onde fica o botão de reprocessar;
+ *   2. um arquivo -> a avaliação completa dele;
+ *   3. vários arquivos -> a fila, porque "a" avaliação seria escolha arbitrária
+ *      entre várias. A fila tem coluna de acesso ao resultado.
+ */
+function destinoDoResultado(gravacoes, busca) {
+  const comId = (gravacoes ?? []).filter((gravacao) => gravacao?.id);
+  if (comId.length === 0) return null;
+
+  if (comId.length > 1) {
+    return {
+      href: `/transcricoes${busca ? `?busca=${encodeURIComponent(busca)}` : ""}`,
+      rotulo: "Abrir a fila",
+    };
+  }
+
+  const principal = comId[0];
+  if (principal.status === "erro") {
+    return { href: `/transcricoes/${principal.id}`, rotulo: "Abrir a transcrição" };
+  }
+
+  return { href: `/avaliacoes/ia/${principal.id}`, rotulo: "Abrir a avaliação" };
+}
+
 export default function UploadPage() {
   const inputRef = useRef(null);
   const inputId = useId();
@@ -216,15 +248,11 @@ export default function UploadPage() {
 
         const resposta = await fetch("/api/transcricoes", { method: "POST", body });
         const gravacoes = await readApiResponse(resposta);
-        const primeiraGravacao =
-          gravacoes?.gravacoes?.find((gravacao) => !gravacao.duplicada) ||
-          gravacoes?.gravacoes?.[0] ||
-          null;
         const primeiraComErro = gravacoes?.gravacoes?.find((gravacao) => gravacao.status === "erro");
         setResult({
           tipo: "gravacoes",
           busca: files[0]?.name || "",
-          href: primeiraGravacao?.id ? `/transcricoes/${primeiraGravacao.id}` : null,
+          destino: destinoDoResultado(gravacoes?.gravacoes, files[0]?.name),
           erroAnalise: primeiraComErro?.erro || null,
           ...gravacoes,
         });
@@ -243,13 +271,19 @@ export default function UploadPage() {
   }
 
   const sending = status === "sending";
-  const resultadoHref =
-    result?.avaliacao?.href ||
-    result?.href ||
-    (result?.tipo === "gravacoes"
-      ? `/transcricoes${result.busca ? `?busca=${encodeURIComponent(result.busca)}` : ""}`
-      : "#");
-  const resultadoDisponivel = Boolean(result?.avaliacao?.href || result?.tipo === "gravacoes");
+
+  /* Envio COM formulário já volta com o href da ficha (/avaliacoes/[codigo]);
+     sem formulário, o destino é calculado a partir das gravações. Os dois casos
+     terminam na avaliação — nunca na transcrição, que é só o texto. */
+  const destino =
+    result?.tipo === "avaliacao"
+      ? result.avaliacao?.href
+        ? { href: result.avaliacao.href, rotulo: "Abrir a avaliação" }
+        : null
+      : (result?.destino ?? null);
+
+  const resultadoHref = destino?.href ?? "#";
+  const resultadoDisponivel = Boolean(destino);
 
   return (
     <AppShell active="Upload" breadcrumb="Overview > Upload">
@@ -273,7 +307,7 @@ export default function UploadPage() {
             aria-disabled={sending || !resultadoDisponivel}
           >
             <Icon name="review" size={17} />
-            Abrir resultado
+            {destino?.rotulo ?? "Abrir resultado"}
           </Link>
         </div>
       </section>

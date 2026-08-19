@@ -472,9 +472,13 @@ export default function TranscricoesPage() {
                         </td>
                         <td>
                           <div className={styles.acoes}>
+                            {/* "Abrir transcrição" e não "Abrir análise": esta
+                                tela mostra o texto do atendimento, e a avaliação
+                                fica em Avaliações. O rótulo antigo prometia a
+                                ficha e entregava o texto. */}
                             <Link className="btn ghost" href={`/transcricoes/${item.id}`}>
-                              <Icon name="review" size={15} />
-                              Abrir analise
+                              <Icon name="waveform" size={15} />
+                              Abrir transcrição
                             </Link>
 
                             {temTexto ? (

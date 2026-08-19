@@ -302,3 +302,15 @@
     flex-wrap: wrap;
   }
 }
+
+/* Confirmação de exclusão dentro do cartão: substitui o X pelo par
+   Confirmar/Cancelar, no mesmo lugar, para o clique de confirmação cair perto de
+   onde o de abrir aconteceu. */
+.confirmarExclusao {
+  display: inline-flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--sp-2);
+  font-size: var(--fs-200);
+  font-weight: var(--fw-semibold);
+}

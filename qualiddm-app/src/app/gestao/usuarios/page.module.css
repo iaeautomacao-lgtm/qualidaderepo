@@ -1,0 +1,308 @@
+/* ==========================================================================
+   Gestão de Usuários — lista, cards e matriz de permissões.
+   ========================================================================== */
+
+.filtros {
+  display: grid;
+  gap: var(--sp-4);
+}
+
+.linhaBusca {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: var(--sp-4);
+  align-items: end;
+}
+
+.campoBusca {
+  min-width: 0;
+}
+
+.grupoVisao,
+.grupoChips {
+  display: grid;
+  gap: var(--sp-2);
+  min-width: 0;
+  border: 0;
+}
+
+.grupoVisao legend,
+.grupoChips legend {
+  color: var(--text-muted);
+  font-size: var(--fs-100);
+  font-weight: var(--fw-semibold);
+  letter-spacing: var(--tracking-label);
+  text-transform: uppercase;
+}
+
+.chips {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 280px), 1fr));
+  gap: var(--sp-4);
+  align-items: start;
+}
+
+.linhaChips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--sp-2);
+}
+
+/* Chip de filtro menor que botão de ação: o peso visual diz o que é recorte e o
+   que é comando. */
+.linhaChips :global(.btn) {
+  min-height: 34px;
+  padding-inline: var(--sp-3);
+  font-size: var(--fs-200);
+}
+
+.resumoFiltro,
+.notaMatriz,
+.pendencias {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--sp-2);
+  color: var(--text-soft);
+  font-size: var(--fs-100);
+  line-height: var(--lh-normal);
+}
+
+.resumoFiltro {
+  padding-top: var(--sp-3);
+  border-top: 1px solid var(--line);
+}
+
+.notaMatriz {
+  margin-bottom: var(--sp-4);
+}
+
+.resumoFiltro > svg,
+.notaMatriz > svg,
+.pendencias > svg {
+  flex: 0 0 auto;
+  margin-top: 2px;
+}
+
+/* --- formulário de criação ---------------------------------------------- */
+
+.formulario {
+  border-color: var(--accent-soft-strong);
+}
+
+.formGrade {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 240px), 1fr));
+  gap: var(--sp-4);
+  align-items: start;
+}
+
+.senha {
+  padding: 2px var(--sp-2);
+  border: 1px solid var(--success);
+  border-radius: var(--r-sm);
+  background: var(--surface);
+  font-family: var(--font-mono, ui-monospace, monospace);
+  font-size: var(--fs-300);
+  font-weight: var(--fw-bold);
+  letter-spacing: 0.04em;
+}
+
+/* --- tabela ------------------------------------------------------------- */
+
+.tabela {
+  min-width: 920px;
+}
+
+.tabela td,
+.tabela th[scope="row"] {
+  vertical-align: middle;
+}
+
+/* Linha de usuário inativo fica recuada, não invisível: ela continua sendo
+   consultada para reativar alguém. */
+.tabela tbody tr[data-inativo="true"] th,
+.tabela tbody tr[data-inativo="true"] td {
+  opacity: 0.72;
+}
+
+.celulaEmpilhada {
+  display: grid;
+  gap: 2px;
+}
+
+.celulaSecundaria {
+  color: var(--text-soft);
+  font-size: var(--fs-100);
+  font-weight: var(--fw-regular);
+  overflow-wrap: anywhere;
+}
+
+.acoesLinha {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--sp-2);
+}
+
+.acoesLinha :global(.btn) {
+  min-height: 34px;
+  padding-inline: var(--sp-3);
+  font-size: var(--fs-200);
+  white-space: nowrap;
+}
+
+.confirmar {
+  display: inline-flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--sp-2);
+  font-size: var(--fs-200);
+  font-weight: var(--fw-semibold);
+}
+
+/* --- cards -------------------------------------------------------------- */
+
+.cards {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(min(100%, 300px), 1fr));
+  gap: var(--sp-4);
+  list-style: none;
+}
+
+.cartao {
+  display: grid;
+  align-content: start;
+  gap: var(--sp-3);
+  padding: var(--sp-4);
+  border: 1px solid var(--line);
+  border-radius: var(--r-md);
+  background: var(--surface);
+}
+
+.cartao[data-inativo="true"] {
+  background: var(--surface-2);
+}
+
+.cartaoTopo {
+  display: flex;
+  align-items: center;
+  gap: var(--sp-3);
+}
+
+.cartaoIdent {
+  display: grid;
+  min-width: 0;
+  gap: 2px;
+}
+
+.cartaoIdent strong {
+  font-size: var(--fs-300);
+  overflow-wrap: anywhere;
+}
+
+.cartaoIdent span {
+  color: var(--text-soft);
+  font-size: var(--fs-100);
+  overflow-wrap: anywhere;
+}
+
+.cartaoChips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--sp-2);
+}
+
+.cartaoMeta {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: var(--sp-2);
+  padding: var(--sp-3);
+  border-radius: var(--r-sm);
+  background: var(--surface-2);
+}
+
+.cartao[data-inativo="true"] .cartaoMeta {
+  background: var(--surface-3);
+}
+
+.cartaoMeta dt {
+  color: var(--text-muted);
+  font-size: var(--fs-100);
+  font-weight: var(--fw-semibold);
+  letter-spacing: var(--tracking-label);
+  text-transform: uppercase;
+}
+
+.cartaoMeta dd {
+  font-size: var(--fs-200);
+  font-weight: var(--fw-semibold);
+  overflow-wrap: anywhere;
+}
+
+/* --- matriz ------------------------------------------------------------- */
+
+.matriz {
+  min-width: 900px;
+}
+
+.matriz th[scope="row"] {
+  vertical-align: middle;
+}
+
+/* Faixa de módulo separa os blocos da matriz; sem ela são 40 linhas seguidas. */
+.linhaModulo th {
+  background: var(--surface-3);
+  color: var(--text-soft);
+  font-size: var(--fs-100);
+  font-weight: var(--fw-bold);
+  letter-spacing: var(--tracking-label);
+  text-transform: uppercase;
+}
+
+.celulaMatriz {
+  text-align: center;
+  color: var(--success-text);
+}
+
+@media (max-width: 720px) {
+  .linhaBusca {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .cartaoMeta {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+
+/* `.data-table th` deixa todo cabeçalho em caixa alta, e isso vale para o
+   `th[scope="row"]` da linha também. Aqui a célula é nome de pessoa e e-mail:
+   "ALENILTON.COSTA@GRUPODDM.COM.BR" é mais difícil de ler que a forma original, e
+   nome próprio em caixa alta parece grito. */
+.tabela th[scope="row"] {
+  color: var(--text);
+  font-size: var(--fs-200);
+  font-weight: var(--fw-semibold);
+  letter-spacing: normal;
+  text-transform: none;
+  white-space: normal;
+}
+
+/* As duas ações ficam na mesma linha: empilhadas, cada usuário ocupa o dobro da
+   altura e a varredura da lista fica duas vezes mais longa. */
+.tabela td:last-child {
+  white-space: nowrap;
+}
+
+.tabela .acoesLinha {
+  flex-wrap: nowrap;
+}
+
+/* Mesmo motivo na matriz: o nome da permissão não é sigla. */
+.matriz th[scope="row"] {
+  color: var(--text);
+  font-size: var(--fs-200);
+  font-weight: var(--fw-semibold);
+  letter-spacing: normal;
+  text-transform: none;
+  white-space: normal;
+}

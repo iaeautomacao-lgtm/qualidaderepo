@@ -55,8 +55,27 @@ async function temColunasTratativa() {
   return colunasTratativa;
 }
 
-function montarFiltros(filtros = {}) {
-  const condicoes = [];
+/**
+ * Coluna de exclusão (migration 007). Mesma memoização de `temColunasTratativa`.
+ *
+ * Sem a coluna, gravação excluída não existe como conceito e a listagem não tem
+ * o que filtrar — a fila volta a mostrar tudo, que é o comportamento anterior.
+ */
+let colunaExclusao = null;
+
+export async function temColunaExclusaoGravacao() {
+  if (colunaExclusao !== null) return colunaExclusao;
+  try {
+    const rows = await query("SHOW COLUMNS FROM gravacoes LIKE 'excluida_em'");
+    colunaExclusao = rows.length > 0;
+  } catch {
+    colunaExclusao = false;
+  }
+  return colunaExclusao;
+}
+
+function montarFiltros(filtros = {}, { ocultarExcluidas = false } = {}) {
+  const condicoes = ocultarExcluidas ? ["g.excluida_em IS NULL"] : [];
   const params = {};
 
   if (filtros.status && filtros.status !== "todos") {
@@ -116,7 +135,9 @@ function vazio(limit, offset) {
 
 /** Lista as gravações com o status da transcrição corrente. */
 export async function listarGravacoes({ filtros = {}, limit = 50, offset = 0 } = {}) {
-  const { where, params } = montarFiltros(filtros);
+  const { where, params } = montarFiltros(filtros, {
+    ocultarExcluidas: await temColunaExclusaoGravacao(),
+  });
 
   try {
     const contadores = await one(
@@ -206,6 +227,9 @@ export async function listarGravacoes({ filtros = {}, limit = 50, offset = 0 } =
 /** Texto completo e segmentos — usado no detalhe e na exportação JSON. */
 export async function obterTranscricao(gravacaoId) {
   const comTratativa = await temColunasTratativa();
+  // Gravação excluída responde 404 e não conteúdo: link antigo aberto depois da
+  // exclusão não pode mostrar uma análise que a operação já descartou.
+  const filtroExcluida = (await temColunaExclusaoGravacao()) ? "AND g.excluida_em IS NULL" : "";
   const colunasExtra = comTratativa
     ? `, g.tratada_em, g.tratativa_nota, trat.name AS tratada_por`
     : "";
@@ -228,6 +252,7 @@ export async function obterTranscricao(gravacaoId) {
        ${joinExtra}
        ${JOIN_TRANSCRICAO_CORRENTE}
       WHERE g.id = :gravacaoId
+        ${filtroExcluida}
       LIMIT 1`,
     { gravacaoId },
   );
@@ -552,4 +577,56 @@ export async function registrarTratativaGravacao({ gravacaoId, userId, tratada, 
   }
 
   return obterTranscricao(gravacaoId);
+}
+
+/**
+ * Exclui a gravação e, com ela, a análise IA daquele atendimento.
+ *
+ * Marcada, não apagada. `gravacoes` guarda o arquivo enviado — hash, caminho no
+ * disco, quem enviou — e `DELETE` levaria a transcrição por CASCADE e deixaria o
+ * arquivo órfão, sem registro de que existiu. Marcar mantém a trilha e se
+ * desfaz com um UPDATE.
+ *
+ * Idempotente: excluir o que já está excluído devolve `jaEstava: true`. Dois
+ * cliques no botão não podem virar dois resultados diferentes.
+ */
+export async function excluirGravacao({ gravacaoId, userId, motivo = null }) {
+  if (!(await temColunaExclusaoGravacao())) {
+    throw conflict(
+      "A exclusão de análise IA ainda não está disponível neste banco. Rode a migration 007_exclusao_de_gravacoes.sql.",
+    );
+  }
+
+  const gravacao = await one(
+    `SELECT id, nome_arquivo, avaliacao_id, excluida_em
+       FROM gravacoes
+      WHERE id = :gravacaoId
+      LIMIT 1`,
+    { gravacaoId },
+  );
+
+  if (!gravacao) throw notFound("Gravação não encontrada.");
+  if (gravacao.excluida_em) {
+    return { gravacaoId: String(gravacao.id), arquivo: gravacao.nome_arquivo, jaEstava: true };
+  }
+
+  // Gravação que já virou monitoria não sai por aqui: a ficha é o registro
+  // oficial daquele atendimento, e apagar a gravação por baixo dela deixaria a
+  // monitoria sem áudio nem evidência. Quem quer desfazer isso exclui a ficha.
+  if (gravacao.avaliacao_id) {
+    throw conflict(
+      "Esta gravação já virou monitoria com formulário. Exclua a ficha da avaliação — a gravação é a evidência dela.",
+    );
+  }
+
+  await query(
+    `UPDATE gravacoes
+        SET excluida_em = CURRENT_TIMESTAMP,
+            excluida_por_id = :userId,
+            exclusao_motivo = :motivo
+      WHERE id = :gravacaoId`,
+    { gravacaoId: gravacao.id, userId, motivo },
+  );
+
+  return { gravacaoId: String(gravacao.id), arquivo: gravacao.nome_arquivo, jaEstava: false };
 }

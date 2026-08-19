@@ -351,6 +351,12 @@ export default function OperacaoCampanhasPage() {
                       ) : null}
 
                       <div className={styles.cartaoAcoes}>
+                        {/* Gerenciar vem primeiro: é onde se configura a régua da
+                            campanha. "Ver monitorias" é consulta. */}
+                        <Link className="btn primary" href={`/campanhas/${campanha.id}`}>
+                          <Icon name="settings" size={16} />
+                          Gerenciar
+                        </Link>
                         <Link className="btn" href={`/avaliacoes?campanha=${encodeURIComponent(campanha.nome)}`}>
                           <Icon name="review" size={16} />
                           Ver monitorias

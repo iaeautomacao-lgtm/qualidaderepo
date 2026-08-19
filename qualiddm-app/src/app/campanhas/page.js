@@ -96,6 +96,13 @@ export default function CampanhasPage() {
           },
         ],
       }}
+      acessar={{
+        // A tela de gerenciamento é o terceiro nível: faixas, meta e pessoas da
+        // campanha. Sem este botão só se chegava lá pela operação.
+        href: (item) => `/campanhas/${item.id}`,
+        rotulo: "Gerenciar",
+        icone: "settings",
+      }}
       excluir={{ endpoint: (item) => `/api/campanhas/${item.id}` }}
       vazio={{
         titulo: "Nenhuma campanha cadastrada",

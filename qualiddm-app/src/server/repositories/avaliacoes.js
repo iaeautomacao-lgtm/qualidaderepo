@@ -1,4 +1,4 @@
-import { notFound } from "../errors";
+import { conflict, notFound } from "../errors";
 import { isMissingSchemaError, one, query } from "../db";
 import {
   AVALIADORES_INICIAIS,
@@ -362,6 +362,10 @@ async function listarAvaliacoesIaLivres({ limit = 100 } = {}) {
           // ficou só com o áudio e o texto.
           href: `/avaliacoes/ia/${row.id}`,
           hrefTranscricao: `/transcricoes/${row.id}`,
+          // Id da gravação exposto porque o código MIA-… não é chave de nada:
+          // ele é derivado. Excluir a análise precisa do id real, e extraí-lo
+          // do href por regex seria frágil.
+          gravacaoId: String(row.id),
           confianca: confianca == null ? null : Math.round(confianca * 100),
           insights: listaTexto(analise.insights),
           riscos: listaTexto(analise.riscos),
@@ -752,4 +756,57 @@ export async function obterAnexoAvaliacao(codigo, anexoId) {
 
   if (!anexo) throw notFound("Anexo não encontrado.");
   return { caminho: anexo.storage_path, nome: anexo.nome_arquivo, mimeType: anexo.mime_type };
+}
+
+/**
+ * Exclui a monitoria com formulário (código QA-…).
+ *
+ * Marcada, não apagada: o relatório "Fichas Excluídas" existe justamente para
+ * responder "quem excluiu o quê e por quê", e `DELETE` levaria as respostas, os
+ * anexos e o feedback por CASCADE.
+ *
+ * Idempotente por escolha: excluir o que já está excluído devolve
+ * `jaEstava: true` em vez de erro. Dois cliques no botão não podem virar dois
+ * resultados diferentes.
+ */
+export async function excluirAvaliacao({ codigo, userId, motivo = null }) {
+  const colunas = await colunasOpcionais("avaliacoes");
+  const temSoftDelete = colunas.size === 0 || colunas.has("excluida_em");
+
+  if (!temSoftDelete) {
+    throw conflict(
+      "Este banco não tem as colunas de exclusão de ficha. Rode a migration 003_telas_operacao_ia_admin.sql.",
+    );
+  }
+
+  const ficha = await one(
+    `SELECT id, codigo, excluida_em
+       FROM avaliacoes
+      WHERE codigo = :codigo
+      LIMIT 1`,
+    { codigo },
+  );
+
+  if (!ficha) throw notFound("Avaliação não encontrada.");
+  if (ficha.excluida_em) {
+    return { codigo: ficha.codigo, jaEstava: true };
+  }
+
+  const temAutor = colunas.has("excluida_por_id");
+  const temMotivo = colunas.has("exclusao_motivo");
+
+  await query(
+    `UPDATE avaliacoes
+        SET excluida_em = CURRENT_TIMESTAMP
+            ${temAutor ? ", excluida_por_id = :userId" : ""}
+            ${temMotivo ? ", exclusao_motivo = :motivo" : ""}
+      WHERE id = :id`,
+    {
+      id: ficha.id,
+      ...(temAutor ? { userId } : {}),
+      ...(temMotivo ? { motivo } : {}),
+    },
+  );
+
+  return { codigo: ficha.codigo, jaEstava: false };
 }

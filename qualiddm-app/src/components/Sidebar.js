@@ -47,6 +47,7 @@ const menu = [
     icon: "checklist",
     filhos: [
       { label: "Painel", href: "/formularios" },
+      { label: "Gerenciamento", href: "/formularios/gerenciamento" },
       { label: "Monitorias editadas", href: "/formularios/monitorias-editadas" },
     ],
   },

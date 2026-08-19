@@ -720,3 +720,190 @@ export async function excluirMeta(metaId) {
   await query("DELETE FROM metas_monitoria WHERE id = :metaId", { metaId });
   return listarMetas({ ano: inteiro(meta.ano), mes: inteiro(meta.mes) });
 }
+
+/* ==========================================================================
+   Tela "Gerenciar — {campanha}": configuração e pessoas
+   ========================================================================== */
+
+const cacheColunasGestao = new Map();
+
+/** Coluna presente? Memoizado. Tabela e coluna são literais deste módulo. */
+async function temColunaGestao(tabela, coluna) {
+  const chave = `${tabela}.${coluna}`;
+  if (!cacheColunasGestao.has(chave)) {
+    cacheColunasGestao.set(
+      chave,
+      query(`SHOW COLUMNS FROM ${tabela} LIKE :coluna`, { coluna })
+        .then((rows) => rows.length > 0)
+        .catch(() => false),
+    );
+  }
+  return cacheColunasGestao.get(chave);
+}
+
+/**
+ * Cadastro, configuração, desempenho e pessoas de uma campanha.
+ *
+ * A meta de nota lida aqui é a da CAMPANHA (`campanhas.meta_score`, migration
+ * 009) — o alvo permanente. A meta do mês vive em `metas_monitoria` e é assunto
+ * da tela de Metas Mensais; ver o cabeçalho da 009 sobre por que as duas
+ * coexistem.
+ */
+export async function obterCampanha(campanhaId, { periodoDias = 31 } = {}) {
+  const temMeta = await temColunaGestao("campanhas", "meta_score");
+
+  const campanha = await seguro("campanha", null, () =>
+    one(
+      `SELECT ca.id, ca.nome, ca.canal, ca.ativa, ca.favorita, ca.created_at,
+              ca.cliente_id, ca.faixa_conjunto_id,
+              ${temMeta ? "ca.meta_score" : "NULL AS meta_score"},
+              cl.nome AS cliente,
+              fc.nome AS faixa_conjunto
+         FROM campanhas ca
+         LEFT JOIN clientes cl ON cl.id = ca.cliente_id
+         LEFT JOIN faixa_conjuntos fc ON fc.id = ca.faixa_conjunto_id
+        WHERE ca.id = :campanhaId
+        LIMIT 1`,
+      { campanhaId },
+    ),
+  );
+
+  if (!campanha) throw notFound("Campanha não encontrada.");
+
+  const monitorias = await carregarMonitorias({ periodoDias });
+  const desempenho = desempenhoDe(agrupar(monitorias, "campanhaId"), campanha.id);
+
+  /* Pessoas da campanha: quem FOI AVALIADO nela no período, não quem está
+     lotado na carteira. `users.cliente_id` diz onde a pessoa está alocada, e
+     numa operação com três campanhas isso contaria a mesma equipe três vezes —
+     o card "Total de Pessoas" mentiria em todas. */
+  const pessoas = new Map();
+  for (const item of monitorias) {
+    if (String(item.campanhaId ?? "") !== String(campanha.id)) continue;
+    if (!item.avaliadoId) continue;
+
+    const atual = pessoas.get(item.avaliadoId) ?? { monitorias: 0, soma: 0, comNota: 0 };
+    atual.monitorias += 1;
+    // `Number.isFinite` e não `!= null`: `carregarMonitorias` devolve NaN para
+    // monitoria sem nota, e NaN passa por qualquer checagem de nulo — uma só
+    // envenenaria a média da pessoa inteira.
+    if (Number.isFinite(item.score)) {
+      atual.soma += item.score;
+      atual.comNota += 1;
+    }
+    pessoas.set(item.avaliadoId, atual);
+  }
+
+  const conjuntos = await seguro("faixa_conjuntos", [], () =>
+    query(
+      `SELECT id, nome, descricao, padrao
+         FROM faixa_conjuntos
+        WHERE ativo = 1
+        ORDER BY padrao DESC, nome`,
+    ),
+  );
+
+  const ativos = await seguro("pessoas_ativas", [], () =>
+    pessoas.size === 0
+      ? Promise.resolve([])
+      : query(
+          `SELECT id, active
+             FROM users
+            WHERE id IN (${[...pessoas.keys()].map((_, indice) => `:p${indice}`).join(", ")})`,
+          Object.fromEntries([...pessoas.keys()].map((id, indice) => [`p${indice}`, id])),
+        ),
+  );
+
+  const metaScore = campanha.meta_score == null ? null : numero(campanha.meta_score);
+  const ativosContagem = ativos.filter((linha) => numero(linha.active, 1) === 1).length;
+
+  /* "Eficiência da Equipe" = quantas pessoas da campanha estão na meta.
+     `null` quando não há meta cadastrada: sem alvo não existe atingimento, e
+     mostrar 100% aí seria afirmar que todo mundo bateu uma meta inexistente. */
+  const naMeta =
+    metaScore == null
+      ? null
+      : [...pessoas.values()].filter(
+          (pessoa) => pessoa.comNota > 0 && pessoa.soma / pessoa.comNota >= metaScore,
+        ).length;
+
+  const medidas = [...pessoas.values()].filter((pessoa) => pessoa.comNota > 0).length;
+
+  return {
+    campanha: {
+      id: String(campanha.id),
+      nome: campanha.nome,
+      canal: campanha.canal,
+      canalRotulo: rotuloCanal(campanha.canal),
+      ativa: numero(campanha.ativa, 1) === 1,
+      favorita: numero(campanha.favorita) === 1,
+      criadaEm: formatarDataHora(campanha.created_at),
+      clienteId: campanha.cliente_id == null ? null : String(campanha.cliente_id),
+      cliente: campanha.cliente || "Sem operação",
+      faixaConjuntoId:
+        campanha.faixa_conjunto_id == null ? null : String(campanha.faixa_conjunto_id),
+      faixaConjunto: campanha.faixa_conjunto || null,
+      metaScore,
+      ...desempenho,
+      insight: insight(desempenho, campanha.nome),
+    },
+    pessoas: {
+      total: pessoas.size,
+      ativas: ativosContagem,
+      medidas,
+      naMeta,
+      // Percentual só quando há meta E gente com nota. Denominador zero devolve
+      // `null` em vez de 0%: "nenhuma pessoa na meta" e "ninguém foi medido" são
+      // leituras diferentes.
+      eficiencia:
+        naMeta == null || medidas === 0 ? null : Math.round((naMeta / medidas) * 100),
+    },
+    conjuntosFaixa: conjuntos.map((conjunto) => ({
+      id: String(conjunto.id),
+      nome: conjunto.nome,
+      descricao: conjunto.descricao || null,
+      padrao: numero(conjunto.padrao) === 1,
+    })),
+    metaSuportada: temMeta,
+    periodoDias,
+  };
+}
+
+/**
+ * Salva o bloco "Faixa de Performance e Metas".
+ *
+ * Só os dois campos do bloco. Nome, canal e situação continuam em
+ * `atualizarCampanha`, que é o cadastro — separar evita que salvar a meta
+ * reescreva o nome com um valor que a tela nem mostrava.
+ */
+export async function salvarConfiguracaoCampanha(campanhaId, { faixaConjuntoId, metaScore }) {
+  const campanha = await one("SELECT id FROM campanhas WHERE id = :campanhaId LIMIT 1", {
+    campanhaId,
+  });
+  if (!campanha) throw notFound("Campanha não encontrada.");
+
+  const campos = ["faixa_conjunto_id = :faixaConjuntoId"];
+  const params = { campanhaId, faixaConjuntoId: faixaConjuntoId || null };
+
+  if (metaScore !== undefined) {
+    if (!(await temColunaGestao("campanhas", "meta_score"))) {
+      throw conflict(
+        "A meta de nota da campanha ainda não está disponível neste banco. Rode a migration 009_campanha_meta_score.sql.",
+      );
+    }
+    campos.push("meta_score = :metaScore");
+    params.metaScore = metaScore;
+  }
+
+  // Conjunto inexistente entraria como FK inválida e estouraria em ER_NO_REFERENCED_ROW.
+  if (params.faixaConjuntoId) {
+    const conjunto = await one("SELECT id FROM faixa_conjuntos WHERE id = :id LIMIT 1", {
+      id: params.faixaConjuntoId,
+    });
+    if (!conjunto) throw notFound("Conjunto de faixas não encontrado.");
+  }
+
+  await query(`UPDATE campanhas SET ${campos.join(", ")} WHERE id = :campanhaId`, params);
+
+  return obterCampanha(campanhaId);
+}

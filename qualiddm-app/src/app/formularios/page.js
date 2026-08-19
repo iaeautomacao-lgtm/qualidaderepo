@@ -10,10 +10,13 @@ const ACOES = [
   {
     id: "cadastro",
     titulo: "Gerenciamento de Formulários",
-    detalhe: "Crie, edite e configure os Formulários de avaliação",
-    icon: "plus",
+    detalhe: "Veja, edite e configure as réguas de monitoria por carteira",
+    icon: "checklist",
     tom: "blue",
-    href: "/formularios/novo",
+    // Antes ia direto para o cadastro de um formulário novo. Agora abre o
+    // catálogo, que tem a busca, os filtros e o botão de criar — quem chega aqui
+    // quase sempre quer ver o que já existe, não começar do zero.
+    href: "/formularios/gerenciamento",
   },
   {
     id: "iniciar",
@@ -256,7 +259,7 @@ export default function FormulariosPage() {
           <ul className={styles.formList}>
             {recentesFiltrados.map((form) => (
               <li key={form.id}>
-                <Link className={styles.formRow} href={`/formularios/${form.id}`}>
+                <Link className={styles.formRow} href="/formularios/gerenciamento">
                   <span className={styles.formIcone}>
                     <Icon name="review" size={18} />
                   </span>
