@@ -198,7 +198,13 @@ CREATE TABLE users (
   turno_id BIGINT UNSIGNED NULL,
   cliente_id BIGINT UNSIGNED NULL,
   supervisor_id BIGINT UNSIGNED NULL,
+  login VARCHAR(120) NULL,
+  cpf VARCHAR(20) NULL,
+  matricula VARCHAR(80) NULL,
   external_code VARCHAR(80) NULL,
+  data_inicio_produto DATE NULL,
+  hierarquia_vigencia DATE NULL,
+  hierarquia_motivo VARCHAR(255) NULL,
   active TINYINT(1) NOT NULL DEFAULT 1,
   ultimo_acesso_em DATETIME NULL,
   senha_alterada_em DATETIME NULL,
@@ -212,6 +218,10 @@ CREATE TABLE users (
   KEY idx_users_cargo (cargo_id),
   KEY idx_users_cliente (cliente_id),
   KEY idx_users_supervisor (supervisor_id),
+  KEY idx_users_turno (turno_id),
+  KEY idx_users_login (login),
+  KEY idx_users_cpf (cpf),
+  KEY idx_users_matricula (matricula),
   KEY idx_users_active (active),
   CONSTRAINT fk_users_cargo
     FOREIGN KEY (cargo_id) REFERENCES cargos(id) ON DELETE SET NULL,
@@ -221,6 +231,20 @@ CREATE TABLE users (
     FOREIGN KEY (cliente_id) REFERENCES clientes(id) ON DELETE SET NULL,
   CONSTRAINT fk_users_supervisor
     FOREIGN KEY (supervisor_id) REFERENCES users(id) ON DELETE SET NULL
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+CREATE TABLE user_campanhas (
+  user_id BIGINT UNSIGNED NOT NULL,
+  campanha_id BIGINT UNSIGNED NOT NULL,
+  ativo TINYINT(1) NOT NULL DEFAULT 1,
+  created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  PRIMARY KEY (user_id, campanha_id),
+  KEY idx_user_campanhas_campanha (campanha_id),
+  CONSTRAINT fk_user_campanhas_user
+    FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
+  CONSTRAINT fk_user_campanhas_campanha
+    FOREIGN KEY (campanha_id) REFERENCES campanhas(id) ON DELETE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 -- Guarda o HASH do token, nunca o token. Se esta tabela vazar, ninguém

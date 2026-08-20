@@ -55,6 +55,9 @@ next-dev.err.log
 # arquivos enviados pelos usuários ficam no servidor, não no Git
 /storage/
 
+# importacao local com dados pessoais da planilha de usuarios
+/database/cpanel/04-usuarios-planilha.sql
+
 # scripts de investigação local: úteis na máquina de quem depura, sem valor no
 # histórico. Ficam no disco, fora do repositório.
 /server-debug.js

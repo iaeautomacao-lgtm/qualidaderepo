@@ -107,7 +107,7 @@ export default function GestaoUsuariosPage() {
   const primeiraCarga = carregando && !dados;
   const filtrados = useMemo(() => {
     if (!cargoNome) return itens;
-    return itens.filter((item) => item.cargo === cargoNome);
+    return itens.filter((item) => item.cargo === cargoNome || item.papelLabel === cargoNome);
   }, [cargoNome, itens]);
 
   async function salvarUsuario(form) {
