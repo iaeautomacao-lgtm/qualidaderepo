@@ -22,14 +22,49 @@ const LABEL_PAPEL = {
 
 const cacheColunas = new Map();
 
+const COLUNAS_USERS_CONHECIDAS = new Set([
+  "cargo_id",
+  "cliente_id",
+  "ultimo_acesso_em",
+  "turno_id",
+  "supervisor_id",
+  "external_code",
+  "matricula",
+  "login",
+  "cpf",
+  "data_inicio_produto",
+  "hierarquia_vigencia",
+  "hierarquia_motivo",
+  "cliente_nome_importado",
+  "campanhas_importadas",
+  "superior_nome_importado",
+  "turno_nome_importado",
+  "trocar_senha",
+  "senha_alterada_em",
+]);
+
 async function temColuna(tabela, coluna) {
   const chave = `${tabela}.${coluna}`;
   if (!cacheColunas.has(chave)) {
     cacheColunas.set(
       chave,
-      query(`SHOW COLUMNS FROM ${tabela} LIKE :coluna`, { coluna })
+      query(
+        `SELECT 1
+           FROM information_schema.COLUMNS
+          WHERE TABLE_SCHEMA = DATABASE()
+            AND TABLE_NAME = :tabela
+            AND COLUMN_NAME = :coluna
+          LIMIT 1`,
+        { tabela, coluna },
+      )
         .then((rows) => rows.length > 0)
-        .catch(() => false),
+        .catch((error) => {
+          const fallback = tabela === "users" && COLUNAS_USERS_CONHECIDAS.has(coluna);
+          console.warn(
+            `[usuarios] falha ao verificar coluna ${tabela}.${coluna}: ${error?.code || "erro"} ${error?.message || error}. fallback=${fallback}`,
+          );
+          return fallback;
+        }),
     );
   }
   return cacheColunas.get(chave);
@@ -40,9 +75,22 @@ async function temTabela(tabela) {
   if (!cacheColunas.has(chave)) {
     cacheColunas.set(
       chave,
-      query("SHOW TABLES LIKE :tabela", { tabela })
+      query(
+        `SELECT 1
+           FROM information_schema.TABLES
+          WHERE TABLE_SCHEMA = DATABASE()
+            AND TABLE_NAME = :tabela
+          LIMIT 1`,
+        { tabela },
+      )
         .then((rows) => rows.length > 0)
-        .catch(() => false),
+        .catch((error) => {
+          const fallback = tabela === "user_campanhas";
+          console.warn(
+            `[usuarios] falha ao verificar tabela ${tabela}: ${error?.code || "erro"} ${error?.message || error}. fallback=${fallback}`,
+          );
+          return fallback;
+        }),
     );
   }
   return cacheColunas.get(chave);
