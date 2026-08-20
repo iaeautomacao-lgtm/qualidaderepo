@@ -7,7 +7,7 @@ export async function GET(request) {
   return route(request, async () => {
     await requireSession();
     const searchParams = new URL(request.url).searchParams;
-    const limit = readIntParam(searchParams, "limit", { default: 100, min: 1, max: 500 });
+    const limit = readIntParam(searchParams, "limit", { default: 100, min: 1, max: 2000 });
     const offset = readIntParam(searchParams, "offset", { default: 0, min: 0, max: 100000 });
 
     const [avaliacoes, opcoes] = await Promise.all([

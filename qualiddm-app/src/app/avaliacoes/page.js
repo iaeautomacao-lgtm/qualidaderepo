@@ -89,7 +89,7 @@ export default function AvaliacoesPage() {
 
     async function carregarAvaliacoes() {
       try {
-        const resposta = await fetch("/api/avaliacoes?limit=500", { cache: "no-store" });
+        const resposta = await fetch("/api/avaliacoes?limit=2000", { cache: "no-store" });
         const payload = await resposta.json().catch(() => null);
         if (!resposta.ok || !payload?.ok) {
           throw new Error(payload?.error?.message || "Não foi possível carregar avaliações do banco.");
