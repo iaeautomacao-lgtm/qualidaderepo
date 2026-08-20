@@ -80,6 +80,7 @@ const menu = [
     filhos: [
       { label: "Operação", href: "/gestao" },
       { label: "Usuários", href: "/gestao/usuarios" },
+      { label: "Bugs e Reports", href: "/gestao/bugs" },
     ],
   },
 ];

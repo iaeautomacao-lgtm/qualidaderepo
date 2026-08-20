@@ -120,6 +120,7 @@ export const OPERACAO = [
     icone: "bug",
     tom: "red",
     novo: true,
+    href: "/gestao/bugs",
   },
 ];
 
