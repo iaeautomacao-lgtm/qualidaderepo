@@ -74,3 +74,10 @@
   color: var(--accent-deep);
   opacity: 0.85;
 }
+
+/* Arquivo acima do teto da análise: o tamanho sozinho não diz nada a quem não
+   sabe o limite, então o aviso vem colado nele. */
+.arquivoGrande {
+  color: var(--danger-text);
+  font-weight: var(--fw-semibold);
+}

@@ -97,7 +97,19 @@ export function normalizarCriterio(bruto, indice = 0) {
     evidencia: ia?.evidencia ?? bruto?.evidencia ?? null,
     confianca: ia?.confianca ?? bruto?.confianca ?? null,
     raciocinio: ia?.raciocinio ?? bruto?.raciocinio ?? null,
+    /* Posição no áudio onde a evidência aparece: `{ rotulo, segundos }` ou
+       `null`. Só a análise IA devolve — e nem sempre: documento e chat não têm
+       tempo, e o modelo deixa vazio quando não tem certeza do instante. */
+    momento: momentoValido(ia?.momento ?? bruto?.momento),
   };
+}
+
+/** Aceita só `{ rotulo, segundos }` com segundos positivo e finito. */
+function momentoValido(valor) {
+  if (!valor || typeof valor !== "object") return null;
+  const segundos = Number(valor.segundos);
+  if (!Number.isFinite(segundos) || segundos <= 0) return null;
+  return { rotulo: String(valor.rotulo || ""), segundos };
 }
 
 /** Achata `secoes[].criterios[]` já normalizados, guardando a seção de origem. */

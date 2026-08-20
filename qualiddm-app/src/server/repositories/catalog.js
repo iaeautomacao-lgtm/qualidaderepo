@@ -392,18 +392,30 @@ function observacoesDaIa(resultado) {
   return blocos.length > 0 ? blocos.join("\n\n") : null;
 }
 
-export async function createAvaliacaoFromIa({ formulario, resultado, arquivo, avaliadorId }) {
-  const avaliado = await one(
-    `SELECT id
-       FROM users
-      WHERE active = 1
-        AND role IN ('operador', 'monitor', 'supervisor')
-      ORDER BY role = 'operador' DESC, id
-      LIMIT 1`
-  );
+export async function createAvaliacaoFromIa({
+  formulario,
+  resultado,
+  arquivo,
+  avaliadorId,
+  // Quem foi avaliado. OBRIGATÓRIO.
+  avaliadoId = null,
+  // Gravação de origem, para a ficha e a gravação apontarem uma para a outra.
+  gravacaoId = null,
+}) {
+  /* Antes, sem `avaliadoId`, isto escolhia "o primeiro operador da tabela".
+     A ficha ia para alguém que não fez o atendimento: a nota entrava na média
+     dessa pessoa e a monitoria caía na fila de feedback dela. Ficha na pessoa
+     errada é pior que ficha nenhuma, então agora falha em voz alta em vez de
+     adivinhar. */
+  if (!avaliadoId) {
+    throw new Error(
+      "Informe quem foi avaliado: a ficha atribui uma nota a uma pessoa e não pode ser criada sem essa informação."
+    );
+  }
 
+  const avaliado = await one("SELECT id FROM users WHERE id = :avaliadoId LIMIT 1", { avaliadoId });
   if (!avaliado) {
-    throw new Error("Nenhum usuário ativo encontrado para vincular como avaliado.");
+    throw new Error("Avaliado não encontrado.");
   }
 
   const codigo = codigoAvaliacao();
@@ -440,6 +452,11 @@ export async function createAvaliacaoFromIa({ formulario, resultado, arquivo, av
     };
 
     const colunasIa = await colunasPresentes(connection, "avaliacoes", Object.keys(valoresIa));
+    // `gravacao_id` liga a ficha ao arquivo de origem: é como o player da ficha
+    // encontra o áudio e como a gravação sabe que já virou monitoria.
+    const colunasGravacao = gravacaoId
+      ? await colunasPresentes(connection, "avaliacoes", ["gravacao_id"])
+      : [];
     const params = {
       codigo,
       codGravacao: arquivo?.nome?.slice(0, 60) || null,
@@ -458,6 +475,7 @@ export async function createAvaliacaoFromIa({ formulario, resultado, arquivo, av
       total: resultado.resumo.total,
     };
     for (const coluna of colunasIa) params[coluna] = valoresIa[coluna];
+    if (colunasGravacao.includes("gravacao_id")) params.gravacao_id = gravacaoId;
 
     const [insert] = await connection.execute(
       `INSERT INTO avaliacoes (
@@ -466,12 +484,14 @@ export async function createAvaliacaoFromIa({ formulario, resultado, arquivo, av
           audio_path, data_contato, data_avaliacao, status_feedback,
           total_conformes, total_nao_conformes, total_nao_aplicaveis, total_criterios
           ${colunasIa.map((coluna) => `, ${coluna}`).join("")}
+          ${colunasGravacao.includes("gravacao_id") ? ", gravacao_id" : ""}
        ) VALUES (
           :codigo, :codGravacao, :clienteId, :campanhaId, :formularioId,
           :avaliadoId, :avaliadorId, :categoria, 'ia', :score, :zerada,
           :audioPath, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP, 'pendente',
           :conformes, :naoConformes, :naoAplicaveis, :total
           ${colunasIa.map((coluna) => `, :${coluna}`).join("")}
+          ${colunasGravacao.includes("gravacao_id") ? ", :gravacao_id" : ""}
        )`,
       params
     );

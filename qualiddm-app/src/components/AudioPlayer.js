@@ -37,6 +37,14 @@ export default function AudioPlayer({
   emptyTitle = "Áudio não disponível",
   emptyHint = "Esta avaliação não tem arquivo de áudio vinculado.",
   className,
+  /* Marcadores na linha do tempo: `[{ segundos, rotulo, tom, id }]`.
+     Cada um é uma falha apontada pela IA, e clicar leva o áudio até ela — é o
+     que liga o apontamento à evidência sem o supervisor procurar o trecho. */
+  marcadores = [],
+  /* Pedido de salto vindo de fora: `{ segundos, nonce }`. O `nonce` existe para
+     dois cliques no MESMO marcador voltarem ao trecho: sem ele o valor não muda
+     e o efeito não roda de novo. */
+  saltoExterno = null,
 }) {
   const audioRef = useRef(null);
   const idBase = useId();
@@ -68,6 +76,24 @@ export default function AudioPlayer({
     if (audio) audio.playbackRate = velocidade;
   }, [velocidade, src]);
 
+  /* Salta quando `saltoExterno` muda. Em efeito, e não no clique de quem chama,
+     porque só este componente tem a referência do <audio>. */
+  useEffect(() => {
+    const audio = audioRef.current;
+    const alvo = Number(saltoExterno?.segundos);
+    if (!audio || !Number.isFinite(alvo) || alvo < 0) return;
+
+    audio.currentTime = alvo;
+    queueMicrotask(() => setPosicao(alvo));
+    // Toca junto: quem clica em "ouvir trecho" quer ouvir, não posicionar.
+    audio.play().then(
+      () => setTocando(true),
+      () => {},
+    );
+  }, [saltoExterno]);
+
+  // Daqui para baixo pode haver `return` antecipado, então nenhum hook novo
+  // depois desta linha.
   if (!src) {
     return (
       <div className={className ? `${styles.player} ${className}` : styles.player}>
@@ -178,18 +204,45 @@ export default function AudioPlayer({
           <label className="sr-only" htmlFor={`${idBase}-posicao`}>
             Posição da gravação
           </label>
-          <input
-            className={styles.trilha}
-            id={`${idBase}-posicao`}
-            type="range"
-            min="0"
-            max={duracaoConhecida ? duracao : 0}
-            step="0.5"
-            value={posicao}
-            disabled={!duracaoConhecida}
-            onChange={(evento) => irPara(evento.target.value)}
-            aria-valuetext={`${tempo(posicao)} de ${totalLabel}`}
-          />
+          {/* O range e os marcadores dividem a mesma faixa. Os marcadores são
+              botões de verdade, alcançáveis por teclado — um <span> decorativo
+              deixaria o atalho para a evidência inacessível. */}
+          <span className={styles.faixa}>
+            <input
+              className={styles.trilha}
+              id={`${idBase}-posicao`}
+              type="range"
+              min="0"
+              max={duracaoConhecida ? duracao : 0}
+              step="0.5"
+              value={posicao}
+              disabled={!duracaoConhecida}
+              onChange={(evento) => irPara(evento.target.value)}
+              aria-valuetext={`${tempo(posicao)} de ${totalLabel}`}
+            />
+
+            {duracaoConhecida
+              ? marcadores
+                  // Marcador além do fim do áudio sairia da faixa: a IA pode
+                  // devolver um instante que não existe no arquivo.
+                  .filter((marca) => Number(marca?.segundos) > 0 && Number(marca.segundos) <= duracao)
+                  .map((marca) => (
+                    <button
+                      className={styles.marcador}
+                      key={marca.id ?? `${marca.segundos}-${marca.rotulo}`}
+                      type="button"
+                      data-tom={marca.tom || "danger"}
+                      style={{ "--posicao": `${(Number(marca.segundos) / duracao) * 100}%` }}
+                      onClick={() => irPara(marca.segundos)}
+                      title={`${tempo(Number(marca.segundos))} — ${marca.rotulo}`}
+                    >
+                      <span className="sr-only">
+                        Ir para {tempo(Number(marca.segundos))}: {marca.rotulo}
+                      </span>
+                    </button>
+                  ))
+              : null}
+          </span>
 
           <span className={styles.tempo}>
             <span className="sr-only">Duração total </span>

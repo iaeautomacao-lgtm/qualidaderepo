@@ -2,6 +2,7 @@ import { config } from "../config";
 import { badRequest, conflict } from "../errors";
 import { codigoAnaliseIa, formatarDuracao } from "../format";
 import { gerarJson } from "./gemini";
+import { MAX_BYTES_ANALISE_IA, formatarMegabytes } from "@/lib/limites-arquivo";
 
 /**
  * Avalia um atendimento (áudio ou PDF de chat) contra um formulário.
@@ -17,7 +18,11 @@ import { gerarJson } from "./gemini";
 
 // Limite do envio embutido na requisição. Acima disso a API do Gemini exige o
 // serviço de arquivos, que ainda não usamos.
-const MAX_BYTES_INLINE = 15 * 1024 * 1024;
+//
+// O número vive em `lib/limites-arquivo.js` porque a tela de upload precisa do
+// MESMO valor para avisar antes do envio — duas constantes divergiriam, e o
+// sintoma seria arquivo aceito, guardado, e análise que falha depois.
+const MAX_BYTES_INLINE = MAX_BYTES_ANALISE_IA;
 
 // Formato da transcrição, repetido nas três análises: a tela renderiza cada
 // linha como um turno de fala, então o rótulo do falante precisa vir no começo
@@ -168,7 +173,7 @@ export async function avaliarArquivo({ nome, mimeType, base64, tamanho, secoes, 
 
   if (tamanho > MAX_BYTES_INLINE) {
     throw badRequest(
-      `Arquivo de ${(tamanho / 1024 / 1024).toFixed(1)} MB acima do limite de 15 MB para análise direta.`
+      `Arquivo de ${formatarMegabytes(tamanho)} acima do limite de ${formatarMegabytes(MAX_BYTES_ANALISE_IA)} para análise direta da IA.`
     );
   }
 
@@ -309,7 +314,7 @@ export async function analisarArquivoLivre({ nome, mimeType, base64, tamanho, co
 
   if (tamanho > MAX_BYTES_INLINE) {
     throw badRequest(
-      `Arquivo de ${(tamanho / 1024 / 1024).toFixed(1)} MB acima do limite de 15 MB para análise direta.`
+      `Arquivo de ${formatarMegabytes(tamanho)} acima do limite de ${formatarMegabytes(MAX_BYTES_ANALISE_IA)} para análise direta da IA.`
     );
   }
 
@@ -370,6 +375,23 @@ const ESQUEMA_ANALISE_ESTRUTURADA = {
   type: "object",
   properties: {
     resumo: { type: "string" },
+    /* Mesmo resumo, em três partes, para a tela poder ser escaneada.
+       `resumo` (parágrafo) continua obrigatório: análise antiga não tem estes
+       campos, e a tela cai no parágrafo quando eles faltam. */
+    resumoContexto: {
+      type: "string",
+      description: "Uma frase: quem ligou para quem e sobre o quê. Sem opinião.",
+    },
+    resumoEventos: {
+      type: "array",
+      items: { type: "string" },
+      description:
+        "3 a 5 fatos do atendimento, em ordem, um por item. Cada um é o que foi dito ou feito, nunca avaliação.",
+    },
+    resumoDesfecho: {
+      type: "string",
+      description: "Uma frase: como o contato terminou.",
+    },
     transcricao: { type: "string" },
     observacoesIa: { type: "string" },
     secoes: {
@@ -393,6 +415,16 @@ const ESQUEMA_ANALISE_ESTRUTURADA = {
                 confianca: { type: "number" },
                 peso: { type: "number" },
                 eliminatoria: { type: "boolean" },
+                /* Posição no áudio onde a evidência aparece, em m:ss.
+                   NÃO é obrigatório: documento e chat não têm tempo, e áudio em
+                   que o trecho não é localizável com certeza também não. Vazio é
+                   resposta legítima — melhor sem marcador que com marcador que
+                   leva ao lugar errado. */
+                momento: {
+                  type: "string",
+                  description:
+                    "Posição no áudio onde esta evidência aparece, em m:ss. Vazio se o arquivo não for áudio ou se você não tiver certeza do instante.",
+                },
               },
               required: ["nome", "status", "resposta", "raciocinio", "confianca", "peso", "eliminatoria"],
             },
@@ -483,6 +515,29 @@ function confiancaNormalizada(valor) {
   return Math.max(0, Math.min(1, numero));
 }
 
+/**
+ * "1:42" -> { rotulo: "1:42", segundos: 102 }
+ *
+ * Devolve `null` para qualquer coisa que não seja m:ss plausível. O player usa os
+ * segundos para posicionar o áudio, e um marcador em posição inventada é pior que
+ * marcador nenhum: ele manda o supervisor ouvir outro trecho e concluir que o
+ * apontamento está errado.
+ *
+ * Teto de 6 horas para descartar número absurdo devolvido como se fosse tempo.
+ */
+function momentoNormalizado(valor) {
+  const texto = String(valor ?? "").trim();
+  if (!texto) return null;
+
+  const partes = texto.match(/^(\d{1,2}):([0-5]\d)$/);
+  if (!partes) return null;
+
+  const segundos = Number(partes[1]) * 60 + Number(partes[2]);
+  if (!Number.isFinite(segundos) || segundos <= 0 || segundos > 6 * 60 * 60) return null;
+
+  return { rotulo: texto, segundos };
+}
+
 function normalizarAnaliseEstruturada(bruto, contexto = {}) {
   const secoes = Array.isArray(bruto.secoes) ? bruto.secoes : [];
   const normalizadas = secoes.map((secao) => ({
@@ -500,6 +555,7 @@ function normalizarAnaliseEstruturada(bruto, contexto = {}) {
       confianca: confiancaNormalizada(criterio.confianca),
       peso: Number.isFinite(Number(criterio.peso)) ? Number(criterio.peso) : 5,
       eliminatoria: Boolean(criterio.eliminatoria),
+      momento: momentoNormalizado(criterio.momento),
     })),
   }));
 
@@ -544,6 +600,22 @@ function normalizarAnaliseEstruturada(bruto, contexto = {}) {
     carteira: contexto.cliente || null,
     campanha: contexto.campanha || null,
     resumo: bruto.resumo || "Análise concluída.",
+    /* Resumo em três partes, quando o modelo devolveu. `null` quando não —
+       análise gravada antes desta versão não tem os campos, e a tela cai no
+       parágrafo. Fatiar o parágrafo aqui para simular a estrutura seria inventar
+       qual frase é contexto e qual é desfecho. */
+    resumoEstruturado: (() => {
+      const contextoResumo = String(bruto.resumoContexto ?? "").trim();
+      const desfecho = String(bruto.resumoDesfecho ?? "").trim();
+      const eventos = (Array.isArray(bruto.resumoEventos) ? bruto.resumoEventos : [])
+        .map((item) => String(item ?? "").trim())
+        .filter(Boolean);
+
+      // Exige contexto E ao menos um evento: só um dos três campos preenchido
+      // renderiza um bloco vazio, que fica pior que o parágrafo.
+      if (!contextoResumo || eventos.length === 0) return null;
+      return { contexto: contextoResumo, eventos, desfecho: desfecho || null };
+    })(),
     transcricao: bruto.transcricao || "",
     observacoesIa: bruto.observacoesIa || bruto.resumo || "",
     nota: Number(nota.toFixed(2)),
@@ -562,7 +634,7 @@ export async function analisarArquivoLivreEstruturado({ nome, mimeType, base64, 
 
   if (tamanho > MAX_BYTES_INLINE) {
     throw badRequest(
-      `Arquivo de ${(tamanho / 1024 / 1024).toFixed(1)} MB acima do limite de 15 MB para análise direta.`
+      `Arquivo de ${formatarMegabytes(tamanho)} acima do limite de ${formatarMegabytes(MAX_BYTES_ANALISE_IA)} para análise direta da IA.`
     );
   }
 
@@ -589,6 +661,23 @@ Objetivo:
 - Não inventar dados que não estejam no arquivo. Quando não houver evidência, use "nao_aplicavel".
 - Se o arquivo for PDF ou texto de chat, trate como conversa/documento de atendimento.
 - Se for áudio, informe a duração total em m:ss e, se o cliente disser o CPF, devolva os dígitos.
+
+Resumo em duas formas, com o MESMO conteúdo:
+- "resumo": o parágrafo corrido, como sempre.
+- "resumoContexto": uma frase dizendo quem contatou quem e sobre o quê.
+- "resumoEventos": de 3 a 5 fatos, em ordem cronológica, um por item. Fato é o
+  que foi dito ou feito. Não escreva avaliação aqui ("operador foi ríspido" é
+  avaliação; "operador interrompeu a cliente duas vezes" é fato).
+- "resumoDesfecho": uma frase dizendo como o contato terminou.
+
+Momento da evidência ("momento" de cada critério):
+- Preencha com a posição no áudio, em m:ss, onde a evidência daquele critério
+  aparece — serve para o supervisor pular direto para o trecho.
+- Deixe VAZIO quando o arquivo não for áudio (PDF e chat não têm tempo) e
+  quando você não tiver certeza do instante.
+- Não estime, não arredonde para um número redondo e não invente. Marcador que
+  leva ao trecho errado é pior que marcador ausente: ele faz o supervisor ouvir
+  outro momento e concluir que a IA errou o apontamento.
 
 ${REGRA_TRANSCRICAO}
 

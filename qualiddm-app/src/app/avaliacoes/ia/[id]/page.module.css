@@ -375,13 +375,29 @@
 
 /* --- resumo em faixa no topo --------------------------------------------- */
 
-/* Três faixas na horizontal: o parágrafo ganha o dobro porque é texto corrido;
-   as contagens e os problemas são listas curtas e de largura previsível. */
-.resumoTopo {
+/* Resumo e problemas lado a lado. O resumo ganha mais largura porque é texto
+   corrido; os problemas são cartões curtos e de largura previsível — mas ganham
+   quase metade, porque operacionalmente valem tanto quanto. */
+.faixaResumo {
   display: grid;
-  grid-template-columns: minmax(0, 2fr) minmax(0, 1fr) minmax(0, 1.1fr);
-  gap: var(--sp-5);
+  grid-template-columns: minmax(0, 1.5fr) minmax(0, 1fr);
+  gap: var(--sp-4);
   align-items: start;
+}
+
+.resumoAtendimento,
+.blocoProblemas {
+  display: grid;
+  align-content: start;
+  gap: var(--sp-4);
+}
+
+.resumoAtendimento h2,
+.blocoProblemas h2,
+.proximaAcao h2,
+.conformidade h2 {
+  font-size: var(--fs-500);
+  font-weight: var(--fw-semibold);
 }
 
 .resumoTexto {
@@ -644,4 +660,527 @@
   .contagens {
     grid-template-columns: minmax(0, 1fr);
   }
+}
+
+/* --- por que a nota foi zerada ------------------------------------------- */
+
+/* Bloco de explicação, não alerta: alerta se lê e se descarta, e esta é a
+   informação que evita a leitura de contradição entre 0/100 e 65 de 77. */
+.porQueZerou {
+  display: grid;
+  gap: var(--sp-2);
+  border-color: var(--danger);
+  background: var(--danger-soft);
+}
+
+.porQueZerou h2 {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--sp-2);
+  color: var(--danger-text);
+  font-size: var(--fs-400);
+  font-weight: var(--fw-bold);
+}
+
+.porQueZerou p {
+  color: var(--text);
+  font-size: var(--fs-300);
+  line-height: var(--lh-normal);
+}
+
+.regraZero {
+  color: var(--text-soft);
+  font-size: var(--fs-200) !important;
+}
+
+/* --- resumo estruturado -------------------------------------------------- */
+
+.resumoBlocos {
+  display: grid;
+  gap: var(--sp-4);
+}
+
+.resumoBlocos > div {
+  display: grid;
+  gap: var(--sp-1);
+}
+
+.resumoBlocos p,
+.resumoParagrafo {
+  color: var(--text);
+  font-size: var(--fs-300);
+  line-height: var(--lh-normal);
+}
+
+.eventos {
+  display: grid;
+  gap: var(--sp-2);
+  padding-left: var(--sp-4);
+  list-style: disc;
+}
+
+.eventos li {
+  color: var(--text);
+  font-size: var(--fs-300);
+  line-height: var(--lh-normal);
+}
+
+/* --- principais problemas ------------------------------------------------ */
+
+.problemasLista {
+  display: grid;
+  gap: var(--sp-3);
+  list-style: none;
+}
+
+.problemasLista > li {
+  display: grid;
+  gap: var(--sp-2);
+  padding: var(--sp-3);
+  border: 1px solid var(--line);
+  border-left: 3px solid var(--line-strong);
+  border-radius: var(--r-md);
+  background: var(--surface);
+}
+
+.problemasLista > li[data-severidade="critico"] {
+  border-left-color: var(--danger);
+  background: var(--danger-soft);
+}
+
+.problemasLista > li[data-severidade="alto"] {
+  border-left-color: var(--warning);
+}
+
+.problemaTopo {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--sp-2);
+}
+
+.problemaTopo strong {
+  font-size: var(--fs-300);
+  overflow-wrap: anywhere;
+}
+
+.problemaEvidencia {
+  color: var(--text-soft);
+  font-size: var(--fs-200);
+  line-height: var(--lh-normal);
+}
+
+.problemaAcoes {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--sp-2);
+}
+
+.problemaAcoes :global(.btn) {
+  min-height: 32px;
+  padding-inline: var(--sp-3);
+  font-size: var(--fs-100);
+}
+
+/* --- próxima ação ------------------------------------------------------- */
+
+.proximaAcao {
+  display: grid;
+  gap: var(--sp-4);
+  border-color: var(--accent-soft-strong);
+}
+
+.proximaTopo {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: var(--sp-3);
+}
+
+.proximaTopo p {
+  margin-top: 2px;
+  color: var(--text-soft);
+  font-size: var(--fs-200);
+}
+
+.revisarCom {
+  display: grid;
+  gap: var(--sp-2);
+  padding: var(--sp-3);
+  border-radius: var(--r-md);
+  background: var(--surface-2);
+}
+
+.revisarCom ul {
+  display: grid;
+  gap: var(--sp-1);
+  list-style: none;
+}
+
+.revisarCom li {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: var(--sp-3);
+  font-size: var(--fs-200);
+}
+
+.revisarCom li span {
+  flex: 0 0 auto;
+  color: var(--text-muted);
+  font-size: var(--fs-100);
+}
+
+.notaAcao {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--sp-2);
+  color: var(--text-soft);
+  font-size: var(--fs-100);
+  line-height: var(--lh-normal);
+}
+
+.notaAcao > svg {
+  flex: 0 0 auto;
+  margin-top: 2px;
+}
+
+/* --- conformidade (rodapé) ---------------------------------------------- */
+
+.conformidade {
+  display: grid;
+  gap: var(--sp-3);
+}
+
+.conformidade .contagens {
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 130px), 1fr));
+}
+
+@media (max-width: 1023px) {
+  .faixaResumo {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+
+/* --- gerar monitoria a partir da análise --------------------------------- */
+
+.gerarFicha {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 260px), 1fr));
+  gap: var(--sp-4);
+  align-items: start;
+  padding: var(--sp-4);
+  border: 1px solid var(--accent-soft-strong);
+  border-radius: var(--r-md);
+  background: var(--accent-soft);
+}
+
+.esqueletoAcoes {
+  display: block;
+  height: 96px;
+  border-radius: var(--r-md);
+}
+
+/* ==========================================================================
+   Critérios: conformes compactos, falhas ricas.
+   A regra é uma só — quanto mais grave o item, maior o peso visual.
+   ========================================================================== */
+
+/* --- atalho de seções ---------------------------------------------------- */
+
+.atalhoSecoes {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--sp-2);
+  padding-bottom: var(--sp-3);
+  border-bottom: 1px solid var(--line);
+}
+
+.atalhoSecao {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--sp-2);
+  padding: var(--sp-1) var(--sp-3);
+  border: 1px solid var(--border-control);
+  border-radius: var(--r-pill, 999px);
+  color: var(--text-soft);
+  font-size: var(--fs-100);
+  font-weight: var(--fw-semibold);
+  text-decoration: none;
+  white-space: nowrap;
+}
+
+.atalhoSecao:hover {
+  border-color: var(--accent-strong);
+  color: var(--accent-deep);
+}
+
+.atalhoSecao[data-estado="falha"] {
+  border-color: var(--danger);
+  color: var(--danger-text);
+}
+
+.atalhoSecao[data-estado="ok"] > svg {
+  color: var(--success);
+}
+
+.atalhoSecao strong {
+  display: grid;
+  place-items: center;
+  min-width: 18px;
+  height: 18px;
+  border-radius: 999px;
+  background: var(--danger);
+  color: #fff;
+  font-size: 11px;
+}
+
+.atalhoSecao span {
+  color: var(--text-muted);
+  font-variant-numeric: tabular-nums;
+}
+
+/* --- cabeçalho de seção (acordeão) --------------------------------------- */
+
+.secaoCabecalho {
+  display: flex;
+  align-items: center;
+  gap: var(--sp-3);
+  padding: var(--sp-3) var(--sp-1);
+  cursor: pointer;
+  list-style: none;
+}
+
+.secaoCabecalho::-webkit-details-marker {
+  display: none;
+}
+
+.secaoMarca {
+  display: grid;
+  place-items: center;
+  flex: 0 0 auto;
+  width: 28px;
+  height: 28px;
+  border-radius: var(--r-sm);
+  background: var(--success-soft);
+  color: var(--success-text);
+}
+
+.secao:has([data-eliminatoria]) .secaoMarca,
+.secaoCabecalho:has(+ ul [data-status="nao_conforme"]) .secaoMarca {
+  background: var(--danger-soft);
+  color: var(--danger-text);
+}
+
+.secaoIdent {
+  display: grid;
+  flex: 1 1 auto;
+  min-width: 0;
+  gap: 2px;
+}
+
+.secaoIdent strong {
+  font-size: var(--fs-400);
+}
+
+.secaoIdent > span {
+  color: var(--text-soft);
+  font-size: var(--fs-100);
+}
+
+.secaoPontos {
+  flex: 0 0 auto;
+  color: var(--text-soft);
+  font-size: var(--fs-200);
+  font-weight: var(--fw-semibold);
+  font-variant-numeric: tabular-nums;
+}
+
+.secaoPontos[data-perdeu="true"] {
+  color: var(--danger-text);
+}
+
+/* --- conforme e não aplicável: linha, não cartão ------------------------- */
+
+.criterioOk {
+  display: flex;
+  align-items: center;
+  gap: var(--sp-3);
+  padding: var(--sp-2) var(--sp-3);
+  border-radius: var(--r-sm);
+  font-size: var(--fs-200);
+}
+
+.criterioOk:hover {
+  background: var(--surface-2);
+}
+
+.criterioOk > svg {
+  flex: 0 0 auto;
+  color: var(--success);
+}
+
+.criterioOk[data-status="nao_aplicavel"] > svg {
+  color: var(--warning);
+}
+
+.criterioOkNome {
+  flex: 1 1 auto;
+  min-width: 0;
+  color: var(--text);
+  overflow-wrap: anywhere;
+}
+
+.criterioOkPontos {
+  flex: 0 0 auto;
+  color: var(--text-muted);
+  font-size: var(--fs-100);
+  font-variant-numeric: tabular-nums;
+}
+
+/* --- não conformidade: o cartão rico ------------------------------------ */
+
+.falha {
+  border: 1px solid var(--danger);
+  border-left-width: 4px;
+  border-radius: var(--r-md);
+  background: var(--surface);
+}
+
+/* Eliminatório impossível de passar batido: fundo tingido e borda mais grossa.
+   É a diferença entre "perdeu 8 pontos" e "zerou a monitoria". */
+.falha[data-eliminatoria="true"] {
+  border-left-width: 6px;
+  background: var(--danger-soft);
+}
+
+.falha > summary {
+  display: flex;
+  align-items: center;
+  gap: var(--sp-3);
+  padding: var(--sp-3) var(--sp-4);
+  cursor: pointer;
+  list-style: none;
+}
+
+.falha > summary::-webkit-details-marker {
+  display: none;
+}
+
+.falhaMarca {
+  display: grid;
+  place-items: center;
+  flex: 0 0 auto;
+  width: 30px;
+  height: 30px;
+  border-radius: var(--r-sm);
+  background: var(--danger);
+  color: #fff;
+}
+
+.falhaIdent {
+  display: grid;
+  flex: 1 1 auto;
+  min-width: 0;
+  gap: 2px;
+}
+
+.falhaIdent strong {
+  font-size: var(--fs-400);
+  overflow-wrap: anywhere;
+}
+
+.falhaIdent > span {
+  color: var(--danger-text);
+  font-size: var(--fs-100);
+  font-weight: var(--fw-semibold);
+  letter-spacing: var(--tracking-label);
+  text-transform: uppercase;
+}
+
+.falhaPontos {
+  flex: 0 0 auto;
+  color: var(--danger-text);
+  font-size: var(--fs-200);
+  font-weight: var(--fw-bold);
+  font-variant-numeric: tabular-nums;
+}
+
+.falhaCorpo {
+  display: grid;
+  gap: var(--sp-3);
+  padding: 0 var(--sp-4) var(--sp-4);
+}
+
+.falhaAcoes {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--sp-2);
+}
+
+.falhaAcoes :global(.btn) {
+  min-height: 36px;
+}
+
+.falhaImpacto {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--sp-2);
+  padding: var(--sp-3);
+  border-radius: var(--r-md);
+  background: var(--surface-2);
+  color: var(--text-soft);
+  font-size: var(--fs-100);
+  line-height: var(--lh-normal);
+}
+
+.falhaImpacto > svg {
+  flex: 0 0 auto;
+  margin-top: 2px;
+}
+
+.momentoSelo {
+  padding: 1px var(--sp-2);
+  border-radius: var(--r-sm);
+  background: var(--danger);
+  color: #fff;
+  font-size: var(--fs-100);
+  font-variant-numeric: tabular-nums;
+}
+
+/* --- player que acompanha a leitura ------------------------------------- */
+
+/* Sticky no CARTÃO do áudio, que é filho direto da coluna única — não é item de
+   grade com irmãos ao lado, então não há o risco de pintar por cima deles. */
+.cartaoAudio {
+  position: sticky;
+  top: var(--sticky-top);
+  z-index: var(--z-sticky);
+}
+
+@media print {
+  .cartaoAudio {
+    position: static;
+  }
+}
+
+/* Resultado da seção: o selo "zera a nota" vem ANTES dos pontos.
+   Eliminatório não desconta peso, então uma seção com falha eliminatória pode
+   exibir pontuação cheia — sem o selo, "10/10 pts" ao lado de "2 não conformes"
+   lê como se nada tivesse sido perdido. */
+.secaoResultado {
+  display: inline-flex;
+  flex: 0 0 auto;
+  align-items: center;
+  gap: var(--sp-2);
+}
+
+.atalhoSecao span[data-zera="true"] {
+  padding: 1px var(--sp-2);
+  border-radius: var(--r-sm);
+  background: var(--danger);
+  color: #fff;
+  font-weight: var(--fw-bold);
 }

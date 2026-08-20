@@ -22,6 +22,14 @@ export async function POST(request) {
       throw badRequest("Selecione o formulario correto antes de enviar para a IA.");
     }
 
+    /* Quem foi avaliado é obrigatório aqui. Esta rota cria FICHA, e ficha
+       atribui nota a uma pessoa — sem o campo, o registro ia para o primeiro
+       operador da tabela e contaminava a média dele. */
+    const avaliadoId = String(form.get("avaliadoId") || "").trim();
+    if (!/^\d{1,20}$/.test(avaliadoId) || avaliadoId === "0") {
+      throw badRequest("Informe quem foi avaliado antes de enviar para a IA.");
+    }
+
     validateUploadFiles([arquivo]);
 
     const formulario = await getFormularioParaAvaliacaoIa({ formularioId });
@@ -49,6 +57,7 @@ export async function POST(request) {
       resultado,
       arquivo: arquivoSalvo,
       avaliadorId: session.user.id,
+      avaliadoId,
     });
 
     return ok({

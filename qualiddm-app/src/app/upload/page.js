@@ -4,6 +4,7 @@ import { useEffect, useId, useMemo, useRef, useState } from "react";
 import Link from "next/link";
 import AppShell from "@/components/AppShell";
 import { Icon } from "@/components/icons";
+import { cabeNaAnaliseIa, formatarMegabytes, MAX_BYTES_ANALISE_IA } from "@/lib/limites-arquivo";
 import styles from "./page.module.css";
 
 // `video/mpeg` e `video/mp4` entram na lista porque e o rotulo que o Windows da
@@ -85,12 +86,13 @@ export default function UploadPage() {
   const inputRef = useRef(null);
   const inputId = useId();
   const [files, setFiles] = useState([]);
-  const [opcoes, setOpcoes] = useState({ clientes: [], campanhas: [] });
+  const [opcoes, setOpcoes] = useState({ clientes: [], campanhas: [], avaliados: [] });
   const [clienteId, setClienteId] = useState("");
   const [campanhaId, setCampanhaId] = useState("");
   const [formularios, setFormularios] = useState([]);
   const [formularioId, setFormularioId] = useState("");
   const [canal, setCanal] = useState("");
+  const [avaliadoId, setAvaliadoId] = useState("");
   const [dragging, setDragging] = useState(false);
   // idle | sending | done | error
   const [status, setStatus] = useState("idle");
@@ -259,6 +261,7 @@ export default function UploadPage() {
       if (formularioId) {
         body.append("arquivo", files[0]);
         body.append("formularioId", formularioId);
+        body.append("avaliadoId", avaliadoId);
         body.append("clienteId", clienteId);
         if (clienteSelecionado?.nome) body.append("clienteNome", clienteSelecionado.nome);
         if (campanhaId) body.append("campanhaId", campanhaId);
@@ -275,6 +278,7 @@ export default function UploadPage() {
         if (campanhaSelecionada?.nome) body.append("campanhaNome", campanhaSelecionada.nome);
         body.append("transcrever", "true");
         if (canal) body.append("canal", canal);
+        if (avaliadoId) body.append("avaliadoId", avaliadoId);
 
         const resposta = await fetch("/api/transcricoes", { method: "POST", body });
         const gravacoes = await readApiResponse(resposta);
@@ -301,6 +305,20 @@ export default function UploadPage() {
   }
 
   const sending = status === "sending";
+
+  /* Arquivos que passam do teto da análise. O upload aceita até 50 MB
+     (UPLOAD_MAX_FILE_BYTES), mas a IA recebe o conteúdo embutido na requisição e
+     recusa acima de 15 MB. Sem este aviso o arquivo era aceito, guardado, e a
+     análise falhava depois — e `.mpeg` chega nesse tamanho com facilidade, porque
+     é bem mais pesado que MP3 no mesmo tempo de áudio. */
+  const grandesDemais = files.filter((file) => !cabeNaAnaliseIa(file.size));
+
+  /* Com ficha, o envio cria MONITORIA — e monitoria atribui nota a uma pessoa.
+     Sem o avaliado a ficha ia para o primeiro operador da tabela e contaminava a
+     média dele, então aqui o campo é obrigatório. Sem ficha é análise livre, que
+     não é atribuída: informar ajuda (a conversão em ficha depois não precisa
+     perguntar), mas não é exigido. */
+  const exigeAvaliado = Boolean(formularioId) && !avaliadoId;
 
   /* Envio COM formulário já volta com o href da ficha (/avaliacoes/[codigo]);
      sem formulário, o destino é calculado a partir das gravações. Os dois casos
@@ -430,6 +448,42 @@ export default function UploadPage() {
               </span>
             </fieldset>
 
+            {/* Quem foi avaliado.
+                Obrigatório quando há ficha, porque ficha atribui nota a uma
+                pessoa. Sem ficha é análise livre, que não é atribuída — mas
+                informar aqui evita a pergunta depois, na hora de converter a
+                análise em monitoria. */}
+            <div className="field">
+              <label htmlFor="avaliado-upload">
+                Quem foi avaliado
+                {formularioId ? <span aria-hidden="true"> *</span> : " (opcional)"}
+              </label>
+              <select
+                className="select"
+                id="avaliado-upload"
+                value={avaliadoId}
+                aria-describedby="dica-avaliado"
+                onChange={(evento) => {
+                  setAvaliadoId(evento.target.value);
+                  setStatus("idle");
+                  setError("");
+                  setResult(null);
+                }}
+              >
+                <option value="">Não informado</option>
+                {(opcoes.avaliados ?? []).map((pessoa) => (
+                  <option key={pessoa.id} value={pessoa.id}>
+                    {pessoa.nome}
+                  </option>
+                ))}
+              </select>
+              <span className="field-hint" id="dica-avaliado">
+                {formularioId
+                  ? "Com ficha, o envio cria monitoria — e a nota entra na média de quem for escolhido aqui."
+                  : "A análise livre não é atribuída a ninguém. Informar agora poupa a pergunta se você converter esta análise em monitoria depois."}
+              </span>
+            </div>
+
             {/* A ficha só aparece quando existe alguma cadastrada para o recorte
                 escolhido. Antes o campo ficava sempre visível com uma única opção
                 ("sem ficha"), que não é escolha nenhuma. */}
@@ -511,7 +565,13 @@ export default function UploadPage() {
                 <button
                   className="btn"
                   type="submit"
-                  disabled={sending || files.length === 0 || !clienteId}
+                  disabled={
+                    sending ||
+                    files.length === 0 ||
+                    !clienteId ||
+                    grandesDemais.length > 0 ||
+                    exigeAvaliado
+                  }
                 >
                   <Icon name={sending ? "spinner" : "sparkles"} size={17} className={sending ? "spinning" : undefined} />
                   {sending ? "Enviando..." : formularioId ? "Enviar para a IA" : "Analisar com IA"}
@@ -522,6 +582,26 @@ export default function UploadPage() {
 
           {/* Região viva: resultado e erro são anunciados sem mover o foco. */}
           <div aria-live="polite" style={{ display: "grid", gap: "var(--sp-3)" }}>
+            {grandesDemais.length > 0 ? (
+              <p className="alert warning">
+                <Icon name="alert" size={18} />
+                <span className="alert-body">
+                  <strong>
+                    {grandesDemais.length === 1
+                      ? "Um arquivo passa do limite da análise"
+                      : `${grandesDemais.length} arquivos passam do limite da análise`}
+                  </strong>
+                  <span>
+                    A IA recebe o arquivo dentro da própria requisição e recusa acima de{" "}
+                    {formatarMegabytes(MAX_BYTES_ANALISE_IA)}. Remova{" "}
+                    {grandesDemais.map((file) => file.name).join(", ")} ou envie um recorte menor da
+                    gravação — cortar o trecho avaliado costuma resolver, porque a monitoria olha um
+                    atendimento, não o turno inteiro.
+                  </span>
+                </span>
+              </p>
+            ) : null}
+
             {status === "error" ? (
               <p className="alert danger">
                 <Icon name="error" size={18} />
@@ -576,7 +656,15 @@ export default function UploadPage() {
                     </span>
                     <span className="row-main" style={{ flex: "1 1 auto" }}>
                       <span className="row-title">{file.name}</span>
-                      <span className="row-meta">{formatSize(file.size)}</span>
+                      <span className="row-meta">
+                        {formatSize(file.size)}
+                        {cabeNaAnaliseIa(file.size) ? null : (
+                          <strong className={styles.arquivoGrande}>
+                            {" "}
+                            · acima de {formatarMegabytes(MAX_BYTES_ANALISE_IA)}, a IA não analisa
+                          </strong>
+                        )}
+                      </span>
                     </span>
                     <button
                       className="btn ghost icon-only"
