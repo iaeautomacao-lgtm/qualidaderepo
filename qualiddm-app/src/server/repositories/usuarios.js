@@ -164,6 +164,10 @@ export async function listarUsuarios({ filtros = {} } = {}) {
     temDataInicio,
     temHierarquiaVigencia,
     temHierarquiaMotivo,
+    temClienteImportado,
+    temCampanhasImportadas,
+    temSuperiorImportado,
+    temTurnoImportado,
     temUserCampanhas,
   ] = await Promise.all([
     temColuna("users", "cargo_id"),
@@ -178,6 +182,10 @@ export async function listarUsuarios({ filtros = {} } = {}) {
     temColuna("users", "data_inicio_produto"),
     temColuna("users", "hierarquia_vigencia"),
     temColuna("users", "hierarquia_motivo"),
+    temColuna("users", "cliente_nome_importado"),
+    temColuna("users", "campanhas_importadas"),
+    temColuna("users", "superior_nome_importado"),
+    temColuna("users", "turno_nome_importado"),
     temTabela("user_campanhas"),
   ]);
 
@@ -222,11 +230,15 @@ export async function listarUsuarios({ filtros = {} } = {}) {
           ${temDataInicio ? "u.data_inicio_produto" : "NULL AS data_inicio_produto"},
           ${temHierarquiaVigencia ? "u.hierarquia_vigencia" : "NULL AS hierarquia_vigencia"},
           ${temHierarquiaMotivo ? "u.hierarquia_motivo" : "NULL AS hierarquia_motivo"},
+          ${temClienteImportado ? "u.cliente_nome_importado" : "NULL AS cliente_nome_importado"},
+          ${temCampanhasImportadas ? "u.campanhas_importadas" : "NULL AS campanhas_importadas"},
+          ${temSuperiorImportado ? "u.superior_nome_importado" : "NULL AS superior_nome_importado"},
+          ${temTurnoImportado ? "u.turno_nome_importado" : "NULL AS turno_nome_importado"},
           ${temCargo ? "u.cargo_id, cg.nome AS cargo, cg.role_base" : "NULL AS cargo_id, NULL AS cargo, NULL AS role_base"},
           ${temCliente ? "u.cliente_id, cl.nome AS cliente" : "NULL AS cliente_id, NULL AS cliente"},
           ${temTurno ? "u.turno_id, tu.nome AS turno_codigo, tu.nome AS turno" : "NULL AS turno_id, NULL AS turno_codigo, NULL AS turno"},
           ${temSupervisor ? "u.supervisor_id, sup.name AS supervisor, sup.email AS supervisor_email" : "NULL AS supervisor_id, NULL AS supervisor, NULL AS supervisor_email"},
-          ${temUserCampanhas ? "(SELECT COUNT(*) FROM user_campanhas uc WHERE uc.user_id = u.id AND uc.ativo = 1) AS total_campanhas, (SELECT GROUP_CONCAT(uc.campanha_id ORDER BY uc.campanha_id) FROM user_campanhas uc WHERE uc.user_id = u.id AND uc.ativo = 1) AS campanha_ids, (SELECT GROUP_CONCAT(ca.nome ORDER BY ca.nome SEPARATOR '||') FROM user_campanhas uc JOIN campanhas ca ON ca.id = uc.campanha_id WHERE uc.user_id = u.id AND uc.ativo = 1) AS campanha_nomes" : "0 AS total_campanhas, NULL AS campanha_ids, NULL AS campanha_nomes"}
+          ${temUserCampanhas ? "(SELECT COUNT(*) FROM user_campanhas uc WHERE uc.user_id = u.id AND uc.ativo = 1) AS total_campanhas, (SELECT GROUP_CONCAT(uc.campanha_id ORDER BY uc.campanha_id) FROM user_campanhas uc WHERE uc.user_id = u.id AND uc.ativo = 1) AS campanha_ids, (SELECT GROUP_CONCAT(ca.nome ORDER BY ca.nome SEPARATOR '||') FROM user_campanhas uc JOIN campanhas ca ON ca.id = uc.campanha_id WHERE uc.user_id = u.id AND uc.ativo = 1) AS campanha_nomes, (SELECT GROUP_CONCAT(DISTINCT cluc.nome ORDER BY cluc.nome SEPARATOR '||') FROM user_campanhas uc JOIN campanhas ca ON ca.id = uc.campanha_id LEFT JOIN clientes cluc ON cluc.id = ca.cliente_id WHERE uc.user_id = u.id AND uc.ativo = 1 AND cluc.nome IS NOT NULL) AS cliente_nomes" : "0 AS total_campanhas, NULL AS campanha_ids, NULL AS campanha_nomes, NULL AS cliente_nomes"}
          FROM users u
          ${temCargo ? "LEFT JOIN cargos cg ON cg.id = u.cargo_id" : ""}
          ${temCliente ? "LEFT JOIN clientes cl ON cl.id = u.cliente_id" : ""}
@@ -239,35 +251,50 @@ export async function listarUsuarios({ filtros = {} } = {}) {
     );
 
     const excedeu = rows.length > 2000;
-    const itens = (excedeu ? rows.slice(0, 2000) : rows).map((row) => ({
-      id: String(row.id),
-      nome: row.name,
-      email: row.email,
-      papel: row.role,
-      papelLabel: LABEL_PAPEL[row.role] || row.role,
-      cargoId: row.cargo_id == null ? null : String(row.cargo_id),
-      cargo: row.cargo || null,
-      clienteId: row.cliente_id == null ? null : String(row.cliente_id),
-      cliente: row.cliente || null,
-      turnoId: row.turno_id == null ? null : String(row.turno_id),
-      turno: row.turno || row.turno_codigo || null,
-      supervisorId: row.supervisor_id == null ? null : String(row.supervisor_id),
-      supervisor: row.supervisor || null,
-      supervisorEmail: row.supervisor_email || null,
-      login: row.login || null,
-      cpf: row.cpf || null,
-      matricula: row.matricula || row.external_code || null,
-      dataInicioProduto: row.data_inicio_produto || null,
-      hierarquiaVigencia: row.hierarquia_vigencia || null,
-      hierarquiaMotivo: row.hierarquia_motivo || null,
-      totalCampanhas: inteiro(row.total_campanhas, 0),
-      campanhaIds: row.campanha_ids ? String(row.campanha_ids).split(",") : [],
-      campanhas: row.campanha_nomes ? String(row.campanha_nomes).split("||") : [],
-      ativo: inteiro(row.active, 1) === 1,
-      criadoEm: formatarDataHora(row.created_at),
-      ultimoAcesso: formatarDataHora(row.ultimo_acesso_em),
-      nuncaAcessou: temAcesso ? row.ultimo_acesso_em == null : null,
-    }));
+    const itens = (excedeu ? rows.slice(0, 2000) : rows).map((row) => {
+      const campanhasImportadas = row.campanhas_importadas
+        ? String(row.campanhas_importadas).split(",").map((item) => item.trim()).filter(Boolean)
+        : [];
+      const campanhas = row.campanha_nomes ? String(row.campanha_nomes).split("||") : campanhasImportadas;
+      const clientes = row.cliente_nomes
+        ? String(row.cliente_nomes).split("||")
+        : row.cliente
+          ? [row.cliente]
+          : row.cliente_nome_importado
+            ? String(row.cliente_nome_importado).split(",").map((item) => item.trim()).filter(Boolean)
+            : [];
+
+      return {
+        id: String(row.id),
+        nome: row.name,
+        email: row.email,
+        papel: row.role,
+        papelLabel: LABEL_PAPEL[row.role] || row.role,
+        cargoId: row.cargo_id == null ? null : String(row.cargo_id),
+        cargo: row.cargo || null,
+        clienteId: row.cliente_id == null ? null : String(row.cliente_id),
+        cliente: row.cliente || textoOuNull(row.cliente_nome_importado),
+        clientes,
+        turnoId: row.turno_id == null ? null : String(row.turno_id),
+        turno: row.turno || row.turno_codigo || textoOuNull(row.turno_nome_importado),
+        supervisorId: row.supervisor_id == null ? null : String(row.supervisor_id),
+        supervisor: row.supervisor || textoOuNull(row.superior_nome_importado),
+        supervisorEmail: row.supervisor_email || null,
+        login: row.login || null,
+        cpf: row.cpf || null,
+        matricula: row.matricula || row.external_code || null,
+        dataInicioProduto: row.data_inicio_produto || null,
+        hierarquiaVigencia: row.hierarquia_vigencia || null,
+        hierarquiaMotivo: row.hierarquia_motivo || null,
+        totalCampanhas: Math.max(inteiro(row.total_campanhas, 0), campanhas.length),
+        campanhaIds: row.campanha_ids ? String(row.campanha_ids).split(",") : [],
+        campanhas,
+        ativo: inteiro(row.active, 1) === 1,
+        criadoEm: formatarDataHora(row.created_at),
+        ultimoAcesso: formatarDataHora(row.ultimo_acesso_em),
+        nuncaAcessou: temAcesso ? row.ultimo_acesso_em == null : null,
+      };
+    });
 
     return {
       itens,

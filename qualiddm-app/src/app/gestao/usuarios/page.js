@@ -40,6 +40,14 @@ function iniciais(nome) {
     .join("");
 }
 
+function normalizarFiltro(valor) {
+  return String(valor || "")
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .toLowerCase()
+    .trim();
+}
+
 function baixarCsv(itens) {
   const colunas = [
     "Nome",
@@ -107,7 +115,11 @@ export default function GestaoUsuariosPage() {
   const primeiraCarga = carregando && !dados;
   const filtrados = useMemo(() => {
     if (!cargoNome) return itens;
-    return itens.filter((item) => item.cargo === cargoNome || item.papelLabel === cargoNome);
+    const alvo = normalizarFiltro(cargoNome);
+    return itens.filter((item) => {
+      const valores = [item.cargo, item.papelLabel, item.papel].map(normalizarFiltro);
+      return valores.includes(alvo);
+    });
   }, [cargoNome, itens]);
 
   async function salvarUsuario(form) {
@@ -403,7 +415,7 @@ function UsuarioCard({ item, ocupado, onEditar, onCampanhas, onHistorico, onRese
         </div>
         <div>
           <dt>Carteira</dt>
-          <dd>{item.cliente ?? SEM_VALOR}</dd>
+          <dd>{(item.clientes?.length ? item.clientes.join(", ") : item.cliente) ?? SEM_VALOR}</dd>
         </div>
       </dl>
       <div className={styles.campanhas}>
