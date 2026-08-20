@@ -98,6 +98,7 @@ export const OPERACAO = [
     icone: "clock",
     tom: "yellow",
     novo: true,
+    href: "/gestao/turnos",
   },
   {
     id: "workflow",
@@ -131,6 +132,7 @@ export const USUARIOS = [
     disponivel: "será aqui que você convida usuários, ativa e desativa acessos e redefine senhas.",
     icone: "users",
     tom: "blue",
+    href: "/gestao/usuarios",
   },
   {
     id: "sessoes-presenca",

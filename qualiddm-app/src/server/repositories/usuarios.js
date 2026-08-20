@@ -4,14 +4,13 @@ import { badRequest, conflict, notFound } from "../errors";
 import { formatarDataHora, inteiro } from "../format";
 import { hashPassword } from "../security/passwords";
 
-/**
- * Gestão de usuários: lista, cargos, matriz de permissões e senha.
- *
- * Separado de `administracao.js`, que responde pelas MÉTRICAS do painel (sessões,
- * auditoria, workflow). Aqui é o cadastro das pessoas.
- */
-
-export const PAPEIS = ["administrador", "supervisor", "monitor", "operador", "viewer"];
+export const PAPEIS = [
+  "administrador",
+  "supervisor",
+  "monitor",
+  "operador",
+  "viewer",
+];
 
 const LABEL_PAPEL = {
   administrador: "Administrador",
@@ -23,7 +22,6 @@ const LABEL_PAPEL = {
 
 const cacheColunas = new Map();
 
-/** Coluna presente? Memoizado. Tabela e coluna são literais deste módulo. */
 async function temColuna(tabela, coluna) {
   const chave = `${tabela}.${coluna}`;
   if (!cacheColunas.has(chave)) {
@@ -37,34 +35,162 @@ async function temColuna(tabela, coluna) {
   return cacheColunas.get(chave);
 }
 
+async function temTabela(tabela) {
+  const chave = `table.${tabela}`;
+  if (!cacheColunas.has(chave)) {
+    cacheColunas.set(
+      chave,
+      query("SHOW TABLES LIKE :tabela", { tabela })
+        .then((rows) => rows.length > 0)
+        .catch(() => false),
+    );
+  }
+  return cacheColunas.get(chave);
+}
+
 const VAZIO = {
   itens: [],
   contadores: { total: 0, ativos: 0, inativos: 0, semAcesso: 0 },
-  opcoes: { cargos: [], papeis: [], clientes: [] },
+  opcoes: { cargos: [], papeis: [], clientes: [], campanhas: [], turnos: [], supervisores: [] },
   cadastroCompleto: false,
 };
 
-/**
- * Lista os usuários com o recorte da tela.
- *
- * Sem paginação de propósito: a operação tem dezenas de pessoas, não milhares, e
- * a tela oferece "Cards" e "Exportar", que precisam do conjunto inteiro. O teto
- * de 2000 existe como freio, não como janela — se um dia estourar, a tela avisa
- * em vez de mostrar metade calada.
- */
+function textoOuNull(valor) {
+  if (valor == null) return null;
+  const texto = String(valor).trim();
+  return texto === "" ? null : texto;
+}
+
+function dataOuNull(valor) {
+  const texto = textoOuNull(valor);
+  return texto && /^\d{4}-\d{2}-\d{2}$/.test(texto) ? texto : null;
+}
+
+function emailDoUsuario({ email, login, nome }) {
+  const informado = textoOuNull(email);
+  if (informado) return informado.toLowerCase();
+  const base =
+    textoOuNull(login) ||
+    String(nome || "usuario")
+      .normalize("NFD")
+      .replace(/[\u0300-\u036f]/g, "")
+      .toLowerCase()
+      .replace(/[^a-z0-9]+/g, ".")
+      .replace(/(^\.|\.$)/g, "");
+  return `${base || "usuario"}.${Date.now()}@qualiddm.local`;
+}
+
+async function carregarOpcoes({ temCargo, temCliente, temTurno, temUserCampanhas } = {}) {
+  const [cargos, clientes, turnos, supervisores, campanhas] = await Promise.all([
+    temCargo
+      ? query(
+          `SELECT id, nome, slug, role_base, nivel, sistema
+             FROM cargos
+            WHERE ativo = 1
+            ORDER BY nivel DESC, nome`,
+        ).catch(() => [])
+      : Promise.resolve([]),
+    temCliente
+      ? query("SELECT id, nome FROM clientes WHERE ativo = 1 ORDER BY nome").catch(() => [])
+      : Promise.resolve([]),
+    temTurno
+      ? query(
+          `SELECT id, nome, hora_inicio, hora_fim, ativo
+             FROM turnos
+            ORDER BY ativo DESC, nome`,
+        ).catch(() => [])
+      : Promise.resolve([]),
+    query(
+      `SELECT id, name, email
+         FROM users
+        WHERE active = 1 AND role IN ('supervisor', 'administrador', 'monitor')
+        ORDER BY name`,
+    ).catch(() => []),
+    temUserCampanhas
+      ? query(
+          `SELECT ca.id, ca.nome, ca.canal, ca.cliente_id, cl.nome AS cliente
+             FROM campanhas ca
+             LEFT JOIN clientes cl ON cl.id = ca.cliente_id
+            WHERE ca.ativa = 1
+            ORDER BY cl.nome, ca.nome`,
+        ).catch(() => [])
+      : Promise.resolve([]),
+  ]);
+
+  return {
+    cargos: cargos.map((cargo) => ({
+      id: String(cargo.id),
+      nome: cargo.nome,
+      slug: cargo.slug,
+      roleBase: cargo.role_base,
+      sistema: inteiro(cargo.sistema) === 1,
+    })),
+    papeis: PAPEIS.map((id) => ({ id, nome: LABEL_PAPEL[id] })),
+    clientes: clientes.map((cliente) => ({ id: String(cliente.id), nome: cliente.nome })),
+    turnos: turnos.map((turno) => ({
+      id: String(turno.id),
+      codigo: turno.nome,
+      descricao: turno.nome,
+      horaInicio: turno.hora_inicio,
+      horaFim: turno.hora_fim,
+      ativo: inteiro(turno.ativo, 1) === 1,
+    })),
+    supervisores: supervisores.map((supervisor) => ({
+      id: String(supervisor.id),
+      nome: supervisor.name,
+      email: supervisor.email,
+    })),
+    campanhas: campanhas.map((campanha) => ({
+      id: String(campanha.id),
+      nome: campanha.nome,
+      canal: campanha.canal,
+      clienteId: campanha.cliente_id == null ? null : String(campanha.cliente_id),
+      cliente: campanha.cliente || "Sem cliente",
+    })),
+  };
+}
+
 export async function listarUsuarios({ filtros = {} } = {}) {
-  const [temCargo, temCliente, temAcesso] = await Promise.all([
+  const [
+    temCargo,
+    temCliente,
+    temAcesso,
+    temTurno,
+    temSupervisor,
+    temExternal,
+    temMatricula,
+    temLogin,
+    temCpf,
+    temDataInicio,
+    temHierarquiaVigencia,
+    temHierarquiaMotivo,
+    temUserCampanhas,
+  ] = await Promise.all([
     temColuna("users", "cargo_id"),
     temColuna("users", "cliente_id"),
     temColuna("users", "ultimo_acesso_em"),
+    temColuna("users", "turno_id"),
+    temColuna("users", "supervisor_id"),
+    temColuna("users", "external_code"),
+    temColuna("users", "matricula"),
+    temColuna("users", "login"),
+    temColuna("users", "cpf"),
+    temColuna("users", "data_inicio_produto"),
+    temColuna("users", "hierarquia_vigencia"),
+    temColuna("users", "hierarquia_motivo"),
+    temTabela("user_campanhas"),
   ]);
 
   const condicoes = [];
   const params = { limite: 2001 };
 
   if (filtros.busca) {
-    // Nome e e-mail: são os dois campos que a pessoa que busca conhece de cor.
-    condicoes.push("(u.name LIKE :busca OR u.email LIKE :busca)");
+    condicoes.push(`(
+      u.name LIKE :busca OR u.email LIKE :busca
+      ${temLogin ? "OR u.login LIKE :busca" : ""}
+      ${temExternal ? "OR u.external_code LIKE :busca" : ""}
+      ${temMatricula ? "OR u.matricula LIKE :busca" : ""}
+    )`);
     params.busca = paraLike(filtros.busca);
   }
   if (filtros.papel) {
@@ -89,11 +215,23 @@ export async function listarUsuarios({ filtros = {} } = {}) {
       `SELECT
           u.id, u.name, u.email, u.role, u.active, u.created_at,
           ${temAcesso ? "u.ultimo_acesso_em" : "NULL AS ultimo_acesso_em"},
+          ${temExternal ? "u.external_code" : "NULL AS external_code"},
+          ${temMatricula ? "u.matricula" : "NULL AS matricula"},
+          ${temLogin ? "u.login" : "NULL AS login"},
+          ${temCpf ? "u.cpf" : "NULL AS cpf"},
+          ${temDataInicio ? "u.data_inicio_produto" : "NULL AS data_inicio_produto"},
+          ${temHierarquiaVigencia ? "u.hierarquia_vigencia" : "NULL AS hierarquia_vigencia"},
+          ${temHierarquiaMotivo ? "u.hierarquia_motivo" : "NULL AS hierarquia_motivo"},
           ${temCargo ? "u.cargo_id, cg.nome AS cargo, cg.role_base" : "NULL AS cargo_id, NULL AS cargo, NULL AS role_base"},
-          ${temCliente ? "u.cliente_id, cl.nome AS cliente" : "NULL AS cliente_id, NULL AS cliente"}
+          ${temCliente ? "u.cliente_id, cl.nome AS cliente" : "NULL AS cliente_id, NULL AS cliente"},
+          ${temTurno ? "u.turno_id, tu.nome AS turno_codigo, tu.nome AS turno" : "NULL AS turno_id, NULL AS turno_codigo, NULL AS turno"},
+          ${temSupervisor ? "u.supervisor_id, sup.name AS supervisor, sup.email AS supervisor_email" : "NULL AS supervisor_id, NULL AS supervisor, NULL AS supervisor_email"},
+          ${temUserCampanhas ? "(SELECT COUNT(*) FROM user_campanhas uc WHERE uc.user_id = u.id AND uc.ativo = 1) AS total_campanhas, (SELECT GROUP_CONCAT(uc.campanha_id ORDER BY uc.campanha_id) FROM user_campanhas uc WHERE uc.user_id = u.id AND uc.ativo = 1) AS campanha_ids, (SELECT GROUP_CONCAT(ca.nome ORDER BY ca.nome SEPARATOR '||') FROM user_campanhas uc JOIN campanhas ca ON ca.id = uc.campanha_id WHERE uc.user_id = u.id AND uc.ativo = 1) AS campanha_nomes" : "0 AS total_campanhas, NULL AS campanha_ids, NULL AS campanha_nomes"}
          FROM users u
          ${temCargo ? "LEFT JOIN cargos cg ON cg.id = u.cargo_id" : ""}
          ${temCliente ? "LEFT JOIN clientes cl ON cl.id = u.cliente_id" : ""}
+         ${temTurno ? "LEFT JOIN turnos tu ON tu.id = u.turno_id" : ""}
+         ${temSupervisor ? "LEFT JOIN users sup ON sup.id = u.supervisor_id" : ""}
          ${where}
         ORDER BY u.active DESC, u.name
         LIMIT :limite`,
@@ -107,34 +245,29 @@ export async function listarUsuarios({ filtros = {} } = {}) {
       email: row.email,
       papel: row.role,
       papelLabel: LABEL_PAPEL[row.role] || row.role,
-      // Cargo é o nome que a operação usa ("Monitor Feedback", "Jovem
-      // Aprendiz"); `role` é o papel de acesso. São coisas diferentes e a tela
-      // mostra as duas.
       cargoId: row.cargo_id == null ? null : String(row.cargo_id),
       cargo: row.cargo || null,
       clienteId: row.cliente_id == null ? null : String(row.cliente_id),
       cliente: row.cliente || null,
+      turnoId: row.turno_id == null ? null : String(row.turno_id),
+      turno: row.turno || row.turno_codigo || null,
+      supervisorId: row.supervisor_id == null ? null : String(row.supervisor_id),
+      supervisor: row.supervisor || null,
+      supervisorEmail: row.supervisor_email || null,
+      login: row.login || null,
+      cpf: row.cpf || null,
+      matricula: row.matricula || row.external_code || null,
+      dataInicioProduto: row.data_inicio_produto || null,
+      hierarquiaVigencia: row.hierarquia_vigencia || null,
+      hierarquiaMotivo: row.hierarquia_motivo || null,
+      totalCampanhas: inteiro(row.total_campanhas, 0),
+      campanhaIds: row.campanha_ids ? String(row.campanha_ids).split(",") : [],
+      campanhas: row.campanha_nomes ? String(row.campanha_nomes).split("||") : [],
       ativo: inteiro(row.active, 1) === 1,
       criadoEm: formatarDataHora(row.created_at),
       ultimoAcesso: formatarDataHora(row.ultimo_acesso_em),
-      // Quem nunca acessou é o caso que a supervisão procura depois de importar
-      // uma planilha: cadastro criado e pessoa que não entrou.
       nuncaAcessou: temAcesso ? row.ultimo_acesso_em == null : null,
     }));
-
-    const [cargos, clientes] = await Promise.all([
-      temCargo
-        ? query(
-            `SELECT id, nome, slug, role_base, nivel, sistema
-               FROM cargos
-              WHERE ativo = 1
-              ORDER BY nivel DESC, nome`,
-          ).catch(() => [])
-        : Promise.resolve([]),
-      temCliente
-        ? query("SELECT id, nome FROM clientes WHERE ativo = 1 ORDER BY nome").catch(() => [])
-        : Promise.resolve([]),
-    ]);
 
     return {
       itens,
@@ -144,33 +277,18 @@ export async function listarUsuarios({ filtros = {} } = {}) {
         inativos: itens.filter((item) => !item.ativo).length,
         semAcesso: itens.filter((item) => item.nuncaAcessou === true).length,
       },
-      opcoes: {
-        cargos: cargos.map((cargo) => ({
-          id: String(cargo.id),
-          nome: cargo.nome,
-          slug: cargo.slug,
-          roleBase: cargo.role_base,
-          sistema: inteiro(cargo.sistema) === 1,
-        })),
-        papeis: PAPEIS.map((id) => ({ id, nome: LABEL_PAPEL[id] })),
-        clientes: clientes.map((cliente) => ({ id: String(cliente.id), nome: cliente.nome })),
-      },
+      opcoes: await carregarOpcoes({ temCargo, temCliente, temTurno, temUserCampanhas }),
       cadastroCompleto: temCargo && temCliente && temAcesso,
       excedeuTeto: excedeu,
     };
   } catch (error) {
-    if (isMissingSchemaError(error)) return VAZIO;
+    if (!isMissingSchemaError(error)) {
+      console.warn(`[usuarios] listarUsuarios: ${error?.code || "erro"} ${error?.message || error}`);
+    }
     return VAZIO;
   }
 }
 
-/**
- * Matriz de permissões: cargos nas colunas, permissões nas linhas.
- *
- * Leitura, não edição. Editar permissão é mudar quem pode o quê no sistema
- * inteiro, e isso não se faz num clique de célula sem confirmação nem trilha —
- * a tela mostra o que está configurado e diz onde se altera.
- */
 export async function matrizPermissoes() {
   try {
     const [cargos, permissoes, vinculos] = await Promise.all([
@@ -188,12 +306,7 @@ export async function matrizPermissoes() {
       query("SELECT cargo_id, permissao_id FROM cargo_permissoes"),
     ]);
 
-    const concedidas = new Set(
-      vinculos.map((vinculo) => `${vinculo.cargo_id}:${vinculo.permissao_id}`),
-    );
-
-    // Agrupado por módulo: a matriz crua tem dezenas de linhas e ninguém lê
-    // "monitoria.avaliacao.criar" seguido de "usuario.cargo.editar" sem separação.
+    const concedidas = new Set(vinculos.map((vinculo) => `${vinculo.cargo_id}:${vinculo.permissao_id}`));
     const modulos = new Map();
     for (const permissao of permissoes) {
       if (!modulos.has(permissao.modulo)) modulos.set(permissao.modulo, []);
@@ -208,90 +321,110 @@ export async function matrizPermissoes() {
     }
 
     return {
-      cargos: cargos.map((cargo) => ({
-        id: String(cargo.id),
-        nome: cargo.nome,
-        roleBase: cargo.role_base,
-      })),
+      cargos: cargos.map((cargo) => ({ id: String(cargo.id), nome: cargo.nome, roleBase: cargo.role_base })),
       modulos: [...modulos.entries()].map(([modulo, itens]) => ({ modulo, itens })),
       total: permissoes.length,
       suportada: true,
     };
   } catch (error) {
-    if (isMissingSchemaError(error)) {
-      return { cargos: [], modulos: [], total: 0, suportada: false };
-    }
+    if (isMissingSchemaError(error)) return { cargos: [], modulos: [], total: 0, suportada: false };
     return { cargos: [], modulos: [], total: 0, suportada: false };
   }
 }
 
-/** Senha provisória legível: o supervisor dita por telefone quando precisa. */
 function senhaProvisoria() {
-  // Sem I, O, 0 e 1: a senha é ditada por telefone, e esses quatro se confundem.
   const alfabeto = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
-  // `randomBytes` e não Math.random: senha provisória é credencial, e gerador
-  // previsível transforma "resetar senha" em porta aberta. Mesmo módulo que
-  // security/passwords.js usa.
   const bytes = randomBytes(8);
   let senha = "";
   for (const byte of bytes) senha += alfabeto[byte % alfabeto.length];
   return `Ddm-${senha.slice(0, 4)}-${senha.slice(4, 8)}`;
 }
 
-export async function criarUsuario({ nome, email, papel, cargoId = null, clienteId = null }) {
-  const existente = await one("SELECT id FROM users WHERE email = :email LIMIT 1", { email });
-  if (existente) throw conflict(`Já existe usuário com o e-mail ${email}.`);
-
-  const [temCargo, temCliente, temTrocar] = await Promise.all([
-    temColuna("users", "cargo_id"),
-    temColuna("users", "cliente_id"),
-    temColuna("users", "trocar_senha"),
-  ]);
+export async function criarUsuario({
+  nome,
+  email,
+  papel,
+  cargoId = null,
+  clienteId = null,
+  turnoId = null,
+  supervisorId = null,
+  login = null,
+  cpf = null,
+  matricula = null,
+  dataInicioProduto = null,
+  hierarquiaVigencia = null,
+  hierarquiaMotivo = null,
+}) {
+  const emailFinal = emailDoUsuario({ email, login, nome });
+  const existente = await one("SELECT id FROM users WHERE email = :email LIMIT 1", { email: emailFinal });
+  if (existente) throw conflict(`Ja existe usuario com o e-mail ${emailFinal}.`);
 
   const senha = senhaProvisoria();
   const colunas = ["name", "email", "password_hash", "role", "active"];
   const valores = [":nome", ":email", ":hash", ":papel", "1"];
-  const params = { nome, email, hash: hashPassword(senha), papel };
+  const params = { nome, email: emailFinal, hash: hashPassword(senha), papel };
 
-  if (temCargo && cargoId) {
-    colunas.push("cargo_id");
-    valores.push(":cargoId");
-    params.cargoId = cargoId;
+  const opcionais = [
+    ["cargo_id", cargoId],
+    ["cliente_id", clienteId],
+    ["turno_id", turnoId],
+    ["supervisor_id", supervisorId],
+    ["login", login],
+    ["cpf", cpf],
+    ["matricula", matricula],
+    ["data_inicio_produto", dataOuNull(dataInicioProduto)],
+    ["hierarquia_vigencia", dataOuNull(hierarquiaVigencia)],
+    ["hierarquia_motivo", hierarquiaMotivo],
+  ];
+
+  for (const [coluna, valor] of opcionais) {
+    if (valor !== undefined && (await temColuna("users", coluna))) {
+      const parametro = coluna.replace(/_([a-z])/g, (_, letra) => letra.toUpperCase());
+      colunas.push(coluna);
+      valores.push(`:${parametro}`);
+      params[parametro] = textoOuNull(valor);
+    }
   }
-  if (temCliente && clienteId) {
-    colunas.push("cliente_id");
-    valores.push(":clienteId");
-    params.clienteId = clienteId;
-  }
-  // Nasce obrigado a trocar: senha que o administrador conhece não pode seguir
-  // valendo depois do primeiro acesso.
-  if (temTrocar) {
+
+  if (await temColuna("users", "trocar_senha")) {
     colunas.push("trocar_senha");
     valores.push("1");
   }
 
-  await query(
-    `INSERT INTO users (${colunas.join(", ")}) VALUES (${valores.join(", ")})`,
-    params,
-  );
-
-  return { email, senhaProvisoria: senha };
+  await query(`INSERT INTO users (${colunas.join(", ")}) VALUES (${valores.join(", ")})`, params);
+  return { email: emailFinal, senhaProvisoria: senha };
 }
 
-/**
- * Ativa, desativa ou muda cargo/papel de um usuário.
- *
- * Nunca apaga: pessoa é autora de avaliação, feedback e contestação, e apagar a
- * linha levaria a autoria de tudo isso. Desativar é a exclusão de gente aqui.
- */
-export async function atualizarUsuario(usuarioId, { ativo, papel, cargoId, clienteId }) {
-  const usuario = await one("SELECT id, active, role FROM users WHERE id = :id LIMIT 1", {
-    id: usuarioId,
-  });
-  if (!usuario) throw notFound("Usuário não encontrado.");
+export async function atualizarUsuario(
+  usuarioId,
+  {
+    ativo,
+    papel,
+    cargoId,
+    clienteId,
+    turnoId,
+    supervisorId,
+    nome,
+    email,
+    login,
+    cpf,
+    matricula,
+    dataInicioProduto,
+    hierarquiaVigencia,
+    hierarquiaMotivo,
+  },
+) {
+  const usuario = await one("SELECT id, active, role FROM users WHERE id = :id LIMIT 1", { id: usuarioId });
+  if (!usuario) throw notFound("Usuario nao encontrado.");
 
   const campos = [];
   const params = { id: usuarioId };
+
+  const setar = async (coluna, parametro, valor, transform = textoOuNull) => {
+    if (valor === undefined || !(await temColuna("users", coluna))) return;
+    campos.push(`${coluna} = :${parametro}`);
+    params[parametro] = transform(valor);
+  };
 
   if (ativo !== undefined) {
     campos.push("active = :ativo");
@@ -301,14 +434,25 @@ export async function atualizarUsuario(usuarioId, { ativo, papel, cargoId, clien
     campos.push("role = :papel");
     params.papel = papel;
   }
-  if (cargoId !== undefined && (await temColuna("users", "cargo_id"))) {
-    campos.push("cargo_id = :cargoId");
-    params.cargoId = cargoId || null;
+  if (nome !== undefined) {
+    campos.push("name = :nome");
+    params.nome = textoOuNull(nome);
   }
-  if (clienteId !== undefined && (await temColuna("users", "cliente_id"))) {
-    campos.push("cliente_id = :clienteId");
-    params.clienteId = clienteId || null;
+  if (email !== undefined) {
+    campos.push("email = :email");
+    params.email = emailDoUsuario({ email, login, nome: nome || "usuario" });
   }
+
+  await setar("cargo_id", "cargoId", cargoId);
+  await setar("cliente_id", "clienteId", clienteId);
+  await setar("turno_id", "turnoId", turnoId);
+  await setar("supervisor_id", "supervisorId", supervisorId);
+  await setar("login", "login", login);
+  await setar("cpf", "cpf", cpf);
+  await setar("matricula", "matricula", matricula);
+  await setar("data_inicio_produto", "dataInicioProduto", dataInicioProduto, dataOuNull);
+  await setar("hierarquia_vigencia", "hierarquiaVigencia", hierarquiaVigencia, dataOuNull);
+  await setar("hierarquia_motivo", "hierarquiaMotivo", hierarquiaMotivo);
 
   if (campos.length === 0) throw badRequest("Envie ao menos um campo para alterar.");
 
@@ -316,18 +460,31 @@ export async function atualizarUsuario(usuarioId, { ativo, papel, cargoId, clien
   return { id: String(usuarioId) };
 }
 
-/**
- * Reseta a senha de um usuário e devolve a provisória UMA vez.
- *
- * A senha volta na resposta porque o supervisor precisa entregá-la à pessoa —
- * e só aqui: ela não é gravada em claro em lugar nenhum, nem no log de
- * auditoria, que registra apenas que o reset aconteceu.
- */
+export async function salvarCampanhasUsuario(usuarioId, campanhaIds = []) {
+  if (!(await temTabela("user_campanhas"))) {
+    throw badRequest("Tabela user_campanhas ainda nao existe. Aplique a migration 011.");
+  }
+
+  const usuario = await one("SELECT id FROM users WHERE id = :id LIMIT 1", { id: usuarioId });
+  if (!usuario) throw notFound("Usuario nao encontrado.");
+
+  const ids = [...new Set((Array.isArray(campanhaIds) ? campanhaIds : []).map(String).filter((id) => /^\d{1,20}$/.test(id)))];
+
+  await query("DELETE FROM user_campanhas WHERE user_id = :usuarioId", { usuarioId });
+  for (const campanhaId of ids) {
+    await query(
+      `INSERT INTO user_campanhas (user_id, campanha_id, ativo)
+       VALUES (:usuarioId, :campanhaId, 1)`,
+      { usuarioId, campanhaId },
+    );
+  }
+
+  return { id: String(usuarioId), campanhaIds: ids };
+}
+
 export async function resetarSenha(usuarioId) {
-  const usuario = await one("SELECT id, name, email FROM users WHERE id = :id LIMIT 1", {
-    id: usuarioId,
-  });
-  if (!usuario) throw notFound("Usuário não encontrado.");
+  const usuario = await one("SELECT id, name, email FROM users WHERE id = :id LIMIT 1", { id: usuarioId });
+  if (!usuario) throw notFound("Usuario nao encontrado.");
 
   const senha = senhaProvisoria();
   const [temTrocar, temAlterada] = await Promise.all([

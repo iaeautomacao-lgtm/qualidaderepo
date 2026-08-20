@@ -102,6 +102,9 @@ function somar(acumulado, { score, naoConformes, critica }) {
  * varredura de JSON por três.
  */
 async function carregarMonitorias({ periodoDias = 31 } = {}) {
+  const temCanal = await temColunaGestao("gravacoes", "canal");
+  const selectCanal = temCanal ? "g.canal AS canal_declarado" : "NULL AS canal_declarado";
+
   const fichas = await seguro("fichas", [], () =>
     query(
       `SELECT a.cliente_id, a.campanha_id, a.avaliado_id, a.score,
@@ -126,9 +129,6 @@ async function carregarMonitorias({ periodoDias = 31 } = {}) {
 
   // Canal declarado no upload (migration 010). Quando existe, ele MANDA — ver a
   // ordem de precedência em `canalDe`.
-  const temCanal = await temColunaGestao("gravacoes", "canal");
-  const selectCanal = temCanal ? "g.canal AS canal_declarado" : "NULL AS canal_declarado";
-
   const analises = await seguro("analisesIa", [], () =>
     query(
       `SELECT g.cliente_id, g.campanha_id, g.avaliado_id, g.mime_type,
@@ -564,11 +564,28 @@ const PAPEIS_AVALIADOS = ["operador", "monitor", "supervisor"];
 export async function listarAvaliados({ periodoDias = 31 } = {}) {
   const monitorias = await carregarMonitorias({ periodoDias });
   const porAvaliado = agrupar(monitorias, "avaliadoId");
+  const [temTurno, temSupervisor, temExternal, temMatricula, temUserCampanhas, temCliente] = await Promise.all([
+    temColunaGestao("users", "turno_id"),
+    temColunaGestao("users", "supervisor_id"),
+    temColunaGestao("users", "external_code"),
+    temColunaGestao("users", "matricula"),
+    query("SHOW TABLES LIKE 'user_campanhas'").then((rows) => rows.length > 0).catch(() => false),
+    temColunaGestao("users", "cliente_id"),
+  ]);
 
   const pessoas = await seguro("avaliados", [], () =>
     query(
-      `SELECT u.id, u.name, u.email, u.role, u.active, u.created_at
+      `SELECT u.id, u.name, u.email, u.role, u.active, u.created_at,
+              ${temExternal ? "u.external_code" : "NULL AS external_code"},
+              ${temMatricula ? "u.matricula" : "NULL AS matricula"},
+              ${temCliente ? "cl.nome AS cliente" : "NULL AS cliente"},
+              ${temTurno ? "tu.nome AS turno" : "NULL AS turno"},
+              ${temSupervisor ? "sup.name AS supervisor" : "NULL AS supervisor"},
+              ${temUserCampanhas ? "(SELECT COUNT(*) FROM user_campanhas uc WHERE uc.user_id = u.id AND uc.ativo = 1) AS total_campanhas" : "0 AS total_campanhas"}
          FROM users u
+         ${temCliente ? "LEFT JOIN clientes cl ON cl.id = u.cliente_id" : ""}
+         ${temTurno ? "LEFT JOIN turnos tu ON tu.id = u.turno_id" : ""}
+         ${temSupervisor ? "LEFT JOIN users sup ON sup.id = u.supervisor_id" : ""}
         WHERE u.role IN ('operador', 'monitor', 'supervisor')
         ORDER BY u.name`,
     ),
@@ -581,6 +598,11 @@ export async function listarAvaliados({ periodoDias = 31 } = {}) {
       nome: pessoa.name,
       email: pessoa.email,
       papel: pessoa.role,
+      matricula: pessoa.matricula || pessoa.external_code || null,
+      cliente: pessoa.cliente || null,
+      turno: pessoa.turno || null,
+      supervisor: pessoa.supervisor || null,
+      totalCampanhas: numero(pessoa.total_campanhas),
       ativo: numero(pessoa.active, 1) === 1,
       criadoEm: formatarDataHora(pessoa.created_at),
       ...dados,

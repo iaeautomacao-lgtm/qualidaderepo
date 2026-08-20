@@ -49,6 +49,36 @@ export async function PATCH(request, { params }) {
     if (corpo.clienteId !== undefined) {
       alteracoes.clienteId = corpo.clienteId ? String(corpo.clienteId) : null;
     }
+    if (corpo.turnoId !== undefined) {
+      alteracoes.turnoId = corpo.turnoId ? String(corpo.turnoId) : null;
+    }
+    if (corpo.supervisorId !== undefined) {
+      alteracoes.supervisorId = corpo.supervisorId ? String(corpo.supervisorId) : null;
+    }
+    if (corpo.nome !== undefined) {
+      alteracoes.nome = readString(corpo, "nome", { min: 2, max: 140 });
+    }
+    if (corpo.email !== undefined) {
+      alteracoes.email = readString(corpo, "email", { required: false, min: 5, max: 180 })?.toLowerCase();
+    }
+    if (corpo.login !== undefined) {
+      alteracoes.login = corpo.login ? String(corpo.login) : null;
+    }
+    if (corpo.cpf !== undefined) {
+      alteracoes.cpf = corpo.cpf ? String(corpo.cpf) : null;
+    }
+    if (corpo.matricula !== undefined) {
+      alteracoes.matricula = corpo.matricula ? String(corpo.matricula) : null;
+    }
+    if (corpo.dataInicioProduto !== undefined) {
+      alteracoes.dataInicioProduto = corpo.dataInicioProduto ? String(corpo.dataInicioProduto) : null;
+    }
+    if (corpo.hierarquiaVigencia !== undefined) {
+      alteracoes.hierarquiaVigencia = corpo.hierarquiaVigencia ? String(corpo.hierarquiaVigencia) : null;
+    }
+    if (corpo.hierarquiaMotivo !== undefined) {
+      alteracoes.hierarquiaMotivo = corpo.hierarquiaMotivo ? String(corpo.hierarquiaMotivo) : null;
+    }
 
     if (Object.keys(alteracoes).length === 0) {
       throw badRequest("Envie ao menos um campo para alterar.");

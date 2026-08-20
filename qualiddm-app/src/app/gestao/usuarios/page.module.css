@@ -1,33 +1,29 @@
-/* ==========================================================================
-   Gestão de Usuários — lista, cards e matriz de permissões.
-   ========================================================================== */
+.headerTitle {
+  display: flex;
+  align-items: center;
+  gap: var(--sp-3);
+  min-width: 0;
+}
 
 .filtros {
   display: grid;
   gap: var(--sp-4);
 }
 
-.linhaBusca {
-  display: grid;
-  grid-template-columns: minmax(0, 1fr) auto;
-  gap: var(--sp-4);
-  align-items: end;
-}
-
-.campoBusca {
-  min-width: 0;
-}
-
-.grupoVisao,
-.grupoChips {
-  display: grid;
+.chips {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
   gap: var(--sp-2);
-  min-width: 0;
-  border: 0;
 }
 
-.grupoVisao legend,
-.grupoChips legend {
+.chips :global(.btn) {
+  min-height: 34px;
+  padding-inline: var(--sp-3);
+  font-size: var(--fs-200);
+}
+
+.rotuloFiltro {
   color: var(--text-muted);
   font-size: var(--fs-100);
   font-weight: var(--fw-semibold);
@@ -35,65 +31,9 @@
   text-transform: uppercase;
 }
 
-.chips {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(min(100%, 280px), 1fr));
-  gap: var(--sp-4);
-  align-items: start;
-}
-
-.linhaChips {
-  display: flex;
-  flex-wrap: wrap;
-  gap: var(--sp-2);
-}
-
-/* Chip de filtro menor que botão de ação: o peso visual diz o que é recorte e o
-   que é comando. */
-.linhaChips :global(.btn) {
-  min-height: 34px;
-  padding-inline: var(--sp-3);
-  font-size: var(--fs-200);
-}
-
-.resumoFiltro,
-.notaMatriz,
-.pendencias {
-  display: flex;
-  align-items: flex-start;
-  gap: var(--sp-2);
+.resumo {
   color: var(--text-soft);
   font-size: var(--fs-100);
-  line-height: var(--lh-normal);
-}
-
-.resumoFiltro {
-  padding-top: var(--sp-3);
-  border-top: 1px solid var(--line);
-}
-
-.notaMatriz {
-  margin-bottom: var(--sp-4);
-}
-
-.resumoFiltro > svg,
-.notaMatriz > svg,
-.pendencias > svg {
-  flex: 0 0 auto;
-  margin-top: 2px;
-}
-
-/* --- formulário de criação ---------------------------------------------- */
-
-.formulario {
-  border-color: var(--accent-soft-strong);
-}
-
-.formGrade {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(min(100%, 240px), 1fr));
-  gap: var(--sp-4);
-  align-items: start;
 }
 
 .senha {
@@ -102,130 +42,88 @@
   border-radius: var(--r-sm);
   background: var(--surface);
   font-family: var(--font-mono, ui-monospace, monospace);
-  font-size: var(--fs-300);
   font-weight: var(--fw-bold);
-  letter-spacing: 0.04em;
 }
-
-/* --- tabela ------------------------------------------------------------- */
-
-.tabela {
-  min-width: 920px;
-}
-
-.tabela td,
-.tabela th[scope="row"] {
-  vertical-align: middle;
-}
-
-/* Linha de usuário inativo fica recuada, não invisível: ela continua sendo
-   consultada para reativar alguém. */
-.tabela tbody tr[data-inativo="true"] th,
-.tabela tbody tr[data-inativo="true"] td {
-  opacity: 0.72;
-}
-
-.celulaEmpilhada {
-  display: grid;
-  gap: 2px;
-}
-
-.celulaSecundaria {
-  color: var(--text-soft);
-  font-size: var(--fs-100);
-  font-weight: var(--fw-regular);
-  overflow-wrap: anywhere;
-}
-
-.acoesLinha {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  gap: var(--sp-2);
-}
-
-.acoesLinha :global(.btn) {
-  min-height: 34px;
-  padding-inline: var(--sp-3);
-  font-size: var(--fs-200);
-  white-space: nowrap;
-}
-
-.confirmar {
-  display: inline-flex;
-  flex-wrap: wrap;
-  align-items: center;
-  gap: var(--sp-2);
-  font-size: var(--fs-200);
-  font-weight: var(--fw-semibold);
-}
-
-/* --- cards -------------------------------------------------------------- */
 
 .cards {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(min(100%, 300px), 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 360px), 1fr));
   gap: var(--sp-4);
   list-style: none;
 }
 
-.cartao {
+.cardUsuario {
   display: grid;
-  align-content: start;
   gap: var(--sp-3);
-  padding: var(--sp-4);
+  overflow: hidden;
   border: 1px solid var(--line);
+  border-top: 4px solid color-mix(in srgb, var(--accent) 70%, white);
   border-radius: var(--r-md);
   background: var(--surface);
+  box-shadow: var(--shadow-sm);
 }
 
-.cartao[data-inativo="true"] {
-  background: var(--surface-2);
+.cardUsuario[data-inativo="true"] {
+  opacity: 0.75;
 }
 
-.cartaoTopo {
+.cardTopo {
   display: flex;
-  align-items: center;
   gap: var(--sp-3);
+  padding: var(--sp-4) var(--sp-4) 0;
 }
 
-.cartaoIdent {
-  display: grid;
+.cardTopo > div {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
   min-width: 0;
-  gap: 2px;
+  gap: var(--sp-2);
 }
 
-.cartaoIdent strong {
+.cardTopo strong {
+  flex-basis: 100%;
   font-size: var(--fs-300);
   overflow-wrap: anywhere;
 }
 
-.cartaoIdent span {
+.avatar {
+  display: grid;
+  flex: 0 0 52px;
+  width: 52px;
+  height: 52px;
+  place-items: center;
+  border-radius: var(--r-md);
+  background: color-mix(in srgb, var(--accent) 78%, white);
+  color: white;
+  font-weight: var(--fw-bold);
+  box-shadow: var(--shadow-sm);
+}
+
+.matricula {
   color: var(--text-soft);
   font-size: var(--fs-100);
-  overflow-wrap: anywhere;
 }
 
-.cartaoChips {
-  display: flex;
-  flex-wrap: wrap;
-  gap: var(--sp-2);
-}
-
-.cartaoMeta {
+.identidade {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: var(--sp-2);
+  gap: var(--sp-3);
+  margin-inline: var(--sp-4);
   padding: var(--sp-3);
+  border: 1px solid var(--line);
   border-radius: var(--r-sm);
   background: var(--surface-2);
 }
 
-.cartao[data-inativo="true"] .cartaoMeta {
-  background: var(--surface-3);
+.identidade span,
+.metaGrid dd {
+  overflow-wrap: anywhere;
 }
 
-.cartaoMeta dt {
+.identidade small,
+.metaGrid dt {
+  display: block;
   color: var(--text-muted);
   font-size: var(--fs-100);
   font-weight: var(--fw-semibold);
@@ -233,76 +131,219 @@
   text-transform: uppercase;
 }
 
-.cartaoMeta dd {
-  font-size: var(--fs-200);
+.metaGrid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: var(--sp-3);
+  margin-inline: var(--sp-4);
+}
+
+.metaGrid dd {
   font-weight: var(--fw-semibold);
-  overflow-wrap: anywhere;
 }
 
-/* --- matriz ------------------------------------------------------------- */
-
-.matriz {
-  min-width: 900px;
+.campanhas {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--sp-2);
+  margin-inline: var(--sp-4);
 }
 
-.matriz th[scope="row"] {
+.acoesCard {
+  display: grid;
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+  gap: var(--sp-2);
+  padding: var(--sp-3);
+  border-top: 1px solid var(--line);
+  background: var(--surface-2);
+}
+
+.acoesCard :global(.btn),
+.acoesTabela :global(.btn) {
+  min-height: 34px;
+  padding-inline: var(--sp-2);
+  font-size: var(--fs-100);
+}
+
+.acoesTabela {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--sp-2);
+}
+
+.tabela {
+  min-width: 1040px;
+}
+
+.tabela td {
   vertical-align: middle;
 }
 
-/* Faixa de módulo separa os blocos da matriz; sem ela são 40 linhas seguidas. */
-.linhaModulo th {
-  background: var(--surface-3);
+.tabela td strong,
+.tabela td small {
+  display: block;
+}
+
+.tabela td small {
   color: var(--text-soft);
   font-size: var(--fs-100);
+}
+
+.backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 90;
+  display: grid;
+  place-items: center;
+  padding: var(--sp-5);
+  background: color-mix(in srgb, var(--text) 45%, transparent);
+}
+
+.modalUsuario {
+  width: min(960px, calc(100vw - 32px));
+  max-height: calc(100vh - 40px);
+  overflow: auto;
+}
+
+.formUsuario {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: var(--sp-4);
+}
+
+.campoLargo {
+  grid-column: 1 / -1;
+}
+
+.modalCampanhas {
+  display: grid;
+  grid-template-rows: auto minmax(0, 1fr) auto;
+  width: min(920px, calc(100vw - 32px));
+  max-height: calc(100vh - 40px);
+  border-radius: var(--r-md);
+  background: linear-gradient(135deg, #5a2f91, #334f96);
+  color: white;
+  box-shadow: var(--shadow-lg);
+}
+
+.campanhasHead,
+.campanhasFooter {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--sp-3);
+  padding: var(--sp-4);
+}
+
+.campanhasHead h2 {
+  color: white;
+}
+
+.campanhasHead p {
+  color: rgb(255 255 255 / 0.72);
+}
+
+.campanhasLista {
+  display: grid;
+  gap: var(--sp-3);
+  overflow: auto;
+  padding: 0 var(--sp-4) var(--sp-4);
+}
+
+.campanhaGrupo {
+  display: grid;
+  gap: var(--sp-3);
+  padding: var(--sp-4);
+  border: 1px solid rgb(255 255 255 / 0.18);
+  border-radius: var(--r-md);
+  background: rgb(255 255 255 / 0.08);
+}
+
+.campanhaGrupo header {
+  display: flex;
+  justify-content: space-between;
+  gap: var(--sp-3);
+}
+
+.campanhaGrupo label,
+.campanhaItens label {
+  display: flex;
+  align-items: center;
+  gap: var(--sp-2);
+}
+
+.campanhaGrupo input {
+  width: 20px;
+  height: 20px;
+  accent-color: #b45cff;
+}
+
+.campanhaItens {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: var(--sp-3);
+}
+
+.campanhaItens span {
+  margin-left: auto;
+  padding: 2px var(--sp-2);
+  border: 1px solid #24f2a6;
+  border-radius: 999px;
+  color: #24f2a6;
+  font-size: var(--fs-100);
   font-weight: var(--fw-bold);
+}
+
+.campanhasFooter {
+  border-top: 1px solid rgb(255 255 255 / 0.18);
+}
+
+.campanhasFooter :global(.btn.primary) {
+  flex: 1;
+  background: #b04cff;
+  border-color: #b04cff;
+}
+
+.historico {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: var(--sp-3);
+}
+
+.historico div {
+  padding: var(--sp-3);
+  border: 1px solid var(--line);
+  border-radius: var(--r-sm);
+}
+
+.historico dt {
+  color: var(--text-muted);
+  font-size: var(--fs-100);
+  font-weight: var(--fw-semibold);
   letter-spacing: var(--tracking-label);
   text-transform: uppercase;
 }
 
-.celulaMatriz {
-  text-align: center;
-  color: var(--success-text);
+.historico dd {
+  font-weight: var(--fw-semibold);
+  overflow-wrap: anywhere;
 }
 
-@media (max-width: 720px) {
-  .linhaBusca {
+@media (max-width: 780px) {
+  .headerTitle {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+
+  .formUsuario,
+  .identidade,
+  .metaGrid,
+  .campanhaItens,
+  .historico {
     grid-template-columns: minmax(0, 1fr);
   }
 
-  .cartaoMeta {
-    grid-template-columns: minmax(0, 1fr);
+  .acoesCard {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
   }
-}
-
-/* `.data-table th` deixa todo cabeçalho em caixa alta, e isso vale para o
-   `th[scope="row"]` da linha também. Aqui a célula é nome de pessoa e e-mail:
-   "ALENILTON.COSTA@GRUPODDM.COM.BR" é mais difícil de ler que a forma original, e
-   nome próprio em caixa alta parece grito. */
-.tabela th[scope="row"] {
-  color: var(--text);
-  font-size: var(--fs-200);
-  font-weight: var(--fw-semibold);
-  letter-spacing: normal;
-  text-transform: none;
-  white-space: normal;
-}
-
-/* As duas ações ficam na mesma linha: empilhadas, cada usuário ocupa o dobro da
-   altura e a varredura da lista fica duas vezes mais longa. */
-.tabela td:last-child {
-  white-space: nowrap;
-}
-
-.tabela .acoesLinha {
-  flex-wrap: nowrap;
-}
-
-/* Mesmo motivo na matriz: o nome da permissão não é sigla. */
-.matriz th[scope="row"] {
-  color: var(--text);
-  font-size: var(--fs-200);
-  font-weight: var(--fw-semibold);
-  letter-spacing: normal;
-  text-transform: none;
-  white-space: normal;
 }

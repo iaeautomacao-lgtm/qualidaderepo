@@ -53,7 +53,7 @@ export async function POST(request) {
 
     const corpo = parseJsonObject(await request.json().catch(() => null));
     const nome = readString(corpo, "nome", { min: 2, max: 140 });
-    const email = readString(corpo, "email", { min: 5, max: 180 }).toLowerCase();
+    const email = readString(corpo, "email", { required: false, min: 5, max: 180 })?.toLowerCase();
     const papel = readString(corpo, "papel", { allowed: PAPEIS });
 
     const resultado = await criarUsuario({
@@ -62,6 +62,14 @@ export async function POST(request) {
       papel,
       cargoId: corpo.cargoId ? String(corpo.cargoId) : null,
       clienteId: corpo.clienteId ? String(corpo.clienteId) : null,
+      turnoId: corpo.turnoId ? String(corpo.turnoId) : null,
+      supervisorId: corpo.supervisorId ? String(corpo.supervisorId) : null,
+      login: corpo.login ? String(corpo.login) : null,
+      cpf: corpo.cpf ? String(corpo.cpf) : null,
+      matricula: corpo.matricula ? String(corpo.matricula) : null,
+      dataInicioProduto: corpo.dataInicioProduto ? String(corpo.dataInicioProduto) : null,
+      hierarquiaVigencia: corpo.hierarquiaVigencia ? String(corpo.hierarquiaVigencia) : null,
+      hierarquiaMotivo: corpo.hierarquiaMotivo ? String(corpo.hierarquiaMotivo) : null,
     });
 
     await registrarAuditoria({
