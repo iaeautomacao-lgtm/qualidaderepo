@@ -5,6 +5,7 @@ import { useEffect, useMemo, useState } from "react";
 import AppShell from "@/components/AppShell";
 import GraficoLinha from "@/components/GraficoLinha";
 import { Icon } from "@/components/icons";
+import { formatarNumero } from "@/lib/formato";
 import styles from "./page.module.css";
 
 /**
@@ -137,6 +138,10 @@ export default function DashboardPage() {
   const prioridades = data?.priorities ?? [];
   const ofensores = data?.offenders ?? [];
   const carteiras = data?.clients ?? [];
+  const topOperacoes = data?.topOperacoes ?? [];
+  const topAvaliadores = data?.topAvaliadores ?? [];
+  const performancePorMes = data?.performancePorMes ?? [];
+  const campanhas = data?.distribuicaoPorCampanha ?? { itens: [], totalPeriodo: 0, campanhas: 0 };
   const distribuicao = data?.quadrants ?? [];
   const foco = data?.foco ?? null;
 
@@ -604,6 +609,203 @@ export default function DashboardPage() {
               </span>
               <h3>Sem carteiras no período</h3>
               <p>Os uploads analisados alimentam este ranking.</p>
+            </div>
+          )}
+        </section>
+      </div>
+
+      {/* --- Top Operações e Top Avaliadores ---------------------------- */}
+      <div className={styles.duasColunas}>
+        <section className="card pad" aria-labelledby="titulo-top-operacoes">
+          <div className="section-head">
+            <div>
+              <h2 id="titulo-top-operacoes">Top Operações</h2>
+              <p>Ranking por volume no período, com a nota média de cada uma.</p>
+            </div>
+          </div>
+
+          {topOperacoes.length > 0 ? (
+            <ol className={styles.ranking}>
+              {topOperacoes.map((item, indice) => (
+                <li className={styles.rankingItem} key={item.name}>
+                  {/* Posição como número, não como medalha: o 4º lugar de uma
+                      lista de seis não é derrota, e ícone de pódio faria
+                      parecer que só os três primeiros contam. */}
+                  <span className={styles.rankingPos} data-topo={indice < 3 ? "true" : undefined}>
+                    {indice + 1}
+                  </span>
+                  <span className="row-main">
+                    <strong className="row-title">{item.name}</strong>
+                    <span className="row-meta">
+                      {formatarNumero(Number(item.reviews || 0))} avaliação(ões)
+                    </span>
+                  </span>
+                  <span className={`score ${classeScore(item.score)}`}>
+                    {formatarScore(item.score)}
+                  </span>
+                </li>
+              ))}
+            </ol>
+          ) : (
+            <div className="empty-state">
+              <span className="icon-badge">
+                <Icon name="wallet" size={20} />
+              </span>
+              <h3>Sem operações no período</h3>
+              <p>O ranking aparece quando houver monitoria registrada.</p>
+            </div>
+          )}
+        </section>
+
+        <section className="card pad" aria-labelledby="titulo-top-avaliadores">
+          <div className="section-head">
+            <div>
+              <h2 id="titulo-top-avaliadores">Top Avaliadores</h2>
+              <p>Quem monitorou no período, por volume e nota média aplicada.</p>
+            </div>
+          </div>
+
+          {topAvaliadores.length > 0 ? (
+            <ol className={styles.ranking}>
+              {topAvaliadores.map((item, indice) => (
+                <li className={styles.rankingItem} key={item.name}>
+                  <span
+                    className={styles.rankingPos}
+                    data-topo={!item.semPessoa && indice < 3 ? "true" : undefined}
+                    data-vazio={item.semPessoa ? "true" : undefined}
+                  >
+                    {item.semPessoa ? <Icon name="info" size={13} /> : indice + 1}
+                  </span>
+                  <span className="row-main">
+                    <strong className="row-title">{item.name}</strong>
+                    <span className="row-meta">
+                      {formatarNumero(Number(item.reviews || 0))} avaliação(ões)
+                      {/* A linha sem pessoa precisa dizer o que é, senão parece
+                          um avaliador chamado "Não identificado". */}
+                      {item.semPessoa ? " · sem avaliador registrado" : ""}
+                    </span>
+                  </span>
+                  <span className={`score ${classeScore(item.score)}`}>
+                    {formatarScore(item.score)}
+                  </span>
+                </li>
+              ))}
+            </ol>
+          ) : (
+            <div className="empty-state">
+              <span className="icon-badge">
+                <Icon name="users" size={20} />
+              </span>
+              <h3>Sem avaliadores no período</h3>
+              <p>A lista aparece quando houver monitoria registrada.</p>
+            </div>
+          )}
+        </section>
+      </div>
+
+      {/* --- Performance por Período e Distribuição por Campanha -------- */}
+      <div className={styles.duasColunas}>
+        <section className="card pad" aria-labelledby="titulo-performance-mes">
+          <div className="section-head">
+            <div>
+              <h2 id="titulo-performance-mes">Performance por Período</h2>
+              {/* A janela é DIFERENTE do filtro do topo, e isso é dito aqui: sem
+                  o aviso, um número que não fecha com os KPIs parece defeito. */}
+              <p>Score médio mês a mês nos últimos 6 meses, independente do filtro de período.</p>
+            </div>
+          </div>
+
+          {performancePorMes.length > 0 ? (
+            <div className="progress-list">
+              {performancePorMes.map((mes) => (
+                <div className="progress-item" key={mes.mes}>
+                  <div className="progress-head">
+                    <span className="progress-name">
+                      {mes.rotulo}
+                      <span className={styles.mesVolume}>
+                        {formatarNumero(mes.reviews)} avaliação(ões)
+                      </span>
+                    </span>
+                    <span className={`progress-value score ${classeScore(mes.score)}`}>
+                      {formatarScore(mes.score)}
+                    </span>
+                  </div>
+                  {/* Trilha em escala 0–100, não relativa ao maior mês: nota é
+                      percentual, e normalizar pelo maior faria 40 parecer cheio
+                      num semestre ruim. */}
+                  <div
+                    className="progress-track"
+                    role="img"
+                    aria-label={`${mes.rotulo}: score ${formatarScore(mes.score)} em ${mes.reviews} avaliação(ões)`}
+                  >
+                    <div
+                      className="progress-bar"
+                      style={{ "--w": `${Math.min(100, Math.max(0, Number(mes.score) || 0))}%` }}
+                    />
+                  </div>
+                </div>
+              ))}
+            </div>
+          ) : (
+            <div className="empty-state">
+              <span className="icon-badge">
+                <Icon name="trendUp" size={20} />
+              </span>
+              <h3>Sem histórico de 6 meses</h3>
+              <p>A curva aparece quando houver monitoria em mais de um mês.</p>
+            </div>
+          )}
+        </section>
+
+        <section className="card pad" aria-labelledby="titulo-distribuicao-campanha">
+          <div className="section-head">
+            <div>
+              <h2 id="titulo-distribuicao-campanha">Distribuição por Campanha</h2>
+              <p>
+                Volume de avaliações no período
+                {campanhas.campanhas > campanhas.itens.length
+                  ? ` · ${campanhas.itens.length} maiores de ${formatarNumero(campanhas.campanhas)} campanhas`
+                  : ""}
+                .
+              </p>
+            </div>
+          </div>
+
+          {campanhas.itens.length > 0 ? (
+            <div className="progress-list">
+              {campanhas.itens.map((item) => (
+                <div className="progress-item" key={`${item.cliente ?? "sem-cliente"}-${item.name}`}>
+                  <div className="progress-head">
+                    <span className="progress-name">
+                      {item.name}
+                      {/* Cliente ao lado do nome porque há campanhas homônimas
+                          em clientes diferentes — sem isso, duas linhas
+                          idênticas parecem erro de duplicação. */}
+                      {item.cliente ? (
+                        <span className={styles.campanhaCliente}>{item.cliente}</span>
+                      ) : null}
+                    </span>
+                    <span className="progress-value">
+                      {formatarNumero(item.reviews)} · {item.percentual}%
+                    </span>
+                  </div>
+                  <div
+                    className="progress-track"
+                    role="img"
+                    aria-label={`${item.name}: ${item.reviews} avaliação(ões), ${item.percentual}% do período`}
+                  >
+                    <div className="progress-bar" style={{ "--w": `${item.percentual}%` }} />
+                  </div>
+                </div>
+              ))}
+            </div>
+          ) : (
+            <div className="empty-state">
+              <span className="icon-badge">
+                <Icon name="target" size={20} />
+              </span>
+              <h3>Sem campanhas no período</h3>
+              <p>A distribuição aparece quando houver avaliação vinculada a campanha.</p>
             </div>
           )}
         </section>

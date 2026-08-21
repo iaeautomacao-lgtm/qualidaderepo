@@ -50,6 +50,10 @@ function emptyDashboard(period) {
     },
     recentReviews: [],
     priorities: [],
+    topOperacoes: [],
+    topAvaliadores: [],
+    performancePorMes: [],
+    distribuicaoPorCampanha: { itens: [], totalPeriodo: 0, campanhas: 0 },
   };
 }
 
@@ -361,6 +365,46 @@ function focoDaGestao(offenders) {
   };
 }
 
+const MESES_CURTOS = [
+  "jan", "fev", "mar", "abr", "mai", "jun",
+  "jul", "ago", "set", "out", "nov", "dez",
+];
+
+/** "2026-08" -> "ago/26". Rótulo curto porque cabe em seis colunas estreitas. */
+function rotuloDeMes(mes) {
+  const partes = String(mes ?? "").split("-");
+  const numeroMes = Number(partes[1]);
+  if (!Number.isFinite(numeroMes) || numeroMes < 1 || numeroMes > 12) return String(mes ?? "");
+  return `${MESES_CURTOS[numeroMes - 1]}/${String(partes[0]).slice(2)}`;
+}
+
+/**
+ * Distribuição por campanha, com percentual sobre o TOTAL do período.
+ *
+ * A lista mostra as oito maiores, mas o percentual é calculado sobre todas as
+ * campanhas do período — não sobre as oito. Assim os números não somam 100%
+ * quando há mais campanhas, e isso é a informação correta: forçar 100% na lista
+ * truncada faria a tela afirmar que aquelas oito são tudo o que existe.
+ * `campanhas` diz quantas existem, para a tela poder dizer "8 de 23".
+ */
+function distribuicaoDeCampanhas(rows) {
+  const total = rows.reduce((soma, row) => soma + numero(row.reviews), 0);
+
+  return {
+    totalPeriodo: total,
+    campanhas: rows.length,
+    itens: rows.slice(0, 8).map((row) => {
+      const reviews = numero(row.reviews);
+      return {
+        name: row.name,
+        cliente: row.cliente || null,
+        reviews,
+        percentual: total > 0 ? Math.round((reviews / total) * 1000) / 10 : 0,
+      };
+    }),
+  };
+}
+
 export async function getDashboardOverview({ period, clienteId, campanhaId, operadorId } = {}) {
   const periodDays = period === "weekly" ? 7 : 31;
   // Dobro da janela numa consulta só: o período anterior sai da mesma leitura,
@@ -387,6 +431,9 @@ export async function getDashboardOverview({ period, clienteId, campanhaId, oper
     recentReviews,
     priorities,
     iaRows,
+    avaliadoresRows,
+    mesesRows,
+    campanhasRows,
   ] = await Promise.all([
     safe("kpis", [], () =>
       query(
@@ -561,6 +608,69 @@ export async function getDashboardOverview({ period, clienteId, campanhaId, oper
         { ...base, ...gravacoes.params },
       ),
     ),
+    /* Top Avaliadores — quem monitorou, quanto e com que nota média.
+       O balde "Não identificado" existe e aparece: as avaliações históricas
+       importadas do QualiTalk vieram sem avaliador resolvível, e esconder isso
+       faria o total do bloco não fechar com o KPI de avaliações. Ele vai para o
+       FIM da lista, e não para o topo por volume, porque não é uma pessoa — um
+       ranking de "melhores avaliadores" liderado por "desconhecido" não informa
+       nada. */
+    safe("topAvaliadores", [], () =>
+      query(
+        `SELECT COALESCE(u.name, 'Não identificado') AS name,
+                (u.id IS NULL) AS sem_pessoa,
+                COUNT(a.id) AS reviews,
+                ROUND(COALESCE(AVG(a.score), 0), 1) AS score
+           FROM avaliacoes a
+           LEFT JOIN users u ON u.id = a.avaliador_id
+          WHERE a.data_avaliacao >= DATE_SUB(CURRENT_DATE, INTERVAL :periodDays DAY)
+            ${avaliacoes.sql}
+          GROUP BY COALESCE(u.id, 0), COALESCE(u.name, 'Não identificado')
+          ORDER BY sem_pessoa ASC, reviews DESC, score DESC
+          LIMIT 6`,
+        { periodDays, ...avaliacoes.params },
+      ),
+    ),
+    /* Performance por Período — score médio mês a mês.
+       Janela própria de 6 meses, independente do filtro de período da tela: o
+       bloco existe para mostrar tendência, e 31 dias não têm tendência. A tela
+       diz "últimos 6 meses" no subtítulo para a diferença não passar por erro.
+       Começa no dia 1º do mês, senão o mês mais antigo entraria pela metade e
+       apareceria com volume artificialmente baixo. */
+    safe("performancePorMes", [], () =>
+      query(
+        `SELECT DATE_FORMAT(a.data_avaliacao, '%Y-%m') AS mes,
+                COUNT(a.id) AS reviews,
+                ROUND(COALESCE(AVG(a.score), 0), 1) AS score
+           FROM avaliacoes a
+          WHERE a.data_avaliacao >= DATE_SUB(DATE_FORMAT(CURRENT_DATE, '%Y-%m-01'), INTERVAL 5 MONTH)
+            ${avaliacoes.sql}
+          GROUP BY mes
+          ORDER BY mes ASC`,
+        { ...avaliacoes.params },
+      ),
+    ),
+    /* Distribuição por Campanha — volume no período.
+       LEFT JOIN e não JOIN: avaliação sem campanha existe e some num INNER,
+       fazendo o bloco somar menos que o KPI de avaliações sem dizer por quê.
+       `cliente` vem junto porque há campanhas homônimas em clientes diferentes
+       ("Telefone Ativo" existe em Cruzeiro do Sul, FIRJAN e Yduqs) — sem o
+       cliente, duas linhas iguais na tela parecem defeito. */
+    safe("distribuicaoPorCampanha", [], () =>
+      query(
+        `SELECT COALESCE(ca.nome, 'Sem campanha') AS name,
+                cl.nome AS cliente,
+                COUNT(a.id) AS reviews
+           FROM avaliacoes a
+           LEFT JOIN campanhas ca ON ca.id = a.campanha_id
+           LEFT JOIN clientes cl ON cl.id = ca.cliente_id
+          WHERE a.data_avaliacao >= DATE_SUB(CURRENT_DATE, INTERVAL :periodDays DAY)
+            ${avaliacoes.sql}
+          GROUP BY COALESCE(ca.id, 0), COALESCE(ca.nome, 'Sem campanha'), cl.nome
+          ORDER BY reviews DESC, name ASC`,
+        { periodDays, ...avaliacoes.params },
+      ),
+    ),
   ]);
 
   const porJanela = (nome) => kpisRows.find((row) => String(row.janela) === nome) || {};
@@ -662,6 +772,28 @@ export async function getDashboardOverview({ period, clienteId, campanhaId, oper
       contestations: numero(contestacoesRows[0]?.total),
       zeroedReviews: atual.criticalReviews,
     },
+    /* Top Operações — mesma base de "Carteiras em foco", outra ordem.
+       Não é consulta nova: `mergedClients` já soma monitoria oficial com
+       análise IA. Reordenar aqui garante que os dois blocos NUNCA discordem
+       sobre o volume da mesma carteira, o que aconteceria com duas queries. */
+    topOperacoes: [...mergedClients]
+      .sort((a, b) => numero(b.reviews) - numero(a.reviews) || numero(b.score) - numero(a.score))
+      .slice(0, 6),
+    topAvaliadores: avaliadoresRows.map((row) => ({
+      name: row.name,
+      reviews: numero(row.reviews),
+      score: numero(row.score),
+      // A tela precisa saber que a linha não é uma pessoa, para não rotulá-la
+      // como avaliador nem sugerir abrir o perfil dela.
+      semPessoa: Boolean(numero(row.sem_pessoa)),
+    })),
+    performancePorMes: mesesRows.map((row) => ({
+      mes: String(row.mes),
+      rotulo: rotuloDeMes(row.mes),
+      reviews: numero(row.reviews),
+      score: numero(row.score),
+    })),
+    distribuicaoPorCampanha: distribuicaoDeCampanhas(campanhasRows),
     recentReviews: [...ia.recentReviews, ...recentReviews]
       .sort((a, b) => String(b.created_at).localeCompare(String(a.created_at)))
       .slice(0, 8),
