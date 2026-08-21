@@ -29,3 +29,27 @@
 
 # --- Imagem solta de referência da marca (mantida fora do histórico por peso).
 /QUALIDDM.png
+
+# --- Prints das alterações pedidas pela operação.
+# Mesmo motivo de /PRINTS/: as imagens trazem nome, e-mail corporativo e
+# matrícula de funcionário.
+/ALTERAÇÕES/
+
+# --- Planilha de usuários. NÃO COMMITAR.
+# usuarios_20260820.xlsx traz nome, e-mail, matrícula e CPF de 219 pessoas.
+# CPF no histórico do Git é vazamento permanente: remover exige reescrever o
+# histórico e invalidar todo clone existente. A planilha circula por canal
+# privado; o que fica versionado é o script que a lê, não o conteúdo dela.
+*.xlsx
+*.xls
+# Arquivo de trava que o Excel cria enquanto a planilha está aberta.
+~$*
+
+# --- Scripts de importação gerados a partir da planilha. NÃO COMMITAR.
+# 07, 08 e 09 embutem 218 CPFs e 218 e-mails em INSERTs literais — é a planilha
+# em outro formato. Entregue por canal privado, junto do acesso ao phpMyAdmin.
+# Os demais (05 diagnóstico, 06 avaliações, 10 senha padrão) não têm dado
+# pessoal e ESTÃO versionados.
+/qualiddm-app/database/cpanel/07-usuarios-complemento-vinculos.sql
+/qualiddm-app/database/cpanel/08-usuarios-vinculos-fallback.sql
+/qualiddm-app/database/cpanel/09-corrige-campos-usuarios.sql

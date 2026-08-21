@@ -130,7 +130,7 @@ export default function GestaoUsuariosPage() {
         ? await enviarApi(`/api/usuarios/${encodeURIComponent(form.id)}`, form, { metodo: "PATCH" })
         : await enviarApi("/api/usuarios", form);
       definir(resposta);
-      if (resposta.senhaProvisoria) setCredencial(resposta);
+      if (resposta.senhaInicial) setCredencial(resposta);
       setModalUsuario(null);
     } catch (causa) {
       setErroAcao(causa.message);
@@ -233,13 +233,18 @@ export default function GestaoUsuariosPage() {
         </div>
       </section>
 
+      {/* A senha inicial é a MESMA para todos, então pode ser dita por telefone
+          — diferente da provisória sorteada de antes, que aparecia uma única vez.
+          O que vale dizer aqui é que ela não dá acesso a nada até ser trocada. */}
       {credencial ? (
         <p className="alert success">
           <Icon name="key" size={16} />
           <span className="alert-body">
-            <strong>Senha provisória</strong>
+            <strong>Senha inicial de {credencial.nome ?? credencial.email}</strong>
             <span>
-              {credencial.email} · <code className={styles.senha}>{credencial.senhaProvisoria}</code>
+              <code className={styles.senha}>{credencial.senhaInicial}</code> — é a senha padrão do
+              sistema. No primeiro acesso o QualiDDM fica bloqueado até a pessoa trocar por uma
+              senha só dela.
             </span>
           </span>
         </p>

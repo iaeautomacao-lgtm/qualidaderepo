@@ -47,6 +47,14 @@ export const config = {
     sessionDays: readInt("SESSION_DAYS", 7),
     sessionSecret: process.env.SESSION_SECRET || "dev-only-change-me",
     devBypass: readBool("QUALITALK_DEV_AUTH_BYPASS", true),
+    /* Senha com que todo acesso novo nasce, e a que o reset devolve.
+       Uma senha padrao para todos so e aceitavel porque a troca no primeiro
+       acesso e OBRIGATORIA: `users.trocar_senha` fica em 1 e `requireSession`
+       recusa qualquer rota de dados enquanto estiver assim. Sem essa trava,
+       quem descobrisse a senha entraria como qualquer pessoa que ainda nao
+       tivesse acessado. */
+    senhaPadrao: process.env.AUTH_SENHA_PADRAO || "QualiDDM@2026",
+    senhaMinima: readInt("AUTH_SENHA_MINIMA", 8),
   },
   upload: {
     maxFileBytes: readInt("UPLOAD_MAX_FILE_BYTES", 50 * 1024 * 1024),

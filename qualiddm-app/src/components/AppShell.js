@@ -1,7 +1,9 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
+import useRecurso from "@/hooks/useRecurso";
 import Sidebar from "./Sidebar";
+import TrocarSenha from "./TrocarSenha";
 import { Icon } from "./icons";
 
 /**
@@ -13,6 +15,14 @@ import { Icon } from "./icons";
 export default function AppShell({ active, breadcrumb, children, topbarActions }) {
   const [drawerOpen, setDrawerOpen] = useState(false);
   const menuButtonRef = useRef(null);
+
+  /* Quem está logado, e se a senha ainda é a padrão.
+     Buscado aqui, na casca, e não em cada tela: a troca obrigatória tem de valer
+     em QUALQUER rota, e a sidebar precisa do nome real de quem está logado —
+     antes ela trazia "Gisele Oliveira" fixo no código para todo mundo. */
+  const sessao = useRecurso("/api/auth/me");
+  const usuario = sessao.dados?.user ?? null;
+  const senhaPendente = Boolean(sessao.dados?.trocarSenha);
 
   const closeDrawer = useCallback(() => {
     setDrawerOpen(false);
@@ -51,7 +61,12 @@ export default function AppShell({ active, breadcrumb, children, topbarActions }
   return (
     <div className="app-shell">
       <div className="desktop-frame">
-        <Sidebar active={active} open={drawerOpen} onNavigate={() => setDrawerOpen(false)} />
+        <Sidebar
+          active={active}
+          open={drawerOpen}
+          usuario={usuario}
+          onNavigate={() => setDrawerOpen(false)}
+        />
 
         {drawerOpen ? (
           <button
@@ -119,7 +134,15 @@ export default function AppShell({ active, breadcrumb, children, topbarActions }
           </div>
 
           <div className="workspace" id="conteudo">
-            {children}
+            {/* Senha padrão pendente: a tela pedida dá lugar à troca, em toda
+                rota. Não é isso que protege o sistema — `requireSession` recusa
+                as rotas de dados de qualquer jeito, e sem esta troca a pessoa
+                veria só telas de erro. É isso que ela explica. */}
+            {senhaPendente ? (
+              <TrocarSenha obrigatoria onTrocada={sessao.recarregar} />
+            ) : (
+              children
+            )}
           </div>
         </main>
       </div>

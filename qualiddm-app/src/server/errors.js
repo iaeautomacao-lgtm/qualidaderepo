@@ -31,3 +31,17 @@ export function conflict(message, details = null) {
 export function tooManyRequests(message = "Muitas requisições. Tente novamente em instantes.", details = null) {
   return new AppError(429, "too_many_requests", message, details);
 }
+
+/**
+ * Senha padrão ainda não trocada.
+ *
+ * Status próprio (428, "Precondition Required") e não 403: a pessoa está
+ * autenticada e o acesso não foi negado por permissão — falta um passo que só
+ * ela pode dar. O código `senha_pendente` é o que o front usa para levar até a
+ * tela de troca em vez de mostrar "acesso negado".
+ */
+export function senhaPendente(
+  message = "Troque a senha padrão antes de usar o sistema.",
+) {
+  return new AppError(428, "senha_pendente", message);
+}

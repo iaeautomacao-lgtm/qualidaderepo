@@ -639,9 +639,17 @@ export async function criarAvaliado({ nome, email, papel = "operador", senhaHash
   );
   if (existente) throw conflict("Já existe usuário com este e-mail.");
 
+  /* `trocar_senha = 1` na criação, igual a Gestão de Usuários: a pessoa nasce
+     com a senha padrão do sistema e o QualiDDM fica fechado para ela até a
+     troca. Cadastrar avaliado por aqui não pode abrir uma porta que o outro
+     caminho fecha. */
+  const temTrocar = await seguro("colunaTrocarSenha", false, () =>
+    query("SHOW COLUMNS FROM users LIKE 'trocar_senha'").then((rows) => rows.length > 0),
+  );
+
   await query(
-    `INSERT INTO users (name, email, password_hash, role, active)
-     VALUES (:nome, :email, :senhaHash, :papel, 1)`,
+    `INSERT INTO users (name, email, password_hash, role, active${temTrocar ? ", trocar_senha" : ""})
+     VALUES (:nome, :email, :senhaHash, :papel, 1${temTrocar ? ", 1" : ""})`,
     { nome, email, senhaHash, papel },
   );
 

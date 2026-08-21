@@ -53,6 +53,16 @@ export default function LoginPage() {
         return;
       }
 
+      // Senha ainda é a padrão: vai direto para a troca em vez de cair numa
+      // tela cheia de erro. O `next` fica de fora de propósito — depois da
+      // troca a pessoa entra pela home, e não numa rota que ela pediu antes de
+      // ter acesso liberado.
+      if (payload?.data?.user?.trocarSenha) {
+        router.replace("/conta/senha");
+        router.refresh();
+        return;
+      }
+
       // Lido de window em vez de useSearchParams: aquele hook obrigaria a
       // envolver a página inteira em <Suspense> por causa da renderização
       // estática.

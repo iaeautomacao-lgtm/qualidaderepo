@@ -6,11 +6,22 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { Icon } from "./icons";
 
-const usuarioAtual = {
-  iniciais: "GO",
-  nome: "Gisele Oliveira",
-  perfil: "Administrador",
+const PERFIL = {
+  administrador: "Administrador",
+  supervisor: "Supervisor",
+  monitor: "Monitor",
+  operador: "Operador",
+  viewer: "Visualizador",
 };
+
+/** Duas iniciais: primeiro e último nome. "Maria" sozinho vira "M". */
+function iniciaisDe(nome) {
+  const partes = String(nome || "").trim().split(/\s+/).filter(Boolean);
+  if (partes.length === 0) return "?";
+  const primeira = partes[0][0];
+  const ultima = partes.length > 1 ? partes[partes.length - 1][0] : "";
+  return `${primeira}${ultima}`.toUpperCase();
+}
 
 const versao = { numero: "v1.5.0", ambiente: "PROD" };
 
@@ -52,14 +63,14 @@ const menu = [
     ],
   },
   { label: "Dashboard de Formulários", href: "/dashboard-formularios", icon: "metrics" },
-  // Monitor IA e Transcrições ficam como entradas próprias, no padrão da tela
+  // Acordito e Transcrições ficam como entradas próprias, no padrão da tela
   // de referência: primeiro a gestão das personas, depois a entrada dos áudios.
-  { label: "Monitor IA", href: "/monitor-ia", icon: "sparkles" },
+  { label: "Acordito", href: "/monitor-ia", icon: "sparkles" },
   { label: "Transcrições", href: "/transcricoes", icon: "waveform" },
   // Copiloto de qualidade: pergunta sobre o período inteiro, não sobre uma ficha.
   // Fica depois das entradas de dado porque só faz sentido com monitoria no
   // banco — antes disso ele responde "não há base para dizer".
-  { label: "Perguntar à IA", href: "/perguntar-ia", icon: "sparkles" },
+  { label: "Perguntar ao Acordito", href: "/perguntar-ia", icon: "sparkles" },
   { label: "Feedback", href: "/feedback", icon: "feedback" },
   // Contestação vem depois de Feedback porque é o passo seguinte dele: só se
   // contesta o que já foi apontado. As duas sub-abas são as da tela de
@@ -78,14 +89,13 @@ const menu = [
     href: "/gestao",
     icon: "settings",
     filhos: [
-      { label: "Operação", href: "/gestao" },
       { label: "Usuários", href: "/gestao/usuarios" },
       { label: "Bugs e Reports", href: "/gestao/bugs" },
     ],
   },
 ];
 
-export default function Sidebar({ active = "Dashboard", open = false, onNavigate }) {
+export default function Sidebar({ active = "Dashboard", open = false, usuario = null, onNavigate }) {
   const pathname = usePathname();
   const [aberto, setAberto] = useState(null);
 
@@ -116,13 +126,15 @@ export default function Sidebar({ active = "Dashboard", open = false, onNavigate
         <Image src="/logo-qualiddm-v2.png" alt="QualiDDM" width={640} height={317} priority />
       </Link>
 
+      {/* Placeholder enquanto /api/auth/me não responde, em vez de um nome
+          fixo: mostrar a pessoa errada é pior do que mostrar um traço. */}
       <div className="sidebar-user">
         <div className="avatar" aria-hidden="true">
-          {usuarioAtual.iniciais}
+          {usuario ? iniciaisDe(usuario.name) : "—"}
         </div>
         <div className="user-meta">
-          <strong>{usuarioAtual.nome}</strong>
-          <span>{usuarioAtual.perfil}</span>
+          <strong>{usuario?.name ?? "Carregando..."}</strong>
+          <span>{usuario ? (PERFIL[usuario.role] ?? usuario.role) : ""}</span>
         </div>
       </div>
 

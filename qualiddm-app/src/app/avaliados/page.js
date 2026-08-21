@@ -55,7 +55,7 @@ export default function AvaliadosPage() {
       criar={{
         rotulo: "Novo operador",
         titulo: "Cadastrar pessoa avaliada",
-        descricao: "A senha provisória serve para o primeiro acesso e não é exibida depois.",
+        descricao: "A pessoa nasce com a senha padrão do sistema e é obrigada a trocá-la no primeiro acesso.",
         endpoint: "/api/avaliados",
         mensagem: "Pessoa cadastrada.",
         campos: [
@@ -71,15 +71,6 @@ export default function AvaliadosPage() {
               { value: "monitor", label: "Monitor" },
               { value: "supervisor", label: "Supervisor" },
             ],
-          },
-          {
-            nome: "senhaProvisoria",
-            rotulo: "Senha provisória",
-            tipo: "password",
-            obrigatorio: true,
-            minimo: 8,
-            maximo: 100,
-            ajuda: "Mínimo de 8 caracteres. Combine com a pessoa e peça a troca no primeiro acesso.",
           },
         ],
       }}

@@ -17,6 +17,10 @@ export async function login({ email, password }) {
       name: user.name,
       email: user.email,
       role: user.role,
+      /* A sessão é criada mesmo com a senha pendente: sem ela a pessoa não
+         teria como se autenticar para trocar a senha. O que a senha pendente
+         bloqueia é o resto do sistema, em `requireSession`. */
+      trocarSenha: user.trocar_senha === 1,
     },
   };
 }

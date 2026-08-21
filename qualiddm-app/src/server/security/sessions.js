@@ -1,8 +1,22 @@
 import { createHash, randomBytes } from "crypto";
 import { cookies } from "next/headers";
 import { assertProductionConfig, config, isProduction } from "../config";
-import { forbidden, unauthorized } from "../errors";
+import { forbidden, senhaPendente, unauthorized } from "../errors";
 import { one, query } from "../db";
+
+/* `trocar_senha` chegou na migration 003. O check evita que um banco anterior
+   a ela derrube TODO login por coluna inexistente. Memoizado: e uma pergunta
+   sobre o schema, nao sobre a requisicao. */
+let temTrocarSenha = null;
+
+async function colunaTrocarSenha() {
+  if (temTrocarSenha === null) {
+    temTrocarSenha = query("SHOW COLUMNS FROM users LIKE 'trocar_senha'")
+      .then((rows) => rows.length > 0)
+      .catch(() => false);
+  }
+  return temTrocarSenha;
+}
 
 function digest(token) {
   return createHash("sha256").update(`${config.auth.sessionSecret}:${token}`).digest("hex");
@@ -35,6 +49,22 @@ export async function destroySession(token) {
   await query("DELETE FROM user_sessions WHERE token_hash = :tokenHash", {
     tokenHash: digest(token),
   });
+}
+
+/**
+ * Derruba as outras sessões da pessoa, mantendo a atual.
+ *
+ * Chamado depois de trocar a senha: se a senha antiga vazou, quem estiver
+ * logado com ela em outro lugar continuaria dentro. A sessão de quem trocou
+ * fica de pé para não expulsar a própria pessoa da tela.
+ */
+export async function destroyOtherSessions(userId, tokenAtual) {
+  await query(
+    `DELETE FROM user_sessions
+      WHERE user_id = :userId
+        AND token_hash <> :tokenHash`,
+    { userId, tokenHash: digest(tokenAtual) },
+  );
 }
 
 export function setSessionCookie(response, token, expiresAt) {
@@ -76,6 +106,9 @@ export async function currentSession() {
         // desenvolvimento passaria em requireSession mas seria barrado por
         // requireRole, que agora espera administrador/monitor/supervisor.
         role: "administrador",
+        // O bypass de desenvolvimento nao passa pela troca de senha: nao ha
+        // senha nenhuma nesse caminho.
+        trocarSenha: false,
       },
       devBypass: true,
     };
@@ -83,8 +116,11 @@ export async function currentSession() {
 
   if (!token) return null;
 
+  const temTrocar = await colunaTrocarSenha();
+
   const session = await one(
     `SELECT u.id, u.name, u.email, u.role
+            ${temTrocar ? ", u.trocar_senha" : ""}
        FROM user_sessions s
        JOIN users u ON u.id = s.user_id
       WHERE s.token_hash = :tokenHash
@@ -94,17 +130,32 @@ export async function currentSession() {
     { tokenHash: digest(token) }
   );
 
-  return session ? { user: session, token } : null;
+  if (!session) return null;
+
+  const { trocar_senha: trocar, ...usuario } = session;
+  return { user: { ...usuario, trocarSenha: trocar === 1 }, token };
 }
 
-export async function requireSession() {
+/**
+ * Sessao valida — e senha ja trocada.
+ *
+ * A trava e aqui, no servidor, e nao numa checagem de tela: e ela que faz de
+ * uma senha padrao compartilhada um risco aceitavel. Enquanto `trocar_senha`
+ * estiver em 1 a pessoa esta autenticada e nao consegue ler nem gravar nada.
+ *
+ * `senhaPendenteOk` e para as tres rotas que PRECISAM funcionar nesse estado:
+ * saber quem sou (`auth/me`), sair (`auth/logout`) e trocar a senha
+ * (`auth/senha`). Qualquer rota nova entra com o padrao, negando.
+ */
+export async function requireSession({ senhaPendenteOk = false } = {}) {
   const session = await currentSession();
   if (!session) throw unauthorized();
+  if (!senhaPendenteOk && session.user.trocarSenha) throw senhaPendente();
   return session;
 }
 
-export async function requireRole(roles) {
-  const session = await requireSession();
+export async function requireRole(roles, opcoes = {}) {
+  const session = await requireSession(opcoes);
   const allowed = Array.isArray(roles) ? roles : [roles];
   if (!allowed.includes(session.user.role)) throw forbidden();
   return session;

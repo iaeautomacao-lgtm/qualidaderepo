@@ -1,8 +1,8 @@
-import { randomBytes } from "crypto";
+import { config } from "../config";
 import { isMissingSchemaError, one, paraLike, query } from "../db";
 import { badRequest, conflict, notFound } from "../errors";
 import { formatarDataHora, inteiro } from "../format";
-import { hashPassword } from "../security/passwords";
+import { hashPassword, verifyPassword } from "../security/passwords";
 
 export const PAPEIS = [
   "administrador",
@@ -407,12 +407,23 @@ export async function matrizPermissoes() {
   }
 }
 
-function senhaProvisoria() {
-  const alfabeto = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
-  const bytes = randomBytes(8);
-  let senha = "";
-  for (const byte of bytes) senha += alfabeto[byte % alfabeto.length];
-  return `Ddm-${senha.slice(0, 4)}-${senha.slice(4, 8)}`;
+/**
+ * Senha com que todo acesso nasce, e a que o reset devolve.
+ *
+ * Antes isto sorteava uma senha por pessoa e a mostrava uma única vez na tela
+ * de quem criou. Virou uma senha padrão única por decisão da operação: cadastrar
+ * 219 pessoas anotando 219 senhas diferentes não se sustenta, e o suporte
+ * precisa poder dizer a senha inicial por telefone.
+ *
+ * O que torna isso aceitável é a trava, não a senha: `trocar_senha = 1` fica
+ * gravado e `requireSession` recusa qualquer rota de dados enquanto estiver
+ * assim — a pessoa entra, troca, e só então o sistema abre. Sem essa trava a
+ * senha padrão seria uma chave-mestra para toda conta que ainda não acessou.
+ *
+ * Vem de `AUTH_SENHA_PADRAO`, para trocar sem deploy.
+ */
+export function senhaPadrao() {
+  return config.auth.senhaPadrao;
 }
 
 export async function criarUsuario({
@@ -434,7 +445,7 @@ export async function criarUsuario({
   const existente = await one("SELECT id FROM users WHERE email = :email LIMIT 1", { email: emailFinal });
   if (existente) throw conflict(`Ja existe usuario com o e-mail ${emailFinal}.`);
 
-  const senha = senhaProvisoria();
+  const senha = senhaPadrao();
   const colunas = ["name", "email", "password_hash", "role", "active"];
   const valores = [":nome", ":email", ":hash", ":papel", "1"];
   const params = { nome, email: emailFinal, hash: hashPassword(senha), papel };
@@ -467,7 +478,10 @@ export async function criarUsuario({
   }
 
   await query(`INSERT INTO users (${colunas.join(", ")}) VALUES (${valores.join(", ")})`, params);
-  return { email: emailFinal, senhaProvisoria: senha };
+  /* `senhaPadrao: true` diz à tela que essa senha é a de todos, e que ela
+     PODE ser dita em voz alta — diferente de uma provisória sorteada, que só
+     aparecia uma vez. */
+  return { email: emailFinal, senhaInicial: senha, senhaPadrao: true };
 }
 
 export async function atualizarUsuario(
@@ -561,7 +575,7 @@ export async function resetarSenha(usuarioId) {
   const usuario = await one("SELECT id, name, email FROM users WHERE id = :id LIMIT 1", { id: usuarioId });
   if (!usuario) throw notFound("Usuario nao encontrado.");
 
-  const senha = senhaProvisoria();
+  const senha = senhaPadrao();
   const [temTrocar, temAlterada] = await Promise.all([
     temColuna("users", "trocar_senha"),
     temColuna("users", "senha_alterada_em"),
@@ -576,5 +590,57 @@ export async function resetarSenha(usuarioId) {
     { id: usuarioId, hash: hashPassword(senha) },
   );
 
-  return { id: String(usuario.id), nome: usuario.name, email: usuario.email, senhaProvisoria: senha };
+  return { id: String(usuario.id), nome: usuario.name, email: usuario.email, senhaInicial: senha, senhaPadrao: true };
+}
+
+/**
+ * Troca da senha pela própria pessoa.
+ *
+ * Pede a senha atual mesmo com o cookie de sessão válido: sem isso, um
+ * navegador esquecido aberto vira troca de senha e sequestro definitivo da
+ * conta. Só a pessoa muda a própria senha por aqui — administrador não passa
+ * por esta função, ele usa `resetarSenha`, que fica na trilha de auditoria.
+ */
+export async function alterarSenhaPropria(usuarioId, { senhaAtual, novaSenha }) {
+  const minimo = config.auth.senhaMinima;
+
+  const usuario = await one(
+    "SELECT id, name, email, password_hash FROM users WHERE id = :id AND active = 1 LIMIT 1",
+    { id: usuarioId },
+  );
+  if (!usuario) throw notFound("Usuário não encontrado.");
+
+  if (!verifyPassword(String(senhaAtual || ""), usuario.password_hash)) {
+    // Mensagem única para senha errada, sem dizer se a atual "quase" bateu.
+    throw badRequest("Senha atual incorreta.");
+  }
+
+  const nova = String(novaSenha || "");
+  if (nova.length < minimo) {
+    throw badRequest(`A nova senha precisa ter pelo menos ${minimo} caracteres.`);
+  }
+  if (nova === senhaPadrao()) {
+    // O ponto da troca é sair da senha padrão. Aceitar ela de volta como "nova"
+    // deixaria a trava satisfeita e a conta na mesma situação.
+    throw badRequest("Escolha uma senha diferente da senha padrão do sistema.");
+  }
+  if (verifyPassword(nova, usuario.password_hash)) {
+    throw badRequest("A nova senha é igual à atual.");
+  }
+
+  const [temTrocar, temAlterada] = await Promise.all([
+    temColuna("users", "trocar_senha"),
+    temColuna("users", "senha_alterada_em"),
+  ]);
+
+  await query(
+    `UPDATE users
+        SET password_hash = :hash
+            ${temTrocar ? ", trocar_senha = 0" : ""}
+            ${temAlterada ? ", senha_alterada_em = CURRENT_TIMESTAMP" : ""}
+      WHERE id = :id`,
+    { id: usuarioId, hash: hashPassword(nova) },
+  );
+
+  return { id: String(usuario.id), nome: usuario.name, email: usuario.email };
 }

@@ -3,6 +3,7 @@ import { requireRole, requireSession } from "@/server/security/sessions";
 import { parseJsonObject, readIntParam, readString } from "@/server/validation";
 import { hashPassword } from "@/server/security/passwords";
 import { criarAvaliado, listarAvaliados } from "@/server/repositories/gestao";
+import { senhaPadrao } from "@/server/repositories/usuarios";
 
 const PAPEIS = ["operador", "monitor", "supervisor"];
 
@@ -23,17 +24,17 @@ export async function POST(request) {
     await requireRole(["administrador", "supervisor"]);
     const corpo = parseJsonObject(await request.json().catch(() => null));
 
-    // Senha provisória obrigatória e nunca gerada no cliente: a conta nasce com
-    // hash, e a troca fica para o primeiro acesso.
-    const senha = readString(corpo, "senhaProvisoria", { min: 8, max: 100 });
-
-    return ok({
-      avaliado: await criarAvaliado({
-        nome: readString(corpo, "nome", { min: 2, max: 140 }),
-        email: readString(corpo, "email", { min: 5, max: 180 }).toLowerCase(),
-        papel: readString(corpo, "papel", { required: false, default: "operador", allowed: PAPEIS }),
-        senhaHash: hashPassword(senha),
-      }),
+    /* Senha inicial vem do sistema, não do formulário.
+       Antes quem cadastrava inventava uma senha e tinha de combiná-la com a
+       pessoa. Agora é a senha padrão para todos, e a troca no primeiro acesso é
+       obrigatória — mesma regra de Gestão > Usuários. */
+    const avaliado = await criarAvaliado({
+      nome: readString(corpo, "nome", { min: 2, max: 140 }),
+      email: readString(corpo, "email", { min: 5, max: 180 }).toLowerCase(),
+      papel: readString(corpo, "papel", { required: false, default: "operador", allowed: PAPEIS }),
+      senhaHash: hashPassword(senhaPadrao()),
     });
+
+    return ok({ avaliado, senhaInicial: senhaPadrao(), senhaPadrao: true });
   });
 }
