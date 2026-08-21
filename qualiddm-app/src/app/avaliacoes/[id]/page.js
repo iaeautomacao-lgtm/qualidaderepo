@@ -246,7 +246,7 @@ function FichaConteudo({ id }) {
                 {origemIa ? (
                   <span className="chip info">
                     <Icon name="robot" size={13} />
-                    Gerada por IA
+                    Gerada pelo Acordito
                   </span>
                 ) : null}
                 {ficha.quadrante ? <span className="chip">Quadrante {ficha.quadrante}</span> : null}
@@ -551,7 +551,7 @@ function ListasIa({ ia }) {
 
   return (
     <section className={`card pad ${styles.listasIa}`}>
-      <h2 className={styles.tituloSecao}>Leitura da IA</h2>
+      <h2 className={styles.tituloSecao}>Leitura do Acordito</h2>
       {grupos.map((grupo) => (
         <div key={grupo.titulo}>
           <h3>

@@ -340,7 +340,7 @@ export default function UploadPage() {
           <p className="eyebrow">Entrada de arquivos</p>
           <h1>Central de upload</h1>
           <p>
-            Envie áudios e documentos, acompanhe a fila e abra a avaliação assim que a IA
+            Envie áudios e documentos, acompanhe a fila e abra a avaliação assim que o Acordito
             concluir.
           </p>
         </div>
@@ -364,7 +364,7 @@ export default function UploadPage() {
         <form className="card pad upload-primary" onSubmit={onSubmit}>
           <div style={{ display: "grid", gap: "var(--sp-4)" }}>
             <div className="field">
-              <label htmlFor="cliente-upload">Carteira / Monitor IA</label>
+              <label htmlFor="cliente-upload">Carteira / Acordito</label>
               <select
                 className="select"
                 id="cliente-upload"
@@ -501,7 +501,7 @@ export default function UploadPage() {
                     setResult(null);
                   }}
                 >
-                  <option value="">Sem ficha - gerar análise IA livre</option>
+                  <option value="">Sem ficha - gerar análise livre com Acordito</option>
                   {formulariosDisponiveis.map((formulario) => (
                     <option key={formulario.id} value={formulario.id}>
                       {[formulario.nome, formulario.cliente, formulario.campanha].filter(Boolean).join(" - ")}
@@ -509,7 +509,7 @@ export default function UploadPage() {
                   ))}
                 </select>
                 <span className="field-hint">
-                  Com ficha, a IA usa os critérios cadastrados. Sem ficha, gera análise livre com
+                  Com ficha, o Acordito usa os critérios cadastrados. Sem ficha, gera análise livre com
                   transcrição, nota, evidências e insights.
                 </span>
               </div>
@@ -574,7 +574,7 @@ export default function UploadPage() {
                   }
                 >
                   <Icon name={sending ? "spinner" : "sparkles"} size={17} className={sending ? "spinning" : undefined} />
-                  {sending ? "Enviando..." : formularioId ? "Enviar para a IA" : "Analisar com IA"}
+                  {sending ? "Enviando..." : formularioId ? "Enviar ao Acordito" : "Analisar com Acordito"}
                 </button>
               </div>
             </div>
@@ -592,7 +592,7 @@ export default function UploadPage() {
                       : `${grandesDemais.length} arquivos passam do limite da análise`}
                   </strong>
                   <span>
-                    A IA recebe o arquivo dentro da própria requisição e recusa acima de{" "}
+                    O Acordito recebe o arquivo dentro da própria requisição e recusa acima de{" "}
                     {formatarMegabytes(MAX_BYTES_ANALISE_IA)}. Remova{" "}
                     {grandesDemais.map((file) => file.name).join(", ")} ou envie um recorte menor da
                     gravação — cortar o trecho avaliado costuma resolver, porque a monitoria olha um
@@ -661,7 +661,7 @@ export default function UploadPage() {
                         {cabeNaAnaliseIa(file.size) ? null : (
                           <strong className={styles.arquivoGrande}>
                             {" "}
-                            · acima de {formatarMegabytes(MAX_BYTES_ANALISE_IA)}, a IA não analisa
+                            · acima de {formatarMegabytes(MAX_BYTES_ANALISE_IA)}, o Acordito não analisa
                           </strong>
                         )}
                       </span>
@@ -684,7 +684,7 @@ export default function UploadPage() {
         <section className="card pad" aria-labelledby="fila">
           <div className="section-head">
             <h2 id="fila">Fila de processamento</h2>
-            <span className="section-meta">análise IA</span>
+            <span className="section-meta">análise Acordito</span>
           </div>
 
           {files.length === 0 && status !== "done" ? (
@@ -728,7 +728,7 @@ export default function UploadPage() {
                         : status === "done"
                           ? "Analise concluida"
                         : sending
-                          ? "Enviando para a IA"
+                          ? "Enviando ao Acordito"
                           : "Aguardando envio"}
                     </span>
                   </div>
@@ -742,7 +742,7 @@ export default function UploadPage() {
           <section className="card pad" aria-labelledby="ficha-ia">
             <div className="section-head">
               <div>
-                <h2 id="ficha-ia">Ficha preenchida pela IA</h2>
+                <h2 id="ficha-ia">Ficha preenchida pelo Acordito</h2>
                 <p>{result.arquivo.nome} · modelo {result.modelo}</p>
               </div>
               <strong className="headline-number">{result.resumo.score}</strong>
@@ -835,7 +835,7 @@ export default function UploadPage() {
             </ul>
 
             <p className="subtle-text">
-              Ficha gerada por IA a partir do arquivo enviado. Revise antes de aplicar o
+              Ficha gerada pelo Acordito a partir do arquivo enviado. Revise antes de aplicar o
               feedback.
             </p>
           </section>

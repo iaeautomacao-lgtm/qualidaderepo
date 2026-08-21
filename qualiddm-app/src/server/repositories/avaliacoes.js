@@ -348,10 +348,10 @@ async function listarAvaliacoesIaLivres({ limit = 100 } = {}) {
         return {
           id: codigo,
           avaliado: analise.avaliado || analise.operador || "Monitoria IA",
-          avaliador: "Gemini",
+          avaliador: "Acordito",
           supervisor: "Revisão humana pendente",
           campanha: row.campanha || analise.campanha || "Sem campanha",
-          departamento: row.cliente || analise.carteira || "Monitor IA",
+          departamento: row.cliente || analise.carteira || "Acordito",
           categoria: "Monitoria IA",
           score: formatarScore(score),
           data: formatarDataIso(row.created_at),

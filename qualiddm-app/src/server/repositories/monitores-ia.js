@@ -85,7 +85,7 @@ export async function listarMonitoresIa({ busca = null, limit = 48, offset = 0 }
     query(
       `SELECT
           COALESCE(u.id, a.avaliador_id) AS id,
-          COALESCE(u.name, CONCAT('Monitor IA ', a.avaliador_id)) AS nome,
+          COALESCE(u.name, CONCAT('Acordito ', a.avaliador_id)) AS nome,
           COALESCE(u.active, 1) AS ativo,
           COUNT(DISTINCT a.id) AS avaliacoes,
           ROUND(COALESCE(AVG(a.score), 0), 1) AS score_medio,
@@ -98,7 +98,7 @@ export async function listarMonitoresIa({ busca = null, limit = 48, offset = 0 }
          LEFT JOIN clientes c ON c.id = a.cliente_id
          LEFT JOIN campanhas ca ON ca.id = a.campanha_id
         ${where}
-        GROUP BY COALESCE(u.id, a.avaliador_id), COALESCE(u.name, CONCAT('Monitor IA ', a.avaliador_id)), COALESCE(u.active, 1)
+        GROUP BY COALESCE(u.id, a.avaliador_id), COALESCE(u.name, CONCAT('Acordito ', a.avaliador_id)), COALESCE(u.active, 1)
         ORDER BY ultima_avaliacao DESC, nome
         LIMIT :limit OFFSET :offset`,
       params

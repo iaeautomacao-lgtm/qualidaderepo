@@ -337,7 +337,7 @@ export default function FormulariosPage() {
               <Icon name="sparkles" size={20} />
             </span>
             <h3>Nenhuma monitoria IA encontrada</h3>
-            <p>As análises aparecem aqui depois que o upload é processado com o Gemini.</p>
+            <p>As análises aparecem aqui depois que o upload é processado pelo Acordito.</p>
           </div>
         )}
       </section>

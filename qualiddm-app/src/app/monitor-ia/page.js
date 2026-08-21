@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
+import Image from "next/image";
 import Link from "next/link";
 import AppShell from "@/components/AppShell";
 import KpiCard from "@/components/KpiCard";
@@ -13,6 +14,12 @@ function normalizar(texto) {
     .replace(/\p{Diacritic}/gu, "")
     .toLowerCase()
     .trim();
+}
+
+function nomeVisivelMonitor(nome) {
+  const texto = String(nome || "").trim();
+  if (!texto || /^gemini$/i.test(texto)) return "Acordito";
+  return texto;
 }
 
 function formatarData(valor) {
@@ -54,7 +61,7 @@ export default function MonitorIaPage() {
         const resposta = await fetch("/api/monitores-ia", { cache: "no-store" });
         const payload = await resposta.json().catch(() => null);
         if (!resposta.ok || !payload?.ok) {
-          throw new Error(payload?.error?.message || "Não foi possível carregar os Monitores IA.");
+          throw new Error(payload?.error?.message || "Não foi possível carregar o Acordito.");
         }
         if (ativo) {
           setDados(payload.data);
@@ -63,7 +70,7 @@ export default function MonitorIaPage() {
       } catch (error) {
         if (ativo) {
           setDados(null);
-          setErro(error instanceof Error ? error.message : "Não foi possível carregar os Monitores IA.");
+          setErro(error instanceof Error ? error.message : "Não foi possível carregar o Acordito.");
         }
       } finally {
         if (ativo) setCarregando(false);
@@ -81,7 +88,9 @@ export default function MonitorIaPage() {
     const alvo = normalizar(busca);
     if (!alvo) return monitores;
     return monitores.filter((monitor) =>
-      [monitor.nome, monitor.cliente, monitor.campanhasNomes].some((campo) => normalizar(campo).includes(alvo)),
+      [nomeVisivelMonitor(monitor.nome), monitor.cliente, monitor.campanhasNomes].some((campo) =>
+        normalizar(campo).includes(alvo),
+      ),
     );
   }, [busca, dados]);
 
@@ -90,7 +99,7 @@ export default function MonitorIaPage() {
       id: "total",
       badge: "Total",
       value: carregando ? "..." : String(dados?.kpis?.total ?? 0),
-      label: "Total de Monitores IA",
+      label: "Carteiras monitoradas",
       icon: "sparkles",
     },
     {
@@ -117,24 +126,24 @@ export default function MonitorIaPage() {
   ];
 
   return (
-    <AppShell active="Monitor IA" breadcrumb="Qualidade > Monitor IA">
+    <AppShell active="Acordito" breadcrumb="Qualidade > Acordito">
       <section className="page-header">
         <div>
-          <h1>Monitor IA</h1>
-          <p>Cadastre e gerencie Monitores IA para análise automática de chamadas.</p>
+          <h1>Acordito</h1>
+          <p>Assistente DDM para monitoria automática de chamadas e chats.</p>
         </div>
 
         <div className="actions">
           <form className={`search-field ${styles.busca}`} role="search" onSubmit={(evento) => evento.preventDefault()}>
             <Icon name="search" size={18} />
             <label className="sr-only" htmlFor="busca-monitor-ia">
-              Buscar monitores IA
+              Buscar carteiras do Acordito
             </label>
             <input
               className="input"
               id="busca-monitor-ia"
               onChange={(evento) => setBusca(evento.target.value)}
-              placeholder="Buscar Monitores IA..."
+              placeholder="Buscar carteiras do Acordito..."
               type="search"
               value={busca}
             />
@@ -147,7 +156,7 @@ export default function MonitorIaPage() {
       </section>
 
       <div className={styles.painel}>
-        <section className="grid kpi-grid" aria-label="Indicadores de Monitor IA">
+        <section className="grid kpi-grid" aria-label="Indicadores do Acordito">
           {kpis.map((kpi) => (
             <KpiCard badge={kpi.badge} icon={kpi.icon} key={kpi.id} label={kpi.label} value={kpi.value} />
           ))}
@@ -156,8 +165,8 @@ export default function MonitorIaPage() {
         <section className="card pad" aria-labelledby="monitores-recentes">
           <div className="section-head">
             <div>
-              <h2 id="monitores-recentes">Monitores IA Recentes</h2>
-              <p>Selecione um monitor para ações rápidas</p>
+              <h2 id="monitores-recentes">Carteiras do Acordito</h2>
+              <p>Selecione uma carteira para ações rápidas</p>
             </div>
             <Link className="btn ghost" href="/">
               Ver dashboard
@@ -168,61 +177,66 @@ export default function MonitorIaPage() {
           {erro ? (
             <div className="empty-state">
               <Icon name="error" size={38} />
-              <h3>Não foi possível carregar os Monitores IA</h3>
+              <h3>Não foi possível carregar o Acordito</h3>
               <p>{erro}</p>
             </div>
           ) : filtrados.length === 0 ? (
             <div className="empty-state">
               <Icon name="search" size={38} />
-              <h3>Nenhum monitor encontrado</h3>
-              <p>Revise a busca para ver os monitores cadastrados.</p>
+              <h3>Nenhuma carteira encontrada</h3>
+              <p>Revise a busca para ver as carteiras cadastradas.</p>
             </div>
           ) : (
             <ul className={styles.grade}>
-              {filtrados.map((monitor) => (
-                <li className={`card ${styles.monitor}`} key={monitor.id}>
-                  <span className={styles.avatar} aria-hidden="true">
-                    <Icon name="sparkles" size={28} />
-                  </span>
+              {filtrados.map((monitor) => {
+                const nomeMonitor = nomeVisivelMonitor(monitor.nome);
+                const monitorQuery = monitor.nome || nomeMonitor;
 
-                  <div className={styles.monitorTexto}>
-                    <h3>{monitor.nome}</h3>
-                    <span className="chip success">{monitor.statusLabel || "Ativo"}</span>
-                    <p>{monitor.cliente}</p>
-                    <p>{monitor.campanhasNomes || "Sem campanha vinculada"}</p>
-                  </div>
+                return (
+                  <li className={`card ${styles.monitor}`} key={monitor.id}>
+                    <span className={styles.mascoteFrame} aria-hidden="true">
+                      <Image alt="" height={96} src="/acordito.jpeg" width={96} />
+                    </span>
 
-                  <dl className={styles.metricas}>
-                    <div>
-                      <dt>Avaliações</dt>
-                      <dd>{Number(monitor.avaliacoes ?? 0)}</dd>
+                    <div className={styles.monitorTexto}>
+                      <h3>{nomeMonitor}</h3>
+                      <span className="chip success">{monitor.statusLabel || "Ativo"}</span>
+                      <p>{monitor.cliente}</p>
+                      <p>{monitor.campanhasNomes || "Sem campanha vinculada"}</p>
                     </div>
-                    <div>
-                      <dt>Score médio</dt>
-                      <dd>{Number(monitor.scoreMedio ?? 0).toFixed(1)}</dd>
-                    </div>
-                    <div>
-                      <dt>Última avaliação</dt>
-                      <dd>{formatarData(monitor.ultimaAvaliacao)}</dd>
-                    </div>
-                  </dl>
 
-                  <div className={styles.acoes}>
-                    <Link className="btn primary" href="/administracao">
-                      <Icon name="settings" size={15} />
-                      Configurar
-                    </Link>
-                    <Link className="btn" href={uploadHref(monitor)}>
-                      <Icon name="upload" size={15} />
-                      Subir Gravação
-                    </Link>
-                    <Link className="btn" href={`/avaliacoes?monitor=${encodeURIComponent(monitor.nome)}`}>
-                      <Icon name="metrics" size={15} />
-                      Ver Avaliações
-                    </Link>
-                  </div>
-                </li>
-              ))}
+                    <dl className={styles.metricas}>
+                      <div>
+                        <dt>Avaliações</dt>
+                        <dd>{Number(monitor.avaliacoes ?? 0)}</dd>
+                      </div>
+                      <div>
+                        <dt>Score médio</dt>
+                        <dd>{Number(monitor.scoreMedio ?? 0).toFixed(1)}</dd>
+                      </div>
+                      <div>
+                        <dt>Última avaliação</dt>
+                        <dd>{formatarData(monitor.ultimaAvaliacao)}</dd>
+                      </div>
+                    </dl>
+
+                    <div className={styles.acoes}>
+                      <Link className="btn primary" href="/administracao">
+                        <Icon name="settings" size={15} />
+                        Configurar
+                      </Link>
+                      <Link className="btn" href={uploadHref(monitor)}>
+                        <Icon name="upload" size={15} />
+                        Subir Gravação
+                      </Link>
+                      <Link className="btn" href={`/avaliacoes?monitor=${encodeURIComponent(monitorQuery)}`}>
+                        <Icon name="metrics" size={15} />
+                        Ver Avaliações
+                      </Link>
+                    </div>
+                  </li>
+                );
+              })}
             </ul>
           )}
         </section>
@@ -247,7 +261,7 @@ export default function MonitorIaPage() {
               <span className="icon-badge" aria-hidden="true">
                 <Icon name="review" size={18} />
               </span>
-              <strong>Avaliações IA</strong>
+              <strong>Avaliações do Acordito</strong>
               <span>Ver resultados criados</span>
             </Link>
             <Link className="quick-action compact" href="/">
@@ -255,7 +269,7 @@ export default function MonitorIaPage() {
                 <Icon name="metrics" size={18} />
               </span>
               <strong>Dashboard</strong>
-              <span>Acompanhar indicadores IA</span>
+              <span>Acompanhar indicadores do Acordito</span>
             </Link>
             <Link className="quick-action compact" href="/transcricoes">
               <span className="icon-badge" aria-hidden="true">

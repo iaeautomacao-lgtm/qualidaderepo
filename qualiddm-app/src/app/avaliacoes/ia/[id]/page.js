@@ -827,7 +827,7 @@ export default function AvaliacaoIaPage() {
               <ChatIa
                 escopo="gravacao"
                 referencia={id ? String(id) : ""}
-                titulo="Perguntar à IA sobre esta avaliação"
+                titulo="Perguntar ao Acordito sobre esta avaliação"
                 descricao="Respostas ancoradas nos critérios e na transcrição desta gravação."
               />
             </section>
@@ -1068,7 +1068,7 @@ function AcoesDaAnalise({ id }) {
           </Link>
           <a className="btn" href="#perguntar-ia">
             <Icon name="sparkles" size={16} />
-            Perguntar à IA
+            Perguntar ao Acordito
           </a>
         </div>
         <p className={styles.notaAcao}>

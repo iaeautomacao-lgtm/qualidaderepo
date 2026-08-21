@@ -1,12 +1,11 @@
 import PainelGestao from "./page-base";
 
 /**
- * Gestão — aba Operação.
+ * Gestão — usuários.
  *
- * A tela é uma só, com duas abas (Operação e Usuários); esta rota abre na
- * primeira. A rota irmã `/gestao/usuarios` abre na segunda, para o item do menu
- * levar direto ao bloco certo em vez de exigir um clique extra na aba.
+ * A rota principal de gestão abre direto no cadastro de usuários. Configurações
+ * de operação ficam nas telas dedicadas do menu, sem uma subaba intermediária.
  */
 export default function GestaoPage() {
-  return <PainelGestao abaInicial="operacao" />;
+  return <PainelGestao />;
 }

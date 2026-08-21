@@ -82,7 +82,7 @@ export const DEPARTAMENTOS_INICIAIS = [
   "Supervisor",
   "Monitor Sênior",
   "Monitor",
-  "Monitor IA",
+  "Acordito",
   "Analista de Qualidade",
   "Operador",
   "Auditor",

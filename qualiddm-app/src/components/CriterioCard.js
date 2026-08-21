@@ -216,7 +216,7 @@ export default function CriterioCard({ criterio, nivelTitulo = 4 }) {
         <div className={styles.bloco} data-tom="raciocinio">
           <p className={styles.blocoTitulo}>
             <Icon name="brain" size={14} />
-            Notas da IA (raciocínio)
+            Notas do Acordito (raciocínio)
           </p>
           <p>{dados.raciocinio}</p>
         </div>

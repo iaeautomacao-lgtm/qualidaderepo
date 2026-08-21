@@ -10,9 +10,9 @@ import styles from "./page.module.css";
 
 const SEVERIDADES = [
   { id: "todos", rotulo: "Todos" },
-  { id: "critica", rotulo: "CrÃ­tico" },
+  { id: "critica", rotulo: "Crítico" },
   { id: "alta", rotulo: "Alto" },
-  { id: "media", rotulo: "MÃ©dio" },
+  { id: "media", rotulo: "Médio" },
   { id: "baixa", rotulo: "Baixo" },
 ];
 
@@ -29,7 +29,7 @@ const STATUS = [
   { id: "em_analise", rotulo: "Em andamento" },
   { id: "aguardando_teste", rotulo: "Aguardando teste" },
   { id: "resolvido", rotulo: "Resolvido" },
-  { id: "nao_corrigir", rotulo: "NÃ£o corrigir" },
+  { id: "nao_corrigir", rotulo: "Não corrigir" },
   { id: "descartado", rotulo: "Descartado" },
 ];
 
@@ -39,7 +39,7 @@ const METRICAS = [
   { chave: "emAndamento", rotulo: "Em andamento", icon: "settings", tom: "yellow" },
   { chave: "aguardandoTeste", rotulo: "Aguardando teste", icon: "clock", tom: "cyan" },
   { chave: "resolvidos", rotulo: "Resolvidos", icon: "checkCircle", tom: "green" },
-  { chave: "naoCorrigir", rotulo: "NÃ£o corrigir", icon: "close", tom: "purple" },
+  { chave: "naoCorrigir", rotulo: "Não corrigir", icon: "close", tom: "purple" },
 ];
 
 const STATUS_MUTAVEIS = STATUS.filter((item) => item.id !== "todos");
@@ -108,10 +108,10 @@ export default function BugsPage() {
   }
 
   return (
-    <AppShell active="GestÃ£o" breadcrumb="GestÃ£o > Bugs e Reports">
+    <AppShell active="Gestão" breadcrumb="Gestão > Bugs e Reports">
       <section className="page-header">
         <div className={styles.headerTitle}>
-          <Link className="btn ghost icon-only" href="/gestao" aria-label="Voltar para GestÃ£o">
+          <Link className="btn ghost icon-only" href="/gestao" aria-label="Voltar para Gestão">
             <Icon name="chevronLeft" size={18} />
           </Link>
           <span className="icon-badge">
@@ -119,7 +119,7 @@ export default function BugsPage() {
           </span>
           <div>
             <h1>Bug Reports</h1>
-            <p>Bugs, melhorias e features reportados pelos usuÃ¡rios do tenant.</p>
+            <p>Bugs, melhorias e features reportados pelos usuários do tenant.</p>
           </div>
         </div>
         <button className="btn" type="button" onClick={recarregar}>
@@ -187,7 +187,7 @@ export default function BugsPage() {
                 type="search"
                 value={busca}
                 onChange={(event) => setBusca(event.target.value)}
-                placeholder="Buscar tÃ­tulo, rota, usuÃ¡rio ou descriÃ§Ã£o..."
+                placeholder="Buscar título, rota, usuário ou descrição..."
               />
             </span>
           </label>
@@ -206,7 +206,7 @@ export default function BugsPage() {
         {erro ? (
           <div className="empty-state">
             <Icon name="close" size={28} />
-            <h3>NÃ£o foi possÃ­vel carregar os reports</h3>
+            <h3>Não foi possível carregar os reports</h3>
             <p>{erro}</p>
           </div>
         ) : null}
@@ -215,7 +215,7 @@ export default function BugsPage() {
           <div className="empty-state">
             <Icon name="bug" size={28} />
             <h3>Nenhum bug report encontrado</h3>
-            <p>Quando houver reportes, eles aparecerÃ£o aqui com contexto, rota e logs.</p>
+            <p>Quando houver reportes, eles aparecerão aqui com contexto, rota e logs.</p>
           </div>
         ) : null}
 
@@ -259,7 +259,7 @@ export default function BugsPage() {
                       <span className={styles.statusChip} data-status={item.status}>
                         {item.statusLabel}
                       </span>
-                      <small>Ãšltima: {item.ultimaInteracao || item.atualizadoEm || "N/A"}</small>
+                      <small>Última: {item.ultimaInteracao || item.atualizadoEm || "N/A"}</small>
                     </div>
 
                     <div className={styles.acoes}>
@@ -307,13 +307,13 @@ export default function BugsPage() {
                       <section className={styles.bloco}>
                         <h3>
                           <Icon name="review" size={16} />
-                          DescriÃ§Ã£o
+                          Descrição
                         </h3>
-                        <p>{item.descricao || "Sem descriÃ§Ã£o registrada."}</p>
+                        <p>{item.descricao || "Sem descrição registrada."}</p>
                       </section>
 
                       <section className={styles.bloco}>
-                        <h3>Contexto da PÃ¡gina</h3>
+                        <h3>Contexto da Página</h3>
                         <pre>{textoJson(item.contexto)}</pre>
                       </section>
 
@@ -340,7 +340,7 @@ export default function BugsPage() {
                       </section>
 
                       <section className={styles.bloco}>
-                        <h3>AÃ§Ãµes do UsuÃ¡rio</h3>
+                        <h3>Ações do Usuário</h3>
                         {lista(item.acoesUsuario).length ? (
                           <ul className={styles.linhas}>
                             {lista(item.acoesUsuario).map((acao, index) => (
@@ -348,14 +348,14 @@ export default function BugsPage() {
                             ))}
                           </ul>
                         ) : (
-                          <p>Nenhuma aÃ§Ã£o registrada.</p>
+                          <p>Nenhuma ação registrada.</p>
                         )}
                       </section>
 
                       <section className={styles.blocoLargo}>
                         <h3>
                           <Icon name="alert" size={16} />
-                          RequisiÃ§Ãµes com Erro
+                          Requisições com Erro
                         </h3>
                         {lista(item.requisicoesErro).length ? (
                           <div className={styles.erros}>
@@ -364,7 +364,7 @@ export default function BugsPage() {
                             ))}
                           </div>
                         ) : (
-                          <p>Nenhuma requisiÃ§Ã£o com erro registrada.</p>
+                          <p>Nenhuma requisição com erro registrada.</p>
                         )}
                       </section>
 
@@ -382,12 +382,12 @@ export default function BugsPage() {
                       </section>
 
                       <section className={styles.bloco}>
-                        <h3>InformaÃ§Ãµes do Browser</h3>
+                        <h3>Informações do navegador</h3>
                         <pre>{textoJson(item.browser)}</pre>
                       </section>
 
                       <section className={styles.bloco}>
-                        <h3>UsuÃ¡rio da SessÃ£o</h3>
+                        <h3>Usuário da sessão</h3>
                         <pre>{textoJson(item.usuarioSessao)}</pre>
                       </section>
                     </div>
