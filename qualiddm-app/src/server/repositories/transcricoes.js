@@ -294,6 +294,9 @@ export async function obterTranscricao(gravacaoId) {
   const gravacao = await one(
     `SELECT g.id, g.nome_arquivo, g.duracao_segundos, g.origem,
             g.status_transcricao, g.created_at, g.storage_path,
+            g.cliente_id,
+            g.campanha_id,
+            g.avaliado_id,
             cl.nome AS cliente,
             ca.nome AS campanha,
             av.name AS avaliado,
@@ -327,9 +330,12 @@ export async function obterTranscricao(gravacaoId) {
     duracaoSegundos: gravacao.duracao_segundos == null ? null : inteiro(gravacao.duracao_segundos),
     origem: gravacao.origem,
     status: gravacao.status_transcricao,
+    clienteId: gravacao.cliente_id == null ? null : String(gravacao.cliente_id),
     cliente: gravacao.cliente || null,
+    campanhaId: gravacao.campanha_id == null ? null : String(gravacao.campanha_id),
     campanha: gravacao.campanha || null,
     canal: gravacao.canal || null,
+    avaliadoId: gravacao.avaliado_id == null ? null : String(gravacao.avaliado_id),
     avaliado: gravacao.avaliado || null,
     /* Pessoas da análise, no formato que a tela desenha em três blocos.
        `null` quando não há: a tela mostra "não informado" em vez de inventar
@@ -700,6 +706,62 @@ export async function registrarTratativaGravacao({ gravacaoId, userId, tratada, 
       { gravacaoId },
     );
   }
+
+  return obterTranscricao(gravacaoId);
+}
+
+export async function atualizarDadosGravacao({
+  gravacaoId,
+  clienteId = null,
+  campanhaId = null,
+  avaliadoId = null,
+  canal = null,
+}) {
+  const existe = await one("SELECT id FROM gravacoes WHERE id = :gravacaoId LIMIT 1", { gravacaoId });
+  if (!existe) throw notFound("Gravacao nao encontrada.");
+
+  if (clienteId) {
+    const cliente = await one("SELECT id FROM clientes WHERE id = :clienteId AND ativo = 1 LIMIT 1", { clienteId });
+    if (!cliente) throw notFound("Cliente nao encontrado.");
+  }
+
+  if (campanhaId) {
+    const campanha = await one(
+      `SELECT id
+         FROM campanhas
+        WHERE id = :campanhaId
+          AND ativa = 1
+          ${clienteId ? "AND cliente_id = :clienteId" : ""}
+        LIMIT 1`,
+      { campanhaId, ...(clienteId ? { clienteId } : {}) },
+    );
+    if (!campanha) throw notFound("Campanha nao encontrada para o cliente selecionado.");
+  }
+
+  if (avaliadoId) {
+    const avaliado = await one(
+      "SELECT id FROM users WHERE id = :avaliadoId AND active = 1 AND role = 'operador' LIMIT 1",
+      { avaliadoId },
+    );
+    if (!avaliado) throw notFound("Avaliado nao encontrado.");
+  }
+
+  const temCanal = await temColunaCanalGravacao();
+  await query(
+    `UPDATE gravacoes
+        SET cliente_id = :clienteId,
+            campanha_id = :campanhaId,
+            avaliado_id = :avaliadoId
+            ${temCanal ? ", canal = :canal" : ""}
+      WHERE id = :gravacaoId`,
+    {
+      gravacaoId,
+      clienteId,
+      campanhaId,
+      avaliadoId,
+      ...(temCanal ? { canal: CANAIS_GRAVACAO.includes(canal) ? canal : null } : {}),
+    },
+  );
 
   return obterTranscricao(gravacaoId);
 }

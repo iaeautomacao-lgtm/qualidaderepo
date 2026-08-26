@@ -66,6 +66,16 @@ const SENTIMENTO_ROTULO = {
   alta: "Alta",
 };
 
+const SENTIMENTO_INDISPONIVEL = {
+  geral: "nao_identificado",
+  cliente: "nao_identificado",
+  operador: "nao_identificado",
+  intensidade: "baixa",
+  resumo: "Esta analise foi gerada sem leitura de sentimento. Reprocesse a gravacao para preencher este bloco.",
+  sinais: [],
+  alertas: [],
+};
+
 function rotuloSentimento(valor) {
   return SENTIMENTO_ROTULO[valor] || ou(valor);
 }
@@ -428,7 +438,7 @@ function FichaConteudo({ id }) {
               </section>
             ) : null}
 
-            {ia?.sentimento ? <SentimentoIa sentimento={ia.sentimento} /> : null}
+            {origemIa ? <SentimentoIa sentimento={ia?.sentimento || SENTIMENTO_INDISPONIVEL} /> : null}
 
             {ia?.transcricao ? <TranscricaoFalantes texto={ia.transcricao} /> : null}
 

@@ -84,6 +84,16 @@ const SENTIMENTO_ROTULO = {
   alta: "Alta",
 };
 
+const SENTIMENTO_INDISPONIVEL = {
+  geral: "nao_identificado",
+  cliente: "nao_identificado",
+  operador: "nao_identificado",
+  intensidade: "baixa",
+  resumo: "Esta analise foi gerada sem leitura de sentimento. Reprocesse a gravacao para preencher este bloco.",
+  sinais: [],
+  alertas: [],
+};
+
 function rotuloSentimento(valor) {
   return SENTIMENTO_ROTULO[valor] || ou(valor);
 }
@@ -98,6 +108,8 @@ export default function AvaliacaoIaPage() {
      `useState` com funcao porque o valor depende dos dados da primeira carga --
      e um `useEffect` que corrigisse o filtro depois faria a lista piscar. */
   const [filtro, setFiltro] = useState(null);
+  const [gravacaoEditada, setGravacaoEditada] = useState(null);
+  const [editandoDados, setEditandoDados] = useState(false);
   /* Pedido de salto no áudio. O `nonce` faz dois cliques no MESMO trecho
      valerem: sem ele o objeto seria igual e o player não reagiria. */
   const [salto, setSalto] = useState(null);
@@ -138,7 +150,7 @@ export default function AvaliacaoIaPage() {
     };
   }, []);
 
-  const gravacao = dados?.gravacao ?? null;
+  const gravacao = gravacaoEditada?.id === String(id) ? gravacaoEditada : dados?.gravacao ?? null;
   const analise = gravacao?.transcricao?.segmentos ?? null;
   const secoes = useMemo(() => normalizarSecoes(analise), [analise]);
   // Resumo em três partes, quando a análise foi gerada depois desta versão.
@@ -484,12 +496,35 @@ export default function AvaliacaoIaPage() {
               <strong>Dados do atendimento</strong>
             </span>
             <span className={styles.dadosRecolher}>
+              <button
+                className="btn ghost"
+                type="button"
+                onClick={(evento) => {
+                  evento.preventDefault();
+                  evento.stopPropagation();
+                  setEditandoDados((atual) => !atual);
+                }}
+              >
+                <Icon name="edit" size={15} />
+                {editandoDados ? "Fechar edição" : "Editar dados"}
+              </button>
               <span className={styles.dadosRecolherTexto} />
               <Icon name="chevronDown" size={16} />
             </span>
           </summary>
 
           <div className={styles.dadosCorpo}>
+            {editandoDados ? (
+              <EditarDadosAtendimento
+                gravacao={gravacao}
+                onCancelar={() => setEditandoDados(false)}
+                onSalvo={(atualizada) => {
+                  setGravacaoEditada(atualizada);
+                  setEditandoDados(false);
+                }}
+              />
+            ) : null}
+
             <dl className={styles.dadosGrade}>
               {camposDoAtendimento.map((campo) => (
                 <div key={campo.rotulo}>
@@ -681,7 +716,7 @@ export default function AvaliacaoIaPage() {
 
         {/* O player vem logo depois do resultado: é a fonte de tudo o que a IA
             afirma, e o caminho evidência -> áudio tem de ser curto. */}
-        {analise.sentimento ? <SentimentoAcordito sentimento={analise.sentimento} /> : null}
+        <SentimentoAcordito sentimento={analise.sentimento || SENTIMENTO_INDISPONIVEL} />
 
         <section className={`card pad ${styles.cartaoAudio}`}>
           <AudioPlayer
@@ -1018,6 +1053,134 @@ export default function AvaliacaoIaPage() {
  * diria que 5 pontos estavam disponíveis e foram perdidos. Não foram: o
  * eliminatório zera a nota inteira, e é isso que o rótulo diz.
  */
+function EditarDadosAtendimento({ gravacao, onCancelar, onSalvo }) {
+  const { dados: opcoes } = useRecurso("/api/relatorios/opcoes");
+  const [clienteId, setClienteId] = useState(gravacao.clienteId || "");
+  const [campanhaId, setCampanhaId] = useState(gravacao.campanhaId || "");
+  const [canal, setCanal] = useState(gravacao.canal || "");
+  const [avaliadoId, setAvaliadoId] = useState(gravacao.avaliadoId || "");
+  const [salvando, setSalvando] = useState(false);
+  const [erro, setErro] = useState("");
+
+  const campanhas = useMemo(
+    () =>
+      (opcoes?.campanhas ?? []).filter(
+        (campanha) => !clienteId || !campanha.clienteId || campanha.clienteId === clienteId,
+      ),
+    [clienteId, opcoes?.campanhas],
+  );
+
+  const campanhaSelecionada = campanhas.some((campanha) => campanha.id === campanhaId) ? campanhaId : "";
+
+  async function salvar(evento) {
+    evento.preventDefault();
+    setSalvando(true);
+    setErro("");
+
+    try {
+      const data = await enviarApi(
+        `/api/transcricoes/${encodeURIComponent(gravacao.id)}`,
+        {
+          clienteId,
+          campanhaId: campanhaSelecionada,
+          canal,
+          avaliadoId,
+        },
+        { metodo: "PATCH" },
+      );
+      onSalvo(data.gravacao);
+    } catch (causa) {
+      setErro(causa instanceof Error ? causa.message : "Nao foi possivel salvar os dados.");
+    } finally {
+      setSalvando(false);
+    }
+  }
+
+  return (
+    <form className={styles.dadosEditor} onSubmit={salvar}>
+      <div className="field">
+        <label htmlFor="editar-cliente">Cliente</label>
+        <select
+          className="select"
+          id="editar-cliente"
+          value={clienteId}
+          onChange={(evento) => {
+            setClienteId(evento.target.value);
+            setCampanhaId("");
+          }}
+        >
+          <option value="">Nao informado</option>
+          {(opcoes?.clientes ?? []).map((cliente) => (
+            <option key={cliente.id} value={cliente.id}>
+              {cliente.nome}
+            </option>
+          ))}
+        </select>
+      </div>
+
+      <div className="field">
+        <label htmlFor="editar-campanha">Campanha</label>
+        <select
+          className="select"
+          id="editar-campanha"
+          value={campanhaSelecionada}
+          onChange={(evento) => setCampanhaId(evento.target.value)}
+        >
+          <option value="">Nao informada</option>
+          {campanhas.map((campanha) => (
+            <option key={campanha.id} value={campanha.id}>
+              {campanha.nome}
+            </option>
+          ))}
+        </select>
+      </div>
+
+      <div className="field">
+        <label htmlFor="editar-canal">Canal</label>
+        <select className="select" id="editar-canal" value={canal} onChange={(evento) => setCanal(evento.target.value)}>
+          <option value="">Nao informado</option>
+          <option value="telefone">Ligacao</option>
+          <option value="chat">Chat</option>
+        </select>
+      </div>
+
+      <div className="field">
+        <label htmlFor="editar-avaliado">Avaliado</label>
+        <select
+          className="select"
+          id="editar-avaliado"
+          value={avaliadoId}
+          onChange={(evento) => setAvaliadoId(evento.target.value)}
+        >
+          <option value="">Nao informado</option>
+          {(opcoes?.avaliados ?? []).map((pessoa) => (
+            <option key={pessoa.id} value={pessoa.id}>
+              {pessoa.nome}
+            </option>
+          ))}
+        </select>
+      </div>
+
+      {erro ? (
+        <p className="alert danger" role="alert">
+          <Icon name="error" size={18} />
+          <span className="alert-body">{erro}</span>
+        </p>
+      ) : null}
+
+      <div className="btn-row">
+        <button className="btn" type="button" disabled={salvando} onClick={onCancelar}>
+          Cancelar
+        </button>
+        <button className="btn primary" type="submit" disabled={salvando}>
+          <Icon name={salvando ? "spinner" : "check"} size={16} className={salvando ? "spinning" : undefined} />
+          Salvar dados
+        </button>
+      </div>
+    </form>
+  );
+}
+
 function SentimentoAcordito({ sentimento }) {
   const sinais = Array.isArray(sentimento.sinais) ? sentimento.sinais.filter(Boolean) : [];
   const alertas = Array.isArray(sentimento.alertas) ? sentimento.alertas.filter(Boolean) : [];
@@ -1133,16 +1296,16 @@ function CriterioDetalhado({ criterio }) {
           <div className={styles.bloco} data-tom="evidencia">
             <p className={styles.blocoTitulo}>
               <Icon name="quote" size={14} />
-              EvidÃªncia na transcriÃ§Ã£o
+              Evidência na transcrição
               {criterio.momento ? <span className={styles.momentoSelo}>{criterio.momento.rotulo}</span> : null}
-              {confianca ? <span className={styles.confianca}>ConfianÃ§a {confianca}</span> : null}
+              {confianca ? <span className={styles.confianca}>Confiança {confianca}</span> : null}
             </p>
             <blockquote>{criterio.evidencia}</blockquote>
           </div>
         ) : null}
 
         {!temDetalhe ? (
-          <p className="subtle-text">Sem evidÃªncia ou justificativa registrada para este critÃ©rio.</p>
+          <p className="subtle-text">Sem evidência ou justificativa registrada para este critério.</p>
         ) : null}
       </div>
     </details>

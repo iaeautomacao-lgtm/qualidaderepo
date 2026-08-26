@@ -2,7 +2,7 @@ import { ipDaRequisicao, ok, route } from "@/server/http";
 import { requireRole, requireSession } from "@/server/security/sessions";
 import { badRequest } from "@/server/errors";
 import { parseJsonObject, readString } from "@/server/validation";
-import { excluirGravacao, obterTranscricao } from "@/server/repositories/transcricoes";
+import { atualizarDadosGravacao, excluirGravacao, obterTranscricao } from "@/server/repositories/transcricoes";
 import { registrarAuditoria } from "@/server/repositories/administracao";
 
 /** Id de gravação é numérico e vem da URL — validado antes de tocar no banco. */
@@ -21,6 +21,50 @@ export async function GET(request, { params }) {
     await requireSession();
     const { id } = await params;
     return ok({ gravacao: await obterTranscricao(idDeGravacao(id)) });
+  });
+}
+
+function idOpcional(valor, campo) {
+  if (valor == null || valor === "") return null;
+  const texto = String(valor);
+  if (!/^\d{1,20}$/.test(texto) || texto === "0") {
+    throw badRequest(`Campo ${campo} invalido.`);
+  }
+  return texto;
+}
+
+export async function PATCH(request, { params }) {
+  return route(request, async () => {
+    const session = await requireRole(["administrador", "supervisor", "monitor"]);
+    const { id } = await params;
+    const gravacaoId = idDeGravacao(id);
+    const corpo = parseJsonObject(await request.json().catch(() => null));
+
+    const canal = readString(corpo, "canal", {
+      required: false,
+      allowed: ["chat", "telefone", ""],
+    }) || null;
+
+    const gravacao = await atualizarDadosGravacao({
+      gravacaoId,
+      clienteId: idOpcional(corpo.clienteId, "clienteId"),
+      campanhaId: idOpcional(corpo.campanhaId, "campanhaId"),
+      avaliadoId: idOpcional(corpo.avaliadoId, "avaliadoId"),
+      canal,
+    });
+
+    await registrarAuditoria({
+      userId: session.user.id,
+      acao: "dados_gravacao_editados",
+      modulo: "transcricoes",
+      entidade: "gravacoes",
+      entidadeId: gravacaoId,
+      detalhe: `cliente=${gravacao.cliente || "N/A"}; campanha=${gravacao.campanha || "N/A"}; canal=${gravacao.canal || "N/A"}; avaliado=${gravacao.avaliado || "N/A"}`,
+      ip: ipDaRequisicao(request),
+      userAgent: request.headers.get("user-agent"),
+    });
+
+    return ok({ gravacao });
   });
 }
 

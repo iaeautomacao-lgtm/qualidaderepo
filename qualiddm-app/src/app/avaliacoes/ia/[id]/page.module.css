@@ -11,6 +11,25 @@
   gap: var(--sp-5);
 }
 
+.dadosEditor {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 220px), 1fr));
+  gap: var(--sp-4);
+  padding: var(--sp-4);
+  border: 1px solid var(--accent-soft-strong);
+  border-radius: var(--r-md);
+  background: var(--accent-soft);
+}
+
+.dadosEditor :global(.alert),
+.dadosEditor :global(.btn-row) {
+  grid-column: 1 / -1;
+}
+
+.dadosEditor :global(.btn-row) {
+  justify-content: flex-end;
+}
+
 /* --- cabeçalho executivo -------------------------------------------------- */
 
 .hero {

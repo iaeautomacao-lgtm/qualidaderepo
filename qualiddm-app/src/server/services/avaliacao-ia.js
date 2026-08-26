@@ -106,7 +106,7 @@ const ESQUEMA = {
     pontosDesenvolvimento: { type: "array", items: { type: "string" } },
     riscos: { type: "array", items: { type: "string" } },
   },
-  required: ["resumoAtendimento", "transcricao", "respostas", "pontosFortes", "pontosDesenvolvimento"],
+  required: ["resumoAtendimento", "transcricao", "sentimento", "respostas", "pontosFortes", "pontosDesenvolvimento"],
 };
 
 function descreverFicha(secoes) {
@@ -506,7 +506,7 @@ const ESQUEMA_ANALISE_ESTRUTURADA = {
       description: "CPF do cliente citado no atendimento, só dígitos. Vazio se não houver.",
     },
   },
-  required: ["resumo", "transcricao", "observacoesIa", "secoes", "insights", "riscos", "proximosPassos"],
+  required: ["resumo", "transcricao", "observacoesIa", "sentimento", "secoes", "insights", "riscos", "proximosPassos"],
 };
 
 // Nome que a ficha da análise livre mostra no campo "Formulário". Não existe
