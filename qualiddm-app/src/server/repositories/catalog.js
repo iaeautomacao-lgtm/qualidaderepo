@@ -439,6 +439,7 @@ export async function createAvaliacaoFromIa({
         modelo: resultado.modelo || null,
         resumo: resultado.resumoAtendimento || null,
         observacoes: observacoesDaIa(resultado),
+        sentimento: resultado.sentimento || null,
         transcricao: resultado.transcricao || null,
         duracao: resultado.duracao || null,
         insights: resultado.pontosFortes || [],

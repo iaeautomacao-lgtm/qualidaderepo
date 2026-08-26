@@ -269,6 +269,11 @@ const COLUNAS_EXPORTACAO_MONITORIA = [
   { chave: "ia_confianca", titulo: "CABECALHO: ai_confidence", tipo: "numero", largura: 24 },
   { chave: "ia_resumo", titulo: "CABECALHO: resumo_ia", largura: 48 },
   { chave: "ia_observacoes", titulo: "CABECALHO: observacoes_ia", largura: 48 },
+  { chave: "ia_sentimento_geral", titulo: "IA: sentimento_geral", largura: 20 },
+  { chave: "ia_sentimento_cliente", titulo: "IA: sentimento_cliente", largura: 22 },
+  { chave: "ia_sentimento_operador", titulo: "IA: sentimento_operador", largura: 22 },
+  { chave: "ia_sentimento_intensidade", titulo: "IA: sentimento_intensidade", largura: 24 },
+  { chave: "ia_sentimento_resumo", titulo: "IA: sentimento_resumo", largura: 48 },
   { chave: "ia_evidencia", titulo: "IA: evidencia", largura: 48 },
   { chave: "ia_raciocinio", titulo: "IA: raciocinio", largura: 48 },
   { chave: "ia_confianca_criterio", titulo: "IA: confianca_criterio", tipo: "numero", largura: 24 },
@@ -421,6 +426,7 @@ export async function exportarAvaliacoesDetalhadas({ filtros = {}, limit = 50000
         ${temAvaliacao("ia_confianca") ? "a.ia_confianca" : "NULL AS ia_confianca"},
         ${temAvaliacao("ia_resumo") ? "a.ia_resumo" : "NULL AS ia_resumo"},
         ${temAvaliacao("ia_observacoes") ? "a.ia_observacoes" : "NULL AS ia_observacoes"},
+        ${temAvaliacao("ia_analise_json") ? "a.ia_analise_json" : "NULL AS ia_analise_json"},
         a.score,
         a.zerada,
         a.data_contato,
@@ -492,6 +498,7 @@ export async function exportarAvaliacoesDetalhadas({ filtros = {}, limit = 50000
   return {
     colunas: COLUNAS_EXPORTACAO_MONITORIA,
     linhas: rows.map((row) => {
+      const sentimento = analiseSalva(row.ia_analise_json)?.sentimento || null;
       const dataFeedback = row.data_feedback || null;
       const pendenteAssinatura = row.feedback_status === "assinatura" && !row.assinado_em;
       return {
@@ -539,6 +546,11 @@ export async function exportarAvaliacoesDetalhadas({ filtros = {}, limit = 50000
         ia_confianca: row.ia_confianca,
         ia_resumo: row.ia_resumo || "",
         ia_observacoes: row.ia_observacoes || "",
+        ia_sentimento_geral: sentimento?.geral || "",
+        ia_sentimento_cliente: sentimento?.cliente || "",
+        ia_sentimento_operador: sentimento?.operador || "",
+        ia_sentimento_intensidade: sentimento?.intensidade || "",
+        ia_sentimento_resumo: sentimento?.resumo || "",
         ia_evidencia: row.ia_evidencia || "",
         ia_raciocinio: row.ia_raciocinio || "",
         ia_confianca_criterio: row.ia_confianca_criterio,
@@ -735,6 +747,7 @@ function blocoIa(ficha) {
     confianca: numeroOuNulo(ficha.ia_confianca ?? analise?.confianca),
     resumo: ficha.ia_resumo || analise?.resumo || null,
     observacoes: ficha.ia_observacoes || analise?.observacoes || null,
+    sentimento: analise?.sentimento || null,
     insights: listaTexto(analise?.insights),
     riscos: listaTexto(analise?.riscos),
     proximosPassos: listaTexto(analise?.proximosPassos),

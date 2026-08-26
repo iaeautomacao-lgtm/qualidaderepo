@@ -12,6 +12,74 @@
   gap: var(--sp-5);
 }
 
+.sentimentoIa {
+  display: grid;
+  gap: var(--sp-4);
+}
+
+.sentimentoResumo {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 150px), 1fr));
+  gap: var(--sp-3);
+}
+
+.sentimentoResumo div {
+  padding: var(--sp-3);
+  border: 1px solid var(--line);
+  border-radius: var(--r-md);
+  background: var(--surface-2);
+}
+
+.sentimentoResumo dt {
+  color: var(--text-muted);
+  font-size: var(--fs-100);
+  font-weight: var(--fw-semibold);
+  letter-spacing: var(--tracking-label);
+  text-transform: uppercase;
+}
+
+.sentimentoResumo dd {
+  margin-top: var(--sp-1);
+  font-size: var(--fs-400);
+  font-weight: var(--fw-semibold);
+}
+
+.sentimentoResumo dd[data-sentimento="positivo"] {
+  color: var(--success-text);
+}
+
+.sentimentoResumo dd[data-sentimento="negativo"] {
+  color: var(--danger-text);
+}
+
+.sentimentoResumo dd[data-sentimento="misto"] {
+  color: var(--warning-text);
+}
+
+.sentimentoListas {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 220px), 1fr));
+  gap: var(--sp-4);
+}
+
+.sentimentoListas h3 {
+  margin-bottom: var(--sp-2);
+  font-size: var(--fs-300);
+}
+
+.sentimentoListas ul {
+  display: grid;
+  gap: var(--sp-2);
+}
+
+.sentimentoListas li {
+  padding-left: var(--sp-3);
+  border-left: 2px solid var(--line);
+  color: var(--text-soft);
+  font-size: var(--fs-200);
+  line-height: var(--lh-normal);
+}
+
 /* --- cabeçalho ----------------------------------------------------------- */
 
 .hero {

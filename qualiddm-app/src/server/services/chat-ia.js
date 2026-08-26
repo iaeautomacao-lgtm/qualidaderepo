@@ -113,6 +113,16 @@ function descreverAvaliacao(ficha) {
   ];
 
   if (ficha.ia?.resumo) linhas.push(`Resumo do atendimento pela IA: ${semMarcadores(ficha.ia.resumo)}`);
+  if (ficha.ia?.sentimento) {
+    linhas.push(
+      `Sentimento: geral=${semMarcadores(ficha.ia.sentimento.geral || "n/a")}; cliente=${semMarcadores(
+        ficha.ia.sentimento.cliente || "n/a",
+      )}; operador=${semMarcadores(ficha.ia.sentimento.operador || "n/a")}; intensidade=${semMarcadores(
+        ficha.ia.sentimento.intensidade || "n/a",
+      )}`,
+    );
+    if (ficha.ia.sentimento.resumo) linhas.push(`Resumo do sentimento: ${semMarcadores(ficha.ia.sentimento.resumo)}`);
+  }
   if (ficha.ia?.observacoes) linhas.push(`Observações da IA: ${semMarcadores(ficha.ia.observacoes)}`);
   linhas.push(listaOuVazio("Insights da IA", ficha.ia?.insights));
   linhas.push(listaOuVazio("Riscos apontados pela IA", ficha.ia?.riscos));
@@ -156,6 +166,16 @@ function descreverGravacao(gravacao) {
   if (analise?.nota != null) linhas.push(`Nota da análise: ${analise.nota}${analise.zerada ? " (ZERADA)" : ""}`);
   if (analise?.confianca != null) linhas.push(`Confiança média: ${Math.round(analise.confianca * 100)}%`);
   if (analise?.resumo) linhas.push(`Resumo: ${semMarcadores(analise.resumo)}`);
+  if (analise?.sentimento) {
+    linhas.push(
+      `Sentimento: geral=${semMarcadores(analise.sentimento.geral || "n/a")}; cliente=${semMarcadores(
+        analise.sentimento.cliente || "n/a",
+      )}; operador=${semMarcadores(analise.sentimento.operador || "n/a")}; intensidade=${semMarcadores(
+        analise.sentimento.intensidade || "n/a",
+      )}`,
+    );
+    if (analise.sentimento.resumo) linhas.push(`Resumo do sentimento: ${semMarcadores(analise.sentimento.resumo)}`);
+  }
   if (analise?.observacoesIa) linhas.push(`Observações da IA: ${semMarcadores(analise.observacoesIa)}`);
   linhas.push(listaOuVazio("Insights", analise?.insights));
   linhas.push(listaOuVazio("Riscos", analise?.riscos));

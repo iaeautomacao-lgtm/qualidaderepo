@@ -55,6 +55,21 @@ function ou(valor) {
   return texto.length > 0 ? texto : "N/A";
 }
 
+const SENTIMENTO_ROTULO = {
+  positivo: "Positivo",
+  neutro: "Neutro",
+  negativo: "Negativo",
+  misto: "Misto",
+  nao_identificado: "Nao identificado",
+  baixa: "Baixa",
+  media: "Media",
+  alta: "Alta",
+};
+
+function rotuloSentimento(valor) {
+  return SENTIMENTO_ROTULO[valor] || ou(valor);
+}
+
 /**
  * Para onde o rodapé volta, conforme `?voltar=` na URL.
  *
@@ -413,6 +428,8 @@ function FichaConteudo({ id }) {
               </section>
             ) : null}
 
+            {ia?.sentimento ? <SentimentoIa sentimento={ia.sentimento} /> : null}
+
             {ia?.transcricao ? <TranscricaoFalantes texto={ia.transcricao} /> : null}
 
             <section className="card pad" id="respostas-e-avaliacoes">
@@ -539,6 +556,63 @@ function FichaConteudo({ id }) {
 }
 
 /* -------------------------------------------------------------------------- */
+
+function SentimentoIa({ sentimento }) {
+  const sinais = Array.isArray(sentimento.sinais) ? sentimento.sinais.filter(Boolean) : [];
+  const alertas = Array.isArray(sentimento.alertas) ? sentimento.alertas.filter(Boolean) : [];
+
+  return (
+    <section className={`card pad ${styles.sentimentoIa}`}>
+      <div className="section-head">
+        <div>
+          <h2>Sentimento do atendimento</h2>
+          <p>Leitura emocional feita pelo Acordito, separada da nota de qualidade.</p>
+        </div>
+        <span className="icon-badge" aria-hidden="true">
+          <Icon name="sparkles" size={18} />
+        </span>
+      </div>
+
+      <dl className={styles.sentimentoResumo}>
+        <div>
+          <dt>Geral</dt>
+          <dd data-sentimento={sentimento.geral}>{rotuloSentimento(sentimento.geral)}</dd>
+        </div>
+        <div>
+          <dt>Cliente</dt>
+          <dd data-sentimento={sentimento.cliente}>{rotuloSentimento(sentimento.cliente)}</dd>
+        </div>
+        <div>
+          <dt>Operador</dt>
+          <dd data-sentimento={sentimento.operador}>{rotuloSentimento(sentimento.operador)}</dd>
+        </div>
+        <div>
+          <dt>Intensidade</dt>
+          <dd>{rotuloSentimento(sentimento.intensidade)}</dd>
+        </div>
+      </dl>
+
+      {sentimento.resumo ? <p className={styles.textoCorrido}>{sentimento.resumo}</p> : null}
+
+      {sinais.length || alertas.length ? (
+        <div className={styles.sentimentoListas}>
+          {sinais.length ? (
+            <div>
+              <h3>Sinais observados</h3>
+              <ul>{sinais.map((item, indice) => <li key={`sinal-${indice}`}>{item}</li>)}</ul>
+            </div>
+          ) : null}
+          {alertas.length ? (
+            <div>
+              <h3>Alertas</h3>
+              <ul>{alertas.map((item, indice) => <li key={`alerta-${indice}`}>{item}</li>)}</ul>
+            </div>
+          ) : null}
+        </div>
+      ) : null}
+    </section>
+  );
+}
 
 function ListasIa({ ia }) {
   const grupos = [

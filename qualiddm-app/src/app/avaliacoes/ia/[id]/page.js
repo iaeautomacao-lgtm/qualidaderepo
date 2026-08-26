@@ -73,6 +73,21 @@ const ICONE_STATUS = {
   revisar: "alert",
 };
 
+const SENTIMENTO_ROTULO = {
+  positivo: "Positivo",
+  neutro: "Neutro",
+  negativo: "Negativo",
+  misto: "Misto",
+  nao_identificado: "Nao identificado",
+  baixa: "Baixa",
+  media: "Media",
+  alta: "Alta",
+};
+
+function rotuloSentimento(valor) {
+  return SENTIMENTO_ROTULO[valor] || ou(valor);
+}
+
 export default function AvaliacaoIaPage() {
   const params = useParams();
   const id = params?.id;
@@ -666,6 +681,8 @@ export default function AvaliacaoIaPage() {
 
         {/* O player vem logo depois do resultado: é a fonte de tudo o que a IA
             afirma, e o caminho evidência -> áudio tem de ser curto. */}
+        {analise.sentimento ? <SentimentoAcordito sentimento={analise.sentimento} /> : null}
+
         <section className={`card pad ${styles.cartaoAudio}`}>
           <AudioPlayer
             src={gravacao.audioUrl || null}
@@ -1001,6 +1018,63 @@ export default function AvaliacaoIaPage() {
  * diria que 5 pontos estavam disponíveis e foram perdidos. Não foram: o
  * eliminatório zera a nota inteira, e é isso que o rótulo diz.
  */
+function SentimentoAcordito({ sentimento }) {
+  const sinais = Array.isArray(sentimento.sinais) ? sentimento.sinais.filter(Boolean) : [];
+  const alertas = Array.isArray(sentimento.alertas) ? sentimento.alertas.filter(Boolean) : [];
+
+  return (
+    <section className={`card pad ${styles.sentimentoAcordito}`}>
+      <div className="section-head">
+        <div>
+          <h2>Sentimento do atendimento</h2>
+          <p>Leitura emocional do Acordito, separada da nota da monitoria.</p>
+        </div>
+        <span className="icon-badge" aria-hidden="true">
+          <Icon name="sparkles" size={18} />
+        </span>
+      </div>
+
+      <dl className={styles.sentimentoResumo}>
+        <div>
+          <dt>Geral</dt>
+          <dd data-sentimento={sentimento.geral}>{rotuloSentimento(sentimento.geral)}</dd>
+        </div>
+        <div>
+          <dt>Cliente</dt>
+          <dd data-sentimento={sentimento.cliente}>{rotuloSentimento(sentimento.cliente)}</dd>
+        </div>
+        <div>
+          <dt>Operador</dt>
+          <dd data-sentimento={sentimento.operador}>{rotuloSentimento(sentimento.operador)}</dd>
+        </div>
+        <div>
+          <dt>Intensidade</dt>
+          <dd>{rotuloSentimento(sentimento.intensidade)}</dd>
+        </div>
+      </dl>
+
+      {sentimento.resumo ? <p className={styles.sentimentoTexto}>{sentimento.resumo}</p> : null}
+
+      {sinais.length || alertas.length ? (
+        <div className={styles.sentimentoListas}>
+          {sinais.length ? (
+            <div>
+              <h3>Sinais observados</h3>
+              <ul>{sinais.map((item, indice) => <li key={`sinal-${indice}`}>{item}</li>)}</ul>
+            </div>
+          ) : null}
+          {alertas.length ? (
+            <div>
+              <h3>Alertas</h3>
+              <ul>{alertas.map((item, indice) => <li key={`alerta-${indice}`}>{item}</li>)}</ul>
+            </div>
+          ) : null}
+        </div>
+      ) : null}
+    </section>
+  );
+}
+
 function pontuacaoDoCriterio(criterio) {
   if (criterio.eliminatoria) return "eliminatório";
 
