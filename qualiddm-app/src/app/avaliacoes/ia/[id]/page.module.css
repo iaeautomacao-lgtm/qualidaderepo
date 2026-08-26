@@ -36,10 +36,10 @@
   display: grid;
   gap: var(--sp-5);
   padding: var(--sp-5);
-  border: 1px solid var(--line);
   border-radius: var(--r-lg);
-  background: var(--surface);
-  box-shadow: var(--shadow-sm);
+  background: linear-gradient(105deg, var(--orange-700) 0%, var(--orange-900) 100%);
+  color: var(--text-on-dark);
+  box-shadow: var(--shadow-md);
 }
 
 .heroTopo {
@@ -58,7 +58,7 @@
 }
 
 .heroSobre {
-  color: var(--accent-strong);
+  color: rgba(255, 255, 255, 0.82);
   font-size: var(--fs-100);
   font-weight: var(--fw-semibold);
   letter-spacing: var(--tracking-label);
@@ -78,8 +78,15 @@
   font-variant-numeric: tabular-nums;
 }
 
+/* Sobre a tinta, o botão de copiar precisa de cor própria: o padrão é cinza
+   escuro e o hover é laranja -- um some no fundo, o outro some na cor. */
 .heroCodigo :global(.copy-id) {
   opacity: 1;
+  color: rgba(255, 255, 255, 0.85);
+}
+
+.heroCodigo :global(.copy-id):hover {
+  color: var(--text-on-dark);
 }
 
 .heroLinha {
@@ -87,7 +94,7 @@
   flex-wrap: wrap;
   align-items: center;
   gap: var(--sp-2);
-  color: var(--text-soft);
+  color: rgba(255, 255, 255, 0.82);
   font-size: var(--fs-200);
 }
 
@@ -97,7 +104,11 @@
   gap: var(--sp-3);
 }
 
-/* O selo de resultado é o primeiro elemento que o olho pega no canto direito. */
+/* O selo de resultado é o primeiro elemento que o olho pega no canto direito.
+   Sobre a tinta laranja ele se vira sozinho: `chip` já é pastilha de fundo
+   claro com texto no tom, então continua legível sem override daqui -- e um
+   override não pegaria de qualquer forma, porque `.chip.success` tem duas
+   classes contra a classe única do módulo. */
 .selo {
   font-size: var(--fs-200);
   padding: var(--sp-1) var(--sp-3);
@@ -110,13 +121,39 @@
   gap: var(--sp-2);
 }
 
+/* Botão sobre tinta: vidro em vez das cores do tema. O `.primary` laranja
+   sumiria dentro do próprio laranja do cabeçalho e o `.btn` claro brigaria com
+   o fundo -- então os dois viram a mesma superfície translúcida, e a
+   hierarquia passa a ser opacidade e ordem, não matiz. */
+.heroAcoes :global(.btn) {
+  border-color: rgba(255, 255, 255, 0.45);
+  background: rgba(255, 255, 255, 0.14);
+  color: var(--text-on-dark);
+}
+
+.heroAcoes :global(.btn.primary) {
+  border-color: rgba(255, 255, 255, 0.85);
+  background: rgba(255, 255, 255, 0.24);
+  color: var(--text-on-dark);
+}
+
+.heroAcoes :global(.btn):hover {
+  border-color: var(--text-on-dark);
+  background: rgba(255, 255, 255, 0.3);
+  color: var(--text-on-dark);
+}
+
+.heroAcoes :global(.btn):focus-visible {
+  outline-color: var(--text-on-dark);
+}
+
 /* Quatro números do briefing: NOTA / CONFIANÇA / DURAÇÃO / CRITICIDADE. */
 .kpis {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(min(100%, 170px), 1fr));
   gap: var(--sp-3);
   padding-top: var(--sp-4);
-  border-top: 1px solid var(--line);
+  border-top: 1px solid rgba(255, 255, 255, 0.28);
 }
 
 .kpis > div {
@@ -126,7 +163,7 @@
 }
 
 .kpis dt {
-  color: var(--text-muted);
+  color: rgba(255, 255, 255, 0.78);
   font-size: var(--fs-100);
   font-weight: var(--fw-semibold);
   letter-spacing: var(--tracking-label);
@@ -145,7 +182,19 @@
 }
 
 /* Tom por resultado; o texto de apoio abaixo diz em palavras o que a cor
-   sugere, então a cor nunca é a única informação. */
+   sugere, então a cor nunca é a única informação.
+
+   Sobre a tinta laranja o número com tom entra numa pastilha clara. Vermelho
+   ou verde direto no laranja não alcança contraste de leitura, e apagar a cor
+   custaria o sinal -- a pastilha devolve o fundo claro de que a cor precisa,
+   e de quebra destaca o número que importa. */
+.kpis > div[data-tom] dd:first-of-type {
+  justify-self: start;
+  padding: var(--sp-1) var(--sp-3);
+  border-radius: var(--r-sm);
+  background: rgba(255, 255, 255, 0.94);
+}
+
 .kpis > div[data-tom="danger"] dd:first-of-type {
   color: var(--danger-text);
 }
@@ -159,7 +208,7 @@
 }
 
 .kpis dd.kpiNota {
-  color: var(--text-muted);
+  color: rgba(255, 255, 255, 0.78);
   font-size: var(--fs-100);
   font-weight: var(--fw-regular);
   line-height: var(--lh-snug);
@@ -171,11 +220,29 @@
 
 /* --- corpo em duas colunas ----------------------------------------------- */
 
-/* Uma coluna só: o resumo saiu da lateral e virou faixa no topo, então não há
-   mais coluna de apoio para grudar. */
+/* Laudo à esquerda, Acordito grudado à direita.
+
+   A largura da lateral é fixa em rem e não em fração: o chat tem uma linha de
+   entrada e bolhas de texto, desconfortáveis tanto estreitas demais quanto
+   largas demais. O que estica com a tela é a coluna do laudo. */
 .corpo {
   display: grid;
+  grid-template-columns: minmax(0, 1fr) 22rem;
+  align-items: start;
   gap: var(--sp-5);
+}
+
+.apoio {
+  position: sticky;
+  top: var(--sticky-top);
+  display: grid;
+  gap: var(--sp-4);
+  min-width: 0;
+  /* Teto de altura para o chat não ultrapassar a dobra: sem ele, uma conversa
+     longa empurra o fim do cartão para fora da tela e a lateral grudada perde
+     a razão de existir. */
+  max-height: calc(100vh - var(--sticky-top) - var(--sp-5));
+  overflow: auto;
 }
 
 .principal {
@@ -644,6 +711,14 @@
   .corpo {
     grid-template-columns: minmax(0, 1fr);
   }
+
+  /* Empilhado, grudar não faz sentido: o chat passa a ser o último bloco da
+     página e uma altura travada só cortaria a conversa. */
+  .apoio {
+    position: static;
+    max-height: none;
+    overflow: visible;
+  }
 }
 
 @media (max-width: 640px) {
@@ -695,12 +770,39 @@
    ========================================================================== */
 
 @media print {
+  /* O chat não vai para o papel: é ferramenta de consulta, não laudo. */
   .heroAcoes,
+  .apoio,
   .filtros,
   .trilha,
   .rodape,
   .criterioSeta {
     display: none;
+  }
+
+  /* Cabeçalho volta ao branco na impressão. Fundo colorido depende de o
+     usuário ter ligado "imprimir cores de fundo"; sem isso o texto branco sai
+     em papel branco e o cabeçalho inteiro some da folha. */
+  .hero {
+    border: 1px solid var(--line);
+    background: none;
+    color: var(--text);
+  }
+
+  .heroSobre,
+  .heroLinha,
+  .kpis dt,
+  .kpis dd.kpiNota {
+    color: var(--text-soft);
+  }
+
+  .kpis {
+    border-top-color: var(--line);
+  }
+
+  .kpis > div[data-tom] dd:first-of-type {
+    padding: 0;
+    background: none;
   }
 
   .corpo {

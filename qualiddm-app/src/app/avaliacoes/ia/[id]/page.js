@@ -480,291 +480,297 @@ export default function AvaliacaoIaPage() {
           </dl>
         </header>
 
-        {/* Dados do atendimento, recolhível.
-            Recolhível porque foi pedido: com o cabeçalho aberto em tela menor,
-            as respostas do formulário ficam achatadas e obrigam a rolar para ler
-            o que importa. Aberto por padrão — quem abre a análise pela primeira
-            vez precisa saber de que atendimento se trata.
+        {/* Duas colunas: o laudo a esquerda, o Acordito grudado a direita.
 
-            `<details>` nativo e não estado em React: assim funciona antes da
-            hidratação, e Ctrl+F do navegador encontra texto dentro do bloco
-            fechado, o que um bloco desmontado não permitiria. */}
-        <details className={`card pad ${styles.dadosAtendimento}`} open>
-          <summary>
-            <span className={styles.dadosTitulo}>
-              <Icon name="info" size={16} />
-              <strong>Dados do atendimento</strong>
-            </span>
-            <span className={styles.dadosRecolher}>
-              <button
-                className="btn ghost"
-                type="button"
-                onClick={(evento) => {
-                  evento.preventDefault();
-                  evento.stopPropagation();
-                  setEditandoDados((atual) => !atual);
-                }}
-              >
-                <Icon name="edit" size={15} />
-                {editandoDados ? "Fechar edição" : "Editar dados"}
-              </button>
-              <span className={styles.dadosRecolherTexto} />
-              <Icon name="chevronDown" size={16} />
-            </span>
-          </summary>
-
-          <div className={styles.dadosCorpo}>
-            {editandoDados ? (
-              <EditarDadosAtendimento
-                gravacao={gravacao}
-                onCancelar={() => setEditandoDados(false)}
-                onSalvo={(atualizada) => {
-                  setGravacaoEditada(atualizada);
-                  setEditandoDados(false);
-                }}
-              />
-            ) : null}
-
-            <dl className={styles.dadosGrade}>
-              {camposDoAtendimento.map((campo) => (
-                <div key={campo.rotulo}>
-                  <dt>{campo.rotulo}</dt>
-                  <dd>{campo.valor}</dd>
-                </div>
-              ))}
-            </dl>
-
-            {/* Pessoas em blocos, e não como mais uma linha da grade: nome com
-                e-mail ao lado é um par que se lê junto, e virar duas células
-                soltas obrigaria a conferir de quem é qual e-mail. */}
-            <div className={styles.pessoas}>
-              {pessoasDaAnalise.map((bloco) => (
-                <div className={styles.pessoa} key={bloco.titulo}>
-                  <p className={styles.pessoaTitulo}>{bloco.titulo}</p>
-                  {bloco.nome ? (
-                    <>
-                      <p className={styles.pessoaNome}>{bloco.nome}</p>
-                      {bloco.email ? (
-                        <p className={styles.pessoaEmail}>{bloco.email}</p>
-                      ) : null}
-                      {bloco.nota ? <p className={styles.pessoaNota}>{bloco.nota}</p> : null}
-                    </>
-                  ) : (
-                    <p className={styles.pessoaVazia}>{bloco.ausente}</p>
-                  )}
-                </div>
-              ))}
-            </div>
-          </div>
-        </details>
-
-
-        {/* Por que o zero, com nome e número.
-            A versão anterior dizia "um critério eliminatório ficou não conforme"
-            e parava ali — e duas linhas abaixo a tela mostrava "65 de 77 pontos".
-            Quem não conhece a regra lia contradição e concluía que um dos dois
-            números estava com defeito. */}
-        {analise.zerada ? (
-          <section className={`card pad ${styles.porQueZerou}`} aria-labelledby="por-que-zerou">
-            <h2 id="por-que-zerou">
-              <Icon name="alert" size={18} />
-              Por que a nota foi zerada
-            </h2>
-            <p>
-              {notaBase == null ? (
-                <>
-                  Nenhum peso aplicável foi apurado nesta avaliação, e{" "}
-                  {eliminatoriosFalhos.length === 1 ? "o critério" : "os critérios"}{" "}
-                  {eliminatoriosFalhos.map((problema) => `“${problema.nome}”`).join(" e ")}{" "}
-                  {eliminatoriosFalhos.length === 1 ? "é eliminatório" : "são eliminatórios"}.
-                </>
-              ) : (
-                <>
-                  A avaliação atingiu <strong>{impacto.obtido} de {impacto.total} pontos</strong>{" "}
-                  ({String(notaBase).replace(".", ",")}%), porém{" "}
-                  {eliminatoriosFalhos.length === 0 ? (
-                    "um critério eliminatório ficou não conforme"
-                  ) : (
-                    <>
-                      {eliminatoriosFalhos.map((problema) => `“${problema.nome}”`).join(" e ")}{" "}
-                      {eliminatoriosFalhos.length === 1
-                        ? "é critério eliminatório"
-                        : "são critérios eliminatórios"}
-                    </>
-                  )}
-                  . Por isso a nota final é <strong>0</strong>.
-                </>
-              )}
-            </p>
-            {/* A regra em si, uma vez, para quem chega novo: é o que diferencia
-                "errou muito" de "errou uma coisa que não se compensa". */}
-            <p className={styles.regraZero}>
-              Erro crítico não se compensa com acerto em outro critério — é o que separa a falha
-              eliminatória do desconto por peso.
-            </p>
-          </section>
-        ) : null}
-
-        {nivel.rotulo === "Baixa" ? (
-          <p className="alert warning">
-            <Icon name="alert" size={18} />
-            <span className="alert-body">
-              <strong>Revisão humana recomendada</strong>
-              <span>
-                A confiança da IA ficou abaixo de 70%. Confira as evidências no áudio antes de
-                aplicar feedback.
-              </span>
-            </span>
-          </p>
-        ) : null}
-
-        {/* Resumo e problemas lado a lado: o que aconteceu e onde falhou são a
-            mesma pergunta vista de dois ângulos. Os problemas ficam na coluna da
-            direita e com peso próprio — operacionalmente valem mais que a
-            contagem de conformes, que virou bloco de apoio no rodapé. */}
-        <div className={styles.faixaResumo}>
-          <section className={`card pad ${styles.resumoAtendimento}`} aria-labelledby="resumo-avaliacao">
-            <h2 id="resumo-avaliacao">Resumo do atendimento</h2>
-
-            {estruturado ? (
-              <div className={styles.resumoBlocos}>
-                <div>
-                  <span className="label-micro">Contexto</span>
-                  <p>{estruturado.contexto}</p>
-                </div>
-
-                <div>
-                  <span className="label-micro">O que aconteceu</span>
-                  <ul className={styles.eventos}>
-                    {estruturado.eventos.map((evento, indice) => (
-                      <li key={`evento-${indice}`}>{evento}</li>
-                    ))}
-                  </ul>
-                </div>
-
-                {estruturado.desfecho ? (
-                  <div>
-                    <span className="label-micro">Desfecho</span>
-                    <p>{estruturado.desfecho}</p>
-                  </div>
-                ) : null}
-              </div>
-            ) : (
-              /* Análise gravada antes desta versão não tem o resumo em partes.
-                 Fatiar o parágrafo aqui para simular a estrutura seria adivinhar
-                 qual frase é contexto e qual é desfecho. */
-              <p className={styles.resumoParagrafo}>
-                {analise.resumo || "A IA não devolveu resumo para esta avaliação."}
-              </p>
-            )}
-          </section>
-
-          <section className={`card pad ${styles.blocoProblemas}`} aria-labelledby="principais-problemas">
-            <h2 id="principais-problemas">Principais problemas</h2>
-
-            {problemas.length === 0 ? (
-              <p className="subtle-text">Nenhum critério não conforme nesta avaliação.</p>
-            ) : (
-              <ul className={styles.problemasLista}>
-                {problemas.slice(0, 5).map((problema) => (
-                  <li data-severidade={problema.severidade} key={`prob-${problema.id}`}>
-                    <div className={styles.problemaTopo}>
-                      <strong>{problema.nome}</strong>
-                      <span className={`chip ${problema.eliminatoria ? "danger" : "warning"}`}>
-                        {problema.eliminatoria ? "Eliminatório" : `−${problema.peso} pts`}
-                      </span>
-                    </div>
-
-                    {problema.evidencia ? (
-                      <p className={styles.problemaEvidencia}>{problema.evidencia}</p>
-                    ) : null}
-
-                    <div className={styles.problemaAcoes}>
-                      <a className="btn ghost" href={`#${problema.ancora}`}>
-                        <Icon name="review" size={15} />
-                        Ver critério
-                      </a>
-                      {/* "Ouvir trecho" só aparece quando a IA situou a evidência
-                          no áudio. Botão que leva a 0:00 seria pior que ausência:
-                          o supervisor ouviria outro momento e concluiria que o
-                          apontamento está errado. */}
-                      {problema.momento && gravacao.audioUrl ? (
-                        <button
-                          className="btn ghost"
-                          type="button"
-                          onClick={() =>
-                            setSalto({ segundos: problema.momento.segundos, nonce: Date.now() })
-                          }
-                        >
-                          <Icon name="play" size={15} />
-                          Ouvir {problema.momento.rotulo}
-                        </button>
-                      ) : null}
-                    </div>
-                  </li>
-                ))}
-              </ul>
-            )}
-
-            {problemas.length > 5 ? (
-              <p className="metric-note">
-                Mais {problemas.length - 5} não conformidade(s) na lista de critérios abaixo.
-              </p>
-            ) : null}
-          </section>
-        </div>
-
-        {/* O player vem logo depois do resultado: é a fonte de tudo o que a IA
-            afirma, e o caminho evidência -> áudio tem de ser curto. */}
-        <SentimentoAcordito sentimento={analise.sentimento || SENTIMENTO_INDISPONIVEL} />
-
-        <section className={`card pad ${styles.cartaoAudio}`}>
-          <AudioPlayer
-            src={gravacao.audioUrl || null}
-            titulo="Gravação avaliada"
-            descricao={ou(gravacao.arquivo)}
-            duracaoLabel={duracao}
-            marcadores={marcadores}
-            saltoExterno={salto}
-            emptyTitle="Áudio não disponível"
-            emptyHint={
-              gravacao.armazenada
-                ? "O arquivo original não está mais no armazenamento desta gravação."
-                : "Esta gravação foi registrada sem arquivo de áudio."
-            }
-          />
-        </section>
-
-        {/* Resumo de conformidade: os quatro números que fecham a conta.
-            Existia como frase corrida embaixo de "Critérios avaliados"; virou
-            bloco próprio porque é o que se confere primeiro e é o que precisa
-            somar — 13 + 0 + 4 = 17 é a verificação de que nada ficou de fora. */}
-        <section className={`card pad ${styles.conformidadeResumo}`} aria-labelledby="resumo-conformidade">
-          <h2 className="sr-only" id="resumo-conformidade">
-            Resumo de conformidade
-          </h2>
-          <dl className={styles.conformidadeGrade}>
-            <div data-tom="success">
-              <dd>{resumo.conformes}</dd>
-              <dt>Conformes</dt>
-            </div>
-            <div data-tom={resumo.naoConformes > 0 ? "danger" : undefined}>
-              <dd>{resumo.naoConformes}</dd>
-              <dt>Não conformes</dt>
-            </div>
-            <div data-tom={resumo.naoAplicaveis > 0 ? "warning" : undefined}>
-              <dd>{resumo.naoAplicaveis}</dd>
-              <dt>Não aplicáveis</dt>
-            </div>
-            <div>
-              <dd>{resumo.total}</dd>
-              <dt>Total de critérios</dt>
-            </div>
-          </dl>
-        </section>
-
+            O chat estava no fim da coluna unica, depois de nove secoes -- quem
+            queria perguntar sobre um criterio tinha de rolar ate embaixo,
+            perder o criterio de vista e voltar. Grudado, a pergunta acontece
+            com a evidencia ainda na tela. */}
         <div className={styles.corpo}>
           <div className={styles.principal}>
+            {/* Dados do atendimento, recolhível.
+                Recolhível porque foi pedido: com o cabeçalho aberto em tela menor,
+                as respostas do formulário ficam achatadas e obrigam a rolar para ler
+                o que importa. Aberto por padrão — quem abre a análise pela primeira
+                vez precisa saber de que atendimento se trata.
+
+                `<details>` nativo e não estado em React: assim funciona antes da
+                hidratação, e Ctrl+F do navegador encontra texto dentro do bloco
+                fechado, o que um bloco desmontado não permitiria. */}
+            <details className={`card pad ${styles.dadosAtendimento}`} open>
+              <summary>
+                <span className={styles.dadosTitulo}>
+                  <Icon name="info" size={16} />
+                  <strong>Dados do atendimento</strong>
+                </span>
+                <span className={styles.dadosRecolher}>
+                  <button
+                    className="btn ghost"
+                    type="button"
+                    onClick={(evento) => {
+                      evento.preventDefault();
+                      evento.stopPropagation();
+                      setEditandoDados((atual) => !atual);
+                    }}
+                  >
+                    <Icon name="edit" size={15} />
+                    {editandoDados ? "Fechar edição" : "Editar dados"}
+                  </button>
+                  <span className={styles.dadosRecolherTexto} />
+                  <Icon name="chevronDown" size={16} />
+                </span>
+              </summary>
+
+              <div className={styles.dadosCorpo}>
+                {editandoDados ? (
+                  <EditarDadosAtendimento
+                    gravacao={gravacao}
+                    onCancelar={() => setEditandoDados(false)}
+                    onSalvo={(atualizada) => {
+                      setGravacaoEditada(atualizada);
+                      setEditandoDados(false);
+                    }}
+                  />
+                ) : null}
+
+                <dl className={styles.dadosGrade}>
+                  {camposDoAtendimento.map((campo) => (
+                    <div key={campo.rotulo}>
+                      <dt>{campo.rotulo}</dt>
+                      <dd>{campo.valor}</dd>
+                    </div>
+                  ))}
+                </dl>
+
+                {/* Pessoas em blocos, e não como mais uma linha da grade: nome com
+                    e-mail ao lado é um par que se lê junto, e virar duas células
+                    soltas obrigaria a conferir de quem é qual e-mail. */}
+                <div className={styles.pessoas}>
+                  {pessoasDaAnalise.map((bloco) => (
+                    <div className={styles.pessoa} key={bloco.titulo}>
+                      <p className={styles.pessoaTitulo}>{bloco.titulo}</p>
+                      {bloco.nome ? (
+                        <>
+                          <p className={styles.pessoaNome}>{bloco.nome}</p>
+                          {bloco.email ? (
+                            <p className={styles.pessoaEmail}>{bloco.email}</p>
+                          ) : null}
+                          {bloco.nota ? <p className={styles.pessoaNota}>{bloco.nota}</p> : null}
+                        </>
+                      ) : (
+                        <p className={styles.pessoaVazia}>{bloco.ausente}</p>
+                      )}
+                    </div>
+                  ))}
+                </div>
+              </div>
+            </details>
+
+
+            {/* Por que o zero, com nome e número.
+                A versão anterior dizia "um critério eliminatório ficou não conforme"
+                e parava ali — e duas linhas abaixo a tela mostrava "65 de 77 pontos".
+                Quem não conhece a regra lia contradição e concluía que um dos dois
+                números estava com defeito. */}
+            {analise.zerada ? (
+              <section className={`card pad ${styles.porQueZerou}`} aria-labelledby="por-que-zerou">
+                <h2 id="por-que-zerou">
+                  <Icon name="alert" size={18} />
+                  Por que a nota foi zerada
+                </h2>
+                <p>
+                  {notaBase == null ? (
+                    <>
+                      Nenhum peso aplicável foi apurado nesta avaliação, e{" "}
+                      {eliminatoriosFalhos.length === 1 ? "o critério" : "os critérios"}{" "}
+                      {eliminatoriosFalhos.map((problema) => `“${problema.nome}”`).join(" e ")}{" "}
+                      {eliminatoriosFalhos.length === 1 ? "é eliminatório" : "são eliminatórios"}.
+                    </>
+                  ) : (
+                    <>
+                      A avaliação atingiu <strong>{impacto.obtido} de {impacto.total} pontos</strong>{" "}
+                      ({String(notaBase).replace(".", ",")}%), porém{" "}
+                      {eliminatoriosFalhos.length === 0 ? (
+                        "um critério eliminatório ficou não conforme"
+                      ) : (
+                        <>
+                          {eliminatoriosFalhos.map((problema) => `“${problema.nome}”`).join(" e ")}{" "}
+                          {eliminatoriosFalhos.length === 1
+                            ? "é critério eliminatório"
+                            : "são critérios eliminatórios"}
+                        </>
+                      )}
+                      . Por isso a nota final é <strong>0</strong>.
+                    </>
+                  )}
+                </p>
+                {/* A regra em si, uma vez, para quem chega novo: é o que diferencia
+                    "errou muito" de "errou uma coisa que não se compensa". */}
+                <p className={styles.regraZero}>
+                  Erro crítico não se compensa com acerto em outro critério — é o que separa a falha
+                  eliminatória do desconto por peso.
+                </p>
+              </section>
+            ) : null}
+
+            {nivel.rotulo === "Baixa" ? (
+              <p className="alert warning">
+                <Icon name="alert" size={18} />
+                <span className="alert-body">
+                  <strong>Revisão humana recomendada</strong>
+                  <span>
+                    A confiança da IA ficou abaixo de 70%. Confira as evidências no áudio antes de
+                    aplicar feedback.
+                  </span>
+                </span>
+              </p>
+            ) : null}
+
+            {/* Resumo e problemas lado a lado: o que aconteceu e onde falhou são a
+                mesma pergunta vista de dois ângulos. Os problemas ficam na coluna da
+                direita e com peso próprio — operacionalmente valem mais que a
+                contagem de conformes, que virou bloco de apoio no rodapé. */}
+            <div className={styles.faixaResumo}>
+              <section className={`card pad ${styles.resumoAtendimento}`} aria-labelledby="resumo-avaliacao">
+                <h2 id="resumo-avaliacao">Resumo do atendimento</h2>
+
+                {estruturado ? (
+                  <div className={styles.resumoBlocos}>
+                    <div>
+                      <span className="label-micro">Contexto</span>
+                      <p>{estruturado.contexto}</p>
+                    </div>
+
+                    <div>
+                      <span className="label-micro">O que aconteceu</span>
+                      <ul className={styles.eventos}>
+                        {estruturado.eventos.map((evento, indice) => (
+                          <li key={`evento-${indice}`}>{evento}</li>
+                        ))}
+                      </ul>
+                    </div>
+
+                    {estruturado.desfecho ? (
+                      <div>
+                        <span className="label-micro">Desfecho</span>
+                        <p>{estruturado.desfecho}</p>
+                      </div>
+                    ) : null}
+                  </div>
+                ) : (
+                  /* Análise gravada antes desta versão não tem o resumo em partes.
+                     Fatiar o parágrafo aqui para simular a estrutura seria adivinhar
+                     qual frase é contexto e qual é desfecho. */
+                  <p className={styles.resumoParagrafo}>
+                    {analise.resumo || "A IA não devolveu resumo para esta avaliação."}
+                  </p>
+                )}
+              </section>
+
+              <section className={`card pad ${styles.blocoProblemas}`} aria-labelledby="principais-problemas">
+                <h2 id="principais-problemas">Principais problemas</h2>
+
+                {problemas.length === 0 ? (
+                  <p className="subtle-text">Nenhum critério não conforme nesta avaliação.</p>
+                ) : (
+                  <ul className={styles.problemasLista}>
+                    {problemas.slice(0, 5).map((problema) => (
+                      <li data-severidade={problema.severidade} key={`prob-${problema.id}`}>
+                        <div className={styles.problemaTopo}>
+                          <strong>{problema.nome}</strong>
+                          <span className={`chip ${problema.eliminatoria ? "danger" : "warning"}`}>
+                            {problema.eliminatoria ? "Eliminatório" : `−${problema.peso} pts`}
+                          </span>
+                        </div>
+
+                        {problema.evidencia ? (
+                          <p className={styles.problemaEvidencia}>{problema.evidencia}</p>
+                        ) : null}
+
+                        <div className={styles.problemaAcoes}>
+                          <a className="btn ghost" href={`#${problema.ancora}`}>
+                            <Icon name="review" size={15} />
+                            Ver critério
+                          </a>
+                          {/* "Ouvir trecho" só aparece quando a IA situou a evidência
+                              no áudio. Botão que leva a 0:00 seria pior que ausência:
+                              o supervisor ouviria outro momento e concluiria que o
+                              apontamento está errado. */}
+                          {problema.momento && gravacao.audioUrl ? (
+                            <button
+                              className="btn ghost"
+                              type="button"
+                              onClick={() =>
+                                setSalto({ segundos: problema.momento.segundos, nonce: Date.now() })
+                              }
+                            >
+                              <Icon name="play" size={15} />
+                              Ouvir {problema.momento.rotulo}
+                            </button>
+                          ) : null}
+                        </div>
+                      </li>
+                    ))}
+                  </ul>
+                )}
+
+                {problemas.length > 5 ? (
+                  <p className="metric-note">
+                    Mais {problemas.length - 5} não conformidade(s) na lista de critérios abaixo.
+                  </p>
+                ) : null}
+              </section>
+            </div>
+
+            {/* O player vem logo depois do resultado: é a fonte de tudo o que a IA
+                afirma, e o caminho evidência -> áudio tem de ser curto. */}
+            <SentimentoAcordito sentimento={analise.sentimento || SENTIMENTO_INDISPONIVEL} />
+
+            <section className={`card pad ${styles.cartaoAudio}`}>
+              <AudioPlayer
+                src={gravacao.audioUrl || null}
+                titulo="Gravação avaliada"
+                descricao={ou(gravacao.arquivo)}
+                duracaoLabel={duracao}
+                marcadores={marcadores}
+                saltoExterno={salto}
+                emptyTitle="Áudio não disponível"
+                emptyHint={
+                  gravacao.armazenada
+                    ? "O arquivo original não está mais no armazenamento desta gravação."
+                    : "Esta gravação foi registrada sem arquivo de áudio."
+                }
+              />
+            </section>
+
+            {/* Resumo de conformidade: os quatro números que fecham a conta.
+                Existia como frase corrida embaixo de "Critérios avaliados"; virou
+                bloco próprio porque é o que se confere primeiro e é o que precisa
+                somar — 13 + 0 + 4 = 17 é a verificação de que nada ficou de fora. */}
+            <section className={`card pad ${styles.conformidadeResumo}`} aria-labelledby="resumo-conformidade">
+              <h2 className="sr-only" id="resumo-conformidade">
+                Resumo de conformidade
+              </h2>
+              <dl className={styles.conformidadeGrade}>
+                <div data-tom="success">
+                  <dd>{resumo.conformes}</dd>
+                  <dt>Conformes</dt>
+                </div>
+                <div data-tom={resumo.naoConformes > 0 ? "danger" : undefined}>
+                  <dd>{resumo.naoConformes}</dd>
+                  <dt>Não conformes</dt>
+                </div>
+                <div data-tom={resumo.naoAplicaveis > 0 ? "warning" : undefined}>
+                  <dd>{resumo.naoAplicaveis}</dd>
+                  <dt>Não aplicáveis</dt>
+                </div>
+                <div>
+                  <dd>{resumo.total}</dd>
+                  <dt>Total de critérios</dt>
+                </div>
+              </dl>
+            </section>
+
             <section className="card pad">
               <div className="section-head">
                 <div>
@@ -1012,7 +1018,9 @@ export default function AvaliacaoIaPage() {
                 </p>
               ) : null}
             </section>
+          </div>
 
+          <aside className={styles.apoio}>
             <section className="card pad" id="perguntar-ia">
               <ChatIa
                 escopo="gravacao"
@@ -1021,7 +1029,7 @@ export default function AvaliacaoIaPage() {
                 descricao="Respostas ancoradas nos critérios e na transcrição desta gravação."
               />
             </section>
-          </div>
+          </aside>
         </div>
 
         <footer className={styles.rodape}>
