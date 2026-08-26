@@ -83,6 +83,7 @@ export default function AvaliacoesPage() {
   const [confirmando, setConfirmando] = useState(null);
   const [excluindo, setExcluindo] = useState(null);
   const [erroExclusao, setErroExclusao] = useState("");
+  const [exportando, setExportando] = useState(false);
 
   useEffect(() => {
     let ativo = true;
@@ -228,6 +229,36 @@ export default function AvaliacoesPage() {
     URL.revokeObjectURL(url);
   }
 
+  async function exportarXlsx() {
+    setExportando(true);
+    setErro("");
+
+    try {
+      const resposta = await fetch("/api/avaliacoes/exportar", {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({ filtros }),
+      });
+
+      if (!resposta.ok) {
+        const payload = await resposta.json().catch(() => null);
+        throw new Error(payload?.error?.message || "Não foi possível exportar avaliações.");
+      }
+
+      const blob = await resposta.blob();
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement("a");
+      link.href = url;
+      link.download = `base_monitoria_${new Date().toISOString().slice(0, 10).replaceAll("-", "")}.xlsx`;
+      link.click();
+      URL.revokeObjectURL(url);
+    } catch (error) {
+      setErro(error.message);
+    } finally {
+      setExportando(false);
+    }
+  }
+
   return (
     <AppShell active="Formulários" breadcrumb="Formulários > Avaliações">
       <div className={styles.tela}>
@@ -256,9 +287,9 @@ export default function AvaliacoesPage() {
                 onChange={(evento) => alterarFiltro("busca", evento.target.value)}
               />
             </div>
-            <button className="btn" type="button" onClick={exportarCsv}>
-              <Icon name="download" size={16} />
-              Exportar
+            <button className="btn" type="button" onClick={exportarXlsx} disabled={exportando}>
+              <Icon className={exportando ? "spinning" : undefined} name={exportando ? "spinner" : "download"} size={16} />
+              {exportando ? "Exportando..." : "Exportar"}
             </button>
           </div>
         </header>

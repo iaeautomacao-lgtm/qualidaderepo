@@ -88,6 +88,26 @@ export async function temColunaCanalGravacao() {
   return colunaCanal;
 }
 
+/**
+ * Coluna existe em `users`? Memoizado por nome.
+ *
+ * `supervisor_id` chegou na migration 003. Sem o check, um banco anterior a ela
+ * derrubaria a tela de análise inteira por causa de um campo de cabeçalho.
+ */
+const colunasUsuario = new Map();
+
+export async function temColunaUsuario(coluna) {
+  if (!colunasUsuario.has(coluna)) {
+    colunasUsuario.set(
+      coluna,
+      query("SHOW COLUMNS FROM users LIKE :coluna", { coluna })
+        .then((rows) => rows.length > 0)
+        .catch(() => false),
+    );
+  }
+  return colunasUsuario.get(coluna);
+}
+
 function montarFiltros(filtros = {}, { ocultarExcluidas = false } = {}) {
   const condicoes = ocultarExcluidas ? ["g.excluida_em IS NULL"] : [];
   const params = {};
@@ -249,12 +269,35 @@ export async function obterTranscricao(gravacaoId) {
     : "";
   const joinExtra = comTratativa ? "LEFT JOIN users trat ON trat.id = g.tratada_por_id" : "";
 
+  /* Superior de quem foi avaliado.
+     Vem de `users.supervisor_id`, que é o organograma de HOJE — e a tela diz
+     isso. Diferente de `avaliacoes.supervisor_id`, que é o retrato do superior
+     no momento da monitoria. Análise livre não tem monitoria, então não existe
+     retrato: o que dá para mostrar é quem é o superior agora.
+     `temColunaSupervisor` porque a coluna chegou na migration 003. */
+  const [temSupervisor, temCanal] = await Promise.all([
+    temColunaUsuario("supervisor_id"),
+    temColunaCanalGravacao(),
+  ]);
+
+  const colunasPessoas = [
+    "av.email AS avaliado_email",
+    temSupervisor ? "sup.name AS supervisor" : "NULL AS supervisor",
+    temSupervisor ? "sup.email AS supervisor_email" : "NULL AS supervisor_email",
+    temCanal ? "g.canal" : "NULL AS canal",
+  ].join(", ");
+
+  const joinSupervisor = temSupervisor
+    ? "LEFT JOIN users sup ON sup.id = av.supervisor_id"
+    : "";
+
   const gravacao = await one(
     `SELECT g.id, g.nome_arquivo, g.duracao_segundos, g.origem,
             g.status_transcricao, g.created_at, g.storage_path,
             cl.nome AS cliente,
             ca.nome AS campanha,
             av.name AS avaliado,
+            ${colunasPessoas},
             t.id AS transcricao_id, t.provedor, t.modelo, t.idioma,
             t.texto, t.segmentos_json, t.confianca, t.status AS transcricao_status,
             t.erro_mensagem, t.created_at AS transcricao_em
@@ -263,6 +306,7 @@ export async function obterTranscricao(gravacaoId) {
        LEFT JOIN clientes cl ON cl.id = g.cliente_id
        LEFT JOIN campanhas ca ON ca.id = g.campanha_id
        LEFT JOIN users av ON av.id = g.avaliado_id
+       ${joinSupervisor}
        ${joinExtra}
        ${JOIN_TRANSCRICAO_CORRENTE}
       WHERE g.id = :gravacaoId
@@ -285,7 +329,19 @@ export async function obterTranscricao(gravacaoId) {
     status: gravacao.status_transcricao,
     cliente: gravacao.cliente || null,
     campanha: gravacao.campanha || null,
+    canal: gravacao.canal || null,
     avaliado: gravacao.avaliado || null,
+    /* Pessoas da análise, no formato que a tela desenha em três blocos.
+       `null` quando não há: a tela mostra "não informado" em vez de inventar
+       um nome, e uma análise livre sem avaliado informado é caso normal. */
+    pessoas: {
+      avaliado: gravacao.avaliado
+        ? { nome: gravacao.avaliado, email: gravacao.avaliado_email || null }
+        : null,
+      supervisor: gravacao.supervisor
+        ? { nome: gravacao.supervisor, email: gravacao.supervisor_email || null }
+        : null,
+    },
     armazenada: Boolean(gravacao.storage_path),
     // `suportada: false` diz à tela que o botão "Marcar como tratado" não tem
     // onde gravar ainda — melhor esconder o botão do que oferecer um que falha.

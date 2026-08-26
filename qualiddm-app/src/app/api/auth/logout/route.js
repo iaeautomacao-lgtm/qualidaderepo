@@ -4,7 +4,7 @@ import { clearSessionCookie, destroySession, currentSession } from "@/server/sec
 export async function POST(request) {
   return route(request, async () => {
     const session = await currentSession();
-    if (session?.token) await destroySession(session.token);
+    if (session?.token) await destroySession(session.token, { revogadaPorId: session.user.id });
     const response = empty();
     clearSessionCookie(response);
     return response;

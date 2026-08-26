@@ -50,6 +50,6 @@ export async function POST(request, { params }) {
 
     // Ficha recarregada no mesmo shape do GET: a tela atualiza sem um segundo
     // request, e o histórico já vem com a linha de auditoria recém-gravada.
-    return ok({ avaliacao: await obterAvaliacao(codigo) });
+    return ok({ avaliacao: await obterAvaliacao(codigo, { user: session.user }) });
   });
 }

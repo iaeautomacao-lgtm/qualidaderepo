@@ -67,7 +67,7 @@ export default function LoginPage() {
       // envolver a página inteira em <Suspense> por causa da renderização
       // estática.
       const next = new URLSearchParams(window.location.search).get("next");
-      router.replace(safeNext(next));
+      router.replace(next ? safeNext(next) : payload?.data?.user?.role === "operador" ? "/avaliacoes" : "/");
       router.refresh();
     } catch {
       setError("Falha de conexão com o servidor.");

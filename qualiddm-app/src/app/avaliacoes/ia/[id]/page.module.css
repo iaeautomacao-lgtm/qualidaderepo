@@ -1184,3 +1184,160 @@
   color: #fff;
   font-weight: var(--fw-bold);
 }
+
+/* --- Dados do atendimento (recolhível) --------------------------------- */
+
+.dadosAtendimento > summary {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--sp-3);
+  cursor: pointer;
+  list-style: none;
+}
+
+.dadosAtendimento > summary::-webkit-details-marker {
+  display: none;
+}
+
+.dadosAtendimento > summary:focus-visible {
+  outline: var(--focus-width) solid var(--accent-mid);
+  outline-offset: 3px;
+  border-radius: var(--r-sm);
+}
+
+.dadosTitulo {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--sp-2);
+  color: var(--text);
+}
+
+.dadosRecolher {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--sp-2);
+  color: var(--text-muted);
+  font-size: var(--fs-300);
+}
+
+/* O rótulo vem do CSS e não do JSX porque depende do estado do <details>, que
+   não existe em React — ler `open` exigiria estado espelhado só para o texto. */
+.dadosRecolherTexto::after {
+  content: "Expandir dados";
+}
+
+.dadosAtendimento[open] .dadosRecolherTexto::after {
+  content: "Recolher dados";
+}
+
+.dadosAtendimento[open] .dadosRecolher svg {
+  transform: rotate(180deg);
+}
+
+.dadosCorpo {
+  display: grid;
+  gap: var(--sp-4);
+  margin-top: var(--sp-4);
+  padding-top: var(--sp-4);
+  border-top: 1px solid var(--border);
+}
+
+/* `auto-fit` com mínimo em ch: o campo mais longo aqui é o nome do arquivo, e
+   coluna fixa faria ele estourar ou truncar em tela média. */
+.dadosGrade {
+  display: grid;
+  gap: var(--sp-3) var(--sp-4);
+  grid-template-columns: repeat(auto-fit, minmax(14rem, 1fr));
+  margin: 0;
+}
+
+.dadosGrade dt {
+  font-size: var(--fs-100);
+  font-weight: var(--fw-semibold);
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--text-muted);
+}
+
+.dadosGrade dd {
+  margin: 0;
+  color: var(--text);
+  /* Nome de arquivo longo quebra em vez de esticar a coluna. */
+  overflow-wrap: anywhere;
+}
+
+.pessoas {
+  display: grid;
+  gap: var(--sp-3);
+  grid-template-columns: repeat(auto-fit, minmax(15rem, 1fr));
+}
+
+.pessoa {
+  padding: var(--sp-3);
+  border: 1px solid var(--border);
+  border-radius: var(--r-md);
+  background: var(--surface-2);
+}
+
+.pessoaTitulo {
+  margin: 0 0 var(--sp-1);
+  font-size: var(--fs-100);
+  font-weight: var(--fw-semibold);
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--text-muted);
+}
+
+.pessoaNome {
+  margin: 0;
+  font-weight: var(--fw-semibold);
+  color: var(--text);
+}
+
+.pessoaEmail,
+.pessoaNota,
+.pessoaVazia {
+  margin: var(--sp-1) 0 0;
+  font-size: var(--fs-300);
+  color: var(--text-muted);
+  overflow-wrap: anywhere;
+}
+
+/* --- Resumo de conformidade -------------------------------------------- */
+
+.conformidadeGrade {
+  display: grid;
+  gap: var(--sp-3);
+  grid-template-columns: repeat(auto-fit, minmax(9rem, 1fr));
+  margin: 0;
+  text-align: center;
+}
+
+/* `dd` antes de `dt` no HTML: o número é o dado e vem primeiro na leitura.
+   A ordem visual é a mesma, então não há divergência entre tela e leitor. */
+.conformidadeGrade dd {
+  margin: 0;
+  font-size: var(--fs-700);
+  font-weight: var(--fw-bold);
+  font-variant-numeric: tabular-nums;
+  color: var(--text-muted);
+  line-height: 1.1;
+}
+
+.conformidadeGrade dt {
+  font-size: var(--fs-300);
+  color: var(--text-muted);
+}
+
+.conformidadeGrade div[data-tom="success"] dd {
+  color: var(--success);
+}
+
+.conformidadeGrade div[data-tom="danger"] dd {
+  color: var(--danger);
+}
+
+.conformidadeGrade div[data-tom="warning"] dd {
+  color: var(--warning-text);
+}

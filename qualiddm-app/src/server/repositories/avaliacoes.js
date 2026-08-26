@@ -149,7 +149,7 @@ export async function listarOpcoesAvaliacoes() {
   };
 }
 
-export async function listarAvaliacoes({ limit = 100, offset = 0 } = {}) {
+export async function listarAvaliacoes({ limit = 100, offset = 0, user = null } = {}) {
   let colunas;
   try {
     colunas = await colunasDaTabela("avaliacoes");
@@ -190,7 +190,14 @@ export async function listarAvaliacoes({ limit = 100, offset = 0 } = {}) {
   const ordenacao = tem("data_avaliacao") ? "a.data_avaliacao" : "a.id";
   // Ficha excluída continua no banco (o relatório "Fichas Excluídas" precisa
   // dela), mas não aparece na listagem de monitorias.
-  const filtro = tem("excluida_em") ? "WHERE a.excluida_em IS NULL" : "";
+  const filtros = [];
+  const params = { limit, offset };
+  if (tem("excluida_em")) filtros.push("a.excluida_em IS NULL");
+  if (user?.role === "operador") {
+    filtros.push("a.avaliado_id = :userId");
+    params.userId = user.id;
+  }
+  const filtro = filtros.length > 0 ? `WHERE ${filtros.join(" AND ")}` : "";
 
   let rows;
   try {
@@ -202,19 +209,343 @@ export async function listarAvaliacoes({ limit = 100, offset = 0 } = {}) {
         ${filtro}
         ORDER BY ${ordenacao} DESC
         LIMIT :limit OFFSET :offset`,
-      { limit, offset },
+      params,
     );
   } catch {
     return [];
   }
 
   const oficiais = rows.map(mapearAvaliacaoOficial);
-  const iaLivres = await listarAvaliacoesIaLivres({ limit });
+  const iaLivres = user?.role === "operador" ? [] : await listarAvaliacoesIaLivres({ limit });
 
   return [...iaLivres, ...oficiais]
     .sort((a, b) => b.ordenacao - a.ordenacao)
     .slice(0, limit)
     .map(({ ordenacao: _ordenacao, ...item }) => item);
+}
+
+const COLUNAS_EXPORTACAO_MONITORIA = [
+  { chave: "codigo", titulo: "CODIGO AVALIACAO", largura: 18 },
+  { chave: "data_avaliacao", titulo: "DATA/HORA", largura: 22 },
+  { chave: "data_contato", titulo: "DATA ATENDIMENTO", largura: 22 },
+  { chave: "avaliado", titulo: "AVALIADO", largura: 28 },
+  { chave: "login", titulo: "LOGIN", largura: 18 },
+  { chave: "superior", titulo: "SUPERIOR", largura: 28 },
+  { chave: "cliente", titulo: "CLIENTE", largura: 22 },
+  { chave: "campanha", titulo: "CAMPANHA", largura: 26 },
+  { chave: "departamento", titulo: "DEPARTAMENTO", largura: 22 },
+  { chave: "avaliador", titulo: "AVALIADOR", largura: 28 },
+  { chave: "tipo_avaliacao", titulo: "TIPO DE AVALIACAO", largura: 18 },
+  { chave: "origem", titulo: "ORIGEM", largura: 12 },
+  { chave: "cod_gravacao", titulo: "CODIGO DA GRAVACAO", largura: 26 },
+  { chave: "formulario", titulo: "FORMULARIO", largura: 34 },
+  { chave: "secao", titulo: "SECAO", largura: 28 },
+  { chave: "criterio", titulo: "CRITERIO", largura: 42 },
+  { chave: "peso", titulo: "PESO", tipo: "numero", largura: 10 },
+  { chave: "resposta", titulo: "RESPOSTA", largura: 18 },
+  { chave: "detalhe_resposta", titulo: "DETALHE_RESPOSTA", largura: 48 },
+  { chave: "status_avaliacao", titulo: "STATUS AVALIACAO", largura: 20 },
+  { chave: "data_inicio_setor", titulo: "DATA DE INICIO NO SETOR", largura: 22 },
+  { chave: "obs_avaliador", titulo: "OBS_AVALIADOR", largura: 48 },
+  { chave: "nota", titulo: "NOTA", tipo: "numero", largura: 10 },
+  { chave: "nota_sem_ncg", titulo: "NOTA SEM NCG", tipo: "numero", largura: 14 },
+  { chave: "tipo_resposta", titulo: "TIPO DE RESPOSTA", largura: 20 },
+  { chave: "classificacao_eliminatoria", titulo: "CLASSIFICACAO ELIMINATORIA", largura: 26 },
+  { chave: "codigo_criterio", titulo: "CODIGO_CRITERIO", largura: 18 },
+  { chave: "periodo", titulo: "PERIODO", largura: 14 },
+  { chave: "matricula", titulo: "MATRICULA", largura: 18 },
+  { chave: "tipo_calculo", titulo: "TIPO DE CALCULO", largura: 18 },
+  { chave: "data_feedback", titulo: "DATA FEEDBACK", largura: 22 },
+  { chave: "tempo_feedback_aberto", titulo: "TEMPO_FEEDBACK_ABERTO", tipo: "numero", largura: 22 },
+  { chave: "peso_calculado", titulo: "PESO_CALCULADO", tipo: "numero", largura: 16 },
+  { chave: "telefone", titulo: "TELEFONE", largura: 18 },
+  { chave: "data_prazo_feedback", titulo: "DATA PRAZO DE FEEDBACK", largura: 22 },
+  { chave: "email_avaliado", titulo: "EMAIL DO AVALIADO", largura: 30 },
+  { chave: "pendente_assinatura", titulo: "PENDENTE DE ASSINATURA", largura: 24 },
+  { chave: "dias_ate_assinatura", titulo: "DIAS ATE ASSINATURA", tipo: "numero", largura: 20 },
+  { chave: "dias_pendentes_assinatura", titulo: "DIAS PENDENTES ATE ASSINATURA", tipo: "numero", largura: 28 },
+  { chave: "dados_cabecalho", titulo: "DADOS CABECALHO", largura: 34 },
+  { chave: "ia_modelo", titulo: "CABECALHO: ai_model", largura: 22 },
+  { chave: "ia_confianca", titulo: "CABECALHO: ai_confidence", tipo: "numero", largura: 24 },
+  { chave: "ia_resumo", titulo: "CABECALHO: resumo_ia", largura: 48 },
+  { chave: "ia_observacoes", titulo: "CABECALHO: observacoes_ia", largura: 48 },
+  { chave: "ia_evidencia", titulo: "IA: evidencia", largura: 48 },
+  { chave: "ia_raciocinio", titulo: "IA: raciocinio", largura: 48 },
+  { chave: "ia_confianca_criterio", titulo: "IA: confianca_criterio", tipo: "numero", largura: 24 },
+  { chave: "cpf_cliente", titulo: "CABECALHO: CPF", largura: 18 },
+];
+
+function valorFiltro(valor) {
+  if (valor == null || valor === "" || valor === "todos") return null;
+  return String(valor).trim();
+}
+
+function statusExportacao(status) {
+  return STATUS_FEEDBACK[status] || status || "";
+}
+
+function tipoAvaliacaoExportacao(categoria) {
+  return formatarCategoria(categoria);
+}
+
+function respostaExportacao(status) {
+  return STATUS_CRITERIO[status] || status || "";
+}
+
+function tipoRespostaExportacao(status) {
+  if (status === "nao_conforme") return "NAO CONFORME";
+  if (status === "nao_aplicavel") return "NAO APLICAVEL";
+  if (status === "conforme") return "CONFORME";
+  return status || "";
+}
+
+function booleanoExportacao(valor) {
+  return Number(valor || 0) ? "Sim" : "Nao";
+}
+
+function diasEntre(inicio, fim) {
+  const a = Date.parse(String(inicio || "").replace(" ", "T"));
+  const b = Date.parse(String(fim || "").replace(" ", "T"));
+  if (!Number.isFinite(a) || !Number.isFinite(b)) return null;
+  return Math.max(0, Math.floor((b - a) / 86400000));
+}
+
+function periodoExportacao(valor) {
+  const data = new Date(String(valor || "").replace(" ", "T"));
+  if (Number.isNaN(data.getTime())) return "";
+  return `${String(data.getMonth() + 1).padStart(2, "0")}/${data.getFullYear()}`;
+}
+
+function montarFiltrosExportacao(filtros = {}, user = null) {
+  const condicoes = ["a.excluida_em IS NULL"];
+  const params = {};
+  let indice = 0;
+  const add = (sql, valor) => {
+    indice += 1;
+    const chave = `f${indice}`;
+    condicoes.push(sql.replace("?", `:${chave}`));
+    params[chave] = valor;
+  };
+
+  const operacao = valorFiltro(filtros.operacao);
+  if (operacao) add("cl.nome = ?", operacao);
+
+  const campanha = valorFiltro(filtros.campanha);
+  if (campanha) add("ca.nome = ?", campanha);
+
+  const avaliador = valorFiltro(filtros.avaliador);
+  if (avaliador) add("mo.name = ?", avaliador);
+
+  const avaliado = valorFiltro(filtros.avaliado);
+  if (avaliado) add("av.name = ?", avaliado);
+
+  const categoria = valorFiltro(filtros.categoria);
+  if (categoria) {
+    const normalizada = categoria
+      .normalize("NFD")
+      .replace(/\p{Diacritic}/gu, "")
+      .toLowerCase();
+    if (normalizada.includes("diagnostico")) {
+      add("a.categoria = ?", "diagnostico");
+    } else if (normalizada.includes("padrao")) {
+      add("a.categoria = ?", "padrao");
+    } else {
+      add("COALESCE(fc.nome, a.categoria) = ?", categoria);
+    }
+  }
+
+  const departamento = valorFiltro(filtros.departamento);
+  if (departamento) add("cl.nome = ?", departamento);
+
+  const de = valorFiltro(filtros.de);
+  if (de) {
+    condicoes.push("a.data_avaliacao >= :dataInicio");
+    params.dataInicio = `${de} 00:00:00`;
+  }
+
+  const ate = valorFiltro(filtros.ate);
+  if (ate) {
+    condicoes.push("a.data_avaliacao <= :dataFim");
+    params.dataFim = `${ate} 23:59:59`;
+  }
+
+  const id = valorFiltro(filtros.id);
+  if (id) {
+    condicoes.push("REPLACE(LOWER(a.codigo), 'qa-', '') LIKE :codigo");
+    params.codigo = `%${id.toLowerCase().replace(/^qa-?/, "")}%`;
+  }
+
+  const performance = valorFiltro(filtros.performance);
+  if (performance === "excelente") condicoes.push("a.score >= 90");
+  if (performance === "bom") condicoes.push("a.score >= 80 AND a.score < 90");
+  if (performance === "atencao") condicoes.push("a.score >= 70 AND a.score < 80");
+  if (performance === "critico") condicoes.push("(a.score < 70 OR a.score IS NULL)");
+
+  const busca = valorFiltro(filtros.busca);
+  if (busca) {
+    condicoes.push(`(
+      a.codigo LIKE :busca OR f.nome LIKE :busca OR av.name LIKE :busca OR mo.name LIKE :busca OR
+      su.name LIKE :busca OR cl.nome LIKE :busca OR ca.nome LIKE :busca OR a.cod_gravacao LIKE :busca OR
+      a.origem LIKE :busca
+    )`);
+    params.busca = paraLike(busca);
+  }
+
+  if (user?.role === "operador") {
+    condicoes.push("a.avaliado_id = :usuarioLogadoId");
+    params.usuarioLogadoId = user.id;
+  }
+
+  return { where: condicoes.join("\n       AND "), params };
+}
+
+export async function exportarAvaliacoesDetalhadas({ filtros = {}, limit = 50000, user = null } = {}) {
+  const [colunasAvaliacao, colunasResposta, colunasFormulario] = await Promise.all([
+    colunasOpcionais("avaliacoes"),
+    colunasOpcionais("avaliacao_respostas"),
+    colunasOpcionais("formularios"),
+  ]);
+  const temAvaliacao = (coluna) => colunasAvaliacao.size === 0 || colunasAvaliacao.has(coluna);
+  const temResposta = (coluna) => colunasResposta.size === 0 || colunasResposta.has(coluna);
+  const temFormulario = (coluna) => colunasFormulario.size === 0 || colunasFormulario.has(coluna);
+  const { where, params } = montarFiltrosExportacao(filtros, user);
+
+  const rows = await query(
+    `SELECT
+        a.codigo,
+        a.cod_gravacao,
+        ${temAvaliacao("cpf_cliente") ? "a.cpf_cliente" : "NULL AS cpf_cliente"},
+        a.categoria,
+        ${temAvaliacao("origem") ? "a.origem" : "'humana' AS origem"},
+        ${temAvaliacao("ia_modelo") ? "a.ia_modelo" : "NULL AS ia_modelo"},
+        ${temAvaliacao("ia_confianca") ? "a.ia_confianca" : "NULL AS ia_confianca"},
+        ${temAvaliacao("ia_resumo") ? "a.ia_resumo" : "NULL AS ia_resumo"},
+        ${temAvaliacao("ia_observacoes") ? "a.ia_observacoes" : "NULL AS ia_observacoes"},
+        a.score,
+        a.zerada,
+        a.data_contato,
+        a.data_avaliacao,
+        ${temAvaliacao("prazo_feedback") ? "a.prazo_feedback" : "NULL AS prazo_feedback"},
+        a.status_feedback,
+        cl.nome AS cliente,
+        ca.nome AS campanha,
+        f.nome AS formulario,
+        ${temFormulario("tipo_calculo") ? "f.tipo_calculo" : "NULL AS tipo_calculo"},
+        fc.nome AS categoria_nome,
+        av.name AS avaliado,
+        av.email AS email_avaliado,
+        av.login,
+        av.matricula,
+        av.external_code,
+        av.data_inicio_produto,
+        mo.name AS avaliador,
+        su.name AS superior,
+        cg.nome AS departamento,
+        fb.aplicado_em AS data_feedback,
+        fb.assinado_em,
+        fb.status AS feedback_status,
+        s.nome AS secao,
+        cr.id AS codigo_criterio,
+        cr.nome AS criterio,
+        cr.eliminatoria,
+        cr.peso_pts,
+        r.status,
+        r.resposta,
+        r.peso_aplicado,
+        r.observacao_monitor,
+        ${temResposta("ia_evidencia") ? "r.ia_evidencia" : "NULL AS ia_evidencia"},
+        ${temResposta("ia_raciocinio") ? "r.ia_raciocinio" : "NULL AS ia_raciocinio"},
+        ${temResposta("ia_confianca") ? "r.ia_confianca" : "NULL AS ia_confianca_criterio"},
+        (
+          SELECT ROUND(
+            CASE
+              WHEN SUM(CASE WHEN cr2.eliminatoria = 0 AND r2.status <> 'nao_aplicavel' THEN cr2.peso_pts ELSE 0 END) = 0
+              THEN 0
+              ELSE 100 * SUM(CASE WHEN cr2.eliminatoria = 0 AND r2.status = 'conforme' THEN cr2.peso_pts ELSE 0 END)
+                / SUM(CASE WHEN cr2.eliminatoria = 0 AND r2.status <> 'nao_aplicavel' THEN cr2.peso_pts ELSE 0 END)
+            END,
+            2
+          )
+          FROM avaliacao_respostas r2
+          JOIN formulario_criterios cr2 ON cr2.id = r2.criterio_id
+          WHERE r2.avaliacao_id = a.id
+        ) AS nota_sem_ncg
+       FROM avaliacao_respostas r
+       JOIN avaliacoes a ON a.id = r.avaliacao_id
+       JOIN clientes cl ON cl.id = a.cliente_id
+       LEFT JOIN campanhas ca ON ca.id = a.campanha_id
+       JOIN formularios f ON f.id = a.formulario_id
+       LEFT JOIN formulario_categorias fc ON fc.id = a.categoria_id
+       JOIN users av ON av.id = a.avaliado_id
+       JOIN users mo ON mo.id = a.avaliador_id
+       LEFT JOIN users su ON su.id = a.supervisor_id
+       LEFT JOIN cargos cg ON cg.id = av.cargo_id
+       LEFT JOIN feedbacks fb ON fb.avaliacao_id = a.id
+       JOIN formulario_criterios cr ON cr.id = r.criterio_id
+       JOIN formulario_secoes s ON s.id = cr.secao_id
+      WHERE ${where}
+      ORDER BY a.data_avaliacao DESC, a.id DESC, s.posicao, cr.posicao
+      LIMIT :limit`,
+    { ...params, limit },
+  );
+
+  return {
+    colunas: COLUNAS_EXPORTACAO_MONITORIA,
+    linhas: rows.map((row) => {
+      const dataFeedback = row.data_feedback || null;
+      const pendenteAssinatura = row.feedback_status === "assinatura" && !row.assinado_em;
+      return {
+        codigo: row.codigo,
+        data_avaliacao: row.data_avaliacao,
+        data_contato: row.data_contato,
+        avaliado: row.avaliado,
+        login: row.login || row.external_code || "",
+        superior: row.superior || "",
+        cliente: row.cliente,
+        campanha: row.campanha || "",
+        departamento: row.departamento || row.cliente,
+        avaliador: row.avaliador,
+        tipo_avaliacao: tipoAvaliacaoExportacao(row.categoria),
+        origem: row.origem,
+        cod_gravacao: row.cod_gravacao || "",
+        formulario: row.formulario,
+        secao: row.secao,
+        criterio: row.criterio,
+        peso: row.peso_pts,
+        resposta: row.resposta || respostaExportacao(row.status),
+        detalhe_resposta: row.ia_evidencia || row.observacao_monitor || "",
+        status_avaliacao: statusExportacao(row.status_feedback),
+        data_inicio_setor: row.data_inicio_produto || "",
+        obs_avaliador: row.observacao_monitor || "",
+        nota: row.score,
+        nota_sem_ncg: row.nota_sem_ncg,
+        tipo_resposta: tipoRespostaExportacao(row.status),
+        classificacao_eliminatoria: booleanoExportacao(row.eliminatoria),
+        codigo_criterio: String(row.codigo_criterio),
+        periodo: periodoExportacao(row.data_avaliacao),
+        matricula: row.matricula || row.external_code || "",
+        tipo_calculo: row.tipo_calculo || "",
+        data_feedback: dataFeedback || "",
+        tempo_feedback_aberto: dataFeedback ? diasEntre(row.data_avaliacao, dataFeedback) : "",
+        peso_calculado: row.peso_aplicado,
+        telefone: "",
+        data_prazo_feedback: row.prazo_feedback || "",
+        email_avaliado: row.email_avaliado || "",
+        pendente_assinatura: pendenteAssinatura ? "Sim" : "Nao",
+        dias_ate_assinatura: row.assinado_em ? diasEntre(row.data_avaliacao, row.assinado_em) : "",
+        dias_pendentes_assinatura: pendenteAssinatura ? diasEntre(row.data_avaliacao, new Date().toISOString()) : "",
+        dados_cabecalho: row.cpf_cliente ? `CPF: ${row.cpf_cliente}` : "",
+        ia_modelo: row.ia_modelo || "",
+        ia_confianca: row.ia_confianca,
+        ia_resumo: row.ia_resumo || "",
+        ia_observacoes: row.ia_observacoes || "",
+        ia_evidencia: row.ia_evidencia || "",
+        ia_raciocinio: row.ia_raciocinio || "",
+        ia_confianca_criterio: row.ia_confianca_criterio,
+        cpf_cliente: row.cpf_cliente || "",
+      };
+    }),
+  };
 }
 
 // Colunas da migration 004. Ausentes num banco antigo: cada uma entra no
@@ -489,7 +820,7 @@ async function arquivoDaAvaliacao(ficha) {
   }
 }
 
-export async function obterAvaliacao(codigo) {
+export async function obterAvaliacao(codigo, { user = null } = {}) {
   const [colunasFicha, colunasResposta] = await Promise.all([
     colunasOpcionais("avaliacoes"),
     colunasOpcionais("avaliacao_respostas"),
@@ -542,8 +873,9 @@ export async function obterAvaliacao(codigo) {
        JOIN users mo ON mo.id = a.avaliador_id
        LEFT JOIN users su ON su.id = a.supervisor_id
       WHERE a.codigo = :codigo
+        ${user?.role === "operador" ? "AND a.avaliado_id = :userId" : ""}
       LIMIT 1`,
-    { codigo },
+    { codigo, ...(user?.role === "operador" ? { userId: user.id } : {}) },
   );
 
   if (!ficha) throw notFound("Avaliação não encontrada.");
@@ -718,7 +1050,7 @@ export async function obterAvaliacao(codigo) {
 }
 
 /** Ponteiro do áudio de uma avaliação, para a rota que serve o arquivo. */
-export async function obterArquivoAvaliacao(codigo) {
+export async function obterArquivoAvaliacao(codigo, { user = null } = {}) {
   const colunas = await colunasOpcionais("avaliacoes");
   const temGravacao = colunas.size === 0 || colunas.has("gravacao_id");
 
@@ -727,8 +1059,9 @@ export async function obterArquivoAvaliacao(codigo) {
             ${temGravacao ? "a.gravacao_id" : "NULL AS gravacao_id"}
        FROM avaliacoes a
       WHERE a.codigo = :codigo
+        ${user?.role === "operador" ? "AND a.avaliado_id = :userId" : ""}
       LIMIT 1`,
-    { codigo },
+    { codigo, ...(user?.role === "operador" ? { userId: user.id } : {}) },
   );
 
   if (!ficha) throw notFound("Avaliação não encontrada.");
@@ -745,7 +1078,7 @@ export async function obterArquivoAvaliacao(codigo) {
  * para o anexo de outra ficha não devolve nada. Sem esse vínculo no WHERE,
  * qualquer usuário autenticado baixaria anexo de qualquer avaliação.
  */
-export async function obterAnexoAvaliacao(codigo, anexoId) {
+export async function obterAnexoAvaliacao(codigo, anexoId, { user = null } = {}) {
   let anexo;
   try {
     anexo = await one(
@@ -755,8 +1088,9 @@ export async function obterAnexoAvaliacao(codigo, anexoId) {
          JOIN avaliacoes a ON a.id = r.avaliacao_id
         WHERE x.id = :anexoId
           AND a.codigo = :codigo
+          ${user?.role === "operador" ? "AND a.avaliado_id = :userId" : ""}
         LIMIT 1`,
-      { anexoId, codigo },
+      { anexoId, codigo, ...(user?.role === "operador" ? { userId: user.id } : {}) },
     );
   } catch (error) {
     if (isMissingSchemaError(error)) throw notFound("Anexo não encontrado.");

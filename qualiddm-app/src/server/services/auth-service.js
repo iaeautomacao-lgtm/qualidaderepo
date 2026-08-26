@@ -3,13 +3,13 @@ import { findUserByEmail } from "../repositories/users";
 import { verifyPassword } from "../security/passwords";
 import { createSession } from "../security/sessions";
 
-export async function login({ email, password }) {
+export async function login({ email, password, ip = null, userAgent = null }) {
   const user = await findUserByEmail(email);
   if (!user || !user.active || !verifyPassword(password, user.password_hash)) {
     throw unauthorized("E-mail ou senha inválidos.");
   }
 
-  const session = await createSession(user.id);
+  const session = await createSession(user.id, { ip, userAgent });
   return {
     session,
     user: {

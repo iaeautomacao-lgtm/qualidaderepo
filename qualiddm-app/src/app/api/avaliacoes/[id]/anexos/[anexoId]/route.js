@@ -10,14 +10,14 @@ import { resolverCaminhoStorage, respostaArquivo } from "@/server/services/arqui
 // anexo de outra ficha.
 export async function GET(request, { params }) {
   return route(request, async () => {
-    await requireSession();
+    const session = await requireSession();
     const { id, anexoId } = await params;
 
     if (!/^\d{1,20}$/.test(anexoId) || anexoId === "0") {
       throw badRequest("Identificador de anexo inválido.");
     }
 
-    const anexo = await obterAnexoAvaliacao(assertSafeId(id, "codigo"), anexoId);
+    const anexo = await obterAnexoAvaliacao(assertSafeId(id, "codigo"), anexoId, { user: session.user });
 
     return respostaArquivo(request, {
       caminhoAbsoluto: resolverCaminhoStorage(anexo.caminho),

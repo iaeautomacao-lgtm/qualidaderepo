@@ -41,6 +41,10 @@ import styles from "./page.module.css";
 /* Falhas primeiro. A ordem anterior comecava em "Todos", e numa avaliacao com
    quatro nao conformidades entre dezessete criterios isso faz o supervisor
    procurar o problema em vez de receber ele. */
+/* Canal declarado no upload (migration 010). O valor cru do banco é 'chat' e
+   'telefone'; a tela fala como a operação fala. */
+const ROTULO_CANAL = { chat: "Chat", telefone: "Ligação" };
+
 const FILTROS = [
   { id: "nao_conforme", rotulo: "Não conformes", alerta: true },
   { id: "todos", rotulo: "Todos" },
@@ -225,6 +229,66 @@ export default function AvaliacaoIaPage() {
      usuario separada do default evita que a lista pule quando os dados chegam. */
   const filtroEfetivo = filtro ?? (resumo.naoConformes > 0 ? "nao_conforme" : "todos");
 
+  /* Campos do atendimento.
+     Só entra o que EXISTE. A ficha de monitoria mostra Categoria, Data do
+     Contato, Prazo de Feedback e Prazo de Contestação; análise livre não tem
+     nenhum dos quatro — categoria e prazos nascem da monitoria, e a data do
+     contato não vem no upload de um arquivo. Preencher com "—" só para igualar
+     o desenho faria a tela prometer campos que ninguém alimentou. */
+  const camposDoAtendimento = [
+    { rotulo: "Cliente", valor: ou(gravacao.cliente) },
+    { rotulo: "Campanha", valor: ou(gravacao.campanha) },
+    { rotulo: "Canal", valor: ou(ROTULO_CANAL[gravacao.canal] ?? gravacao.canal) },
+    { rotulo: "Cód. da análise", valor: String(codigo) },
+    { rotulo: "Duração do atendimento", valor: ou(duracao) },
+    { rotulo: "Formulário", valor: ou(analise.formulario) },
+    { rotulo: "Arquivo", valor: ou(gravacao.arquivo) },
+    { rotulo: "Enviado em", valor: ou(gravacao.enviadaEm) },
+    { rotulo: "Analisado em", valor: ou(gravacao.transcricao?.geradaEm) },
+    {
+      // Provedor e modelo juntos: "Gemini" sozinho não permite reproduzir a
+      // análise depois, e é o par que identifica a versão que avaliou.
+      rotulo: "Motor da análise",
+      valor: [gravacao.transcricao?.provedor, gravacao.transcricao?.modelo]
+        .filter(Boolean)
+        .join(" · ") || ou(null),
+    },
+    { rotulo: "Confiança da análise", valor: percentual(confianca) || ou(null) },
+    { rotulo: "Idioma", valor: ou(gravacao.transcricao?.idioma) },
+  ];
+
+  /* Três blocos de pessoas, como na ficha de monitoria.
+     O avaliador é o Acordito, e isso é dito com o modelo ao lado: a nota saiu
+     de um modelo, não de uma pessoa, e quem lê o feedback precisa saber disso.
+     O superior vem do organograma de HOJE (`users.supervisor_id`) — análise
+     livre não tem monitoria, então não existe retrato do superior na data. */
+  const pessoasDaAnalise = [
+    {
+      titulo: "Avaliado",
+      nome: gravacao.pessoas?.avaliado?.nome ?? null,
+      email: gravacao.pessoas?.avaliado?.email ?? null,
+      ausente: "Operador não informado no upload.",
+    },
+    {
+      titulo: "Avaliador",
+      nome: "Acordito",
+      email: null,
+      nota: gravacao.transcricao?.modelo
+        ? `Análise automática · ${gravacao.transcricao.modelo}`
+        : "Análise automática",
+      ausente: "—",
+    },
+    {
+      titulo: "Superior",
+      nome: gravacao.pessoas?.supervisor?.nome ?? null,
+      email: gravacao.pessoas?.supervisor?.email ?? null,
+      nota: gravacao.pessoas?.supervisor?.nome ? "Superior atual no organograma" : null,
+      ausente: gravacao.pessoas?.avaliado?.nome
+        ? "Sem superior cadastrado para esta pessoa."
+        : "Depende do avaliado, que não foi informado.",
+    },
+  ];
+
   /* Pontos por secao: obtido, total e perdido. `impactoDaNota` ja calcula isso
      com a mesma regra da nota -- eliminatorio e nao aplicavel fora da base. */
   /* Sem `useMemo`: este ponto do componente esta DEPOIS dos returns de
@@ -388,6 +452,62 @@ export default function AvaliacaoIaPage() {
             ))}
           </dl>
         </header>
+
+        {/* Dados do atendimento, recolhível.
+            Recolhível porque foi pedido: com o cabeçalho aberto em tela menor,
+            as respostas do formulário ficam achatadas e obrigam a rolar para ler
+            o que importa. Aberto por padrão — quem abre a análise pela primeira
+            vez precisa saber de que atendimento se trata.
+
+            `<details>` nativo e não estado em React: assim funciona antes da
+            hidratação, e Ctrl+F do navegador encontra texto dentro do bloco
+            fechado, o que um bloco desmontado não permitiria. */}
+        <details className={`card pad ${styles.dadosAtendimento}`} open>
+          <summary>
+            <span className={styles.dadosTitulo}>
+              <Icon name="info" size={16} />
+              <strong>Dados do atendimento</strong>
+            </span>
+            <span className={styles.dadosRecolher}>
+              <span className={styles.dadosRecolherTexto} />
+              <Icon name="chevronDown" size={16} />
+            </span>
+          </summary>
+
+          <div className={styles.dadosCorpo}>
+            <dl className={styles.dadosGrade}>
+              {camposDoAtendimento.map((campo) => (
+                <div key={campo.rotulo}>
+                  <dt>{campo.rotulo}</dt>
+                  <dd>{campo.valor}</dd>
+                </div>
+              ))}
+            </dl>
+
+            {/* Pessoas em blocos, e não como mais uma linha da grade: nome com
+                e-mail ao lado é um par que se lê junto, e virar duas células
+                soltas obrigaria a conferir de quem é qual e-mail. */}
+            <div className={styles.pessoas}>
+              {pessoasDaAnalise.map((bloco) => (
+                <div className={styles.pessoa} key={bloco.titulo}>
+                  <p className={styles.pessoaTitulo}>{bloco.titulo}</p>
+                  {bloco.nome ? (
+                    <>
+                      <p className={styles.pessoaNome}>{bloco.nome}</p>
+                      {bloco.email ? (
+                        <p className={styles.pessoaEmail}>{bloco.email}</p>
+                      ) : null}
+                      {bloco.nota ? <p className={styles.pessoaNota}>{bloco.nota}</p> : null}
+                    </>
+                  ) : (
+                    <p className={styles.pessoaVazia}>{bloco.ausente}</p>
+                  )}
+                </div>
+              ))}
+            </div>
+          </div>
+        </details>
+
 
         {/* Por que o zero, com nome e número.
             A versão anterior dizia "um critério eliminatório ficou não conforme"
@@ -563,6 +683,34 @@ export default function AvaliacaoIaPage() {
           />
         </section>
 
+        {/* Resumo de conformidade: os quatro números que fecham a conta.
+            Existia como frase corrida embaixo de "Critérios avaliados"; virou
+            bloco próprio porque é o que se confere primeiro e é o que precisa
+            somar — 13 + 0 + 4 = 17 é a verificação de que nada ficou de fora. */}
+        <section className={`card pad ${styles.conformidadeResumo}`} aria-labelledby="resumo-conformidade">
+          <h2 className="sr-only" id="resumo-conformidade">
+            Resumo de conformidade
+          </h2>
+          <dl className={styles.conformidadeGrade}>
+            <div data-tom="success">
+              <dd>{resumo.conformes}</dd>
+              <dt>Conformes</dt>
+            </div>
+            <div data-tom={resumo.naoConformes > 0 ? "danger" : undefined}>
+              <dd>{resumo.naoConformes}</dd>
+              <dt>Não conformes</dt>
+            </div>
+            <div data-tom={resumo.naoAplicaveis > 0 ? "warning" : undefined}>
+              <dd>{resumo.naoAplicaveis}</dd>
+              <dt>Não aplicáveis</dt>
+            </div>
+            <div>
+              <dd>{resumo.total}</dd>
+              <dt>Total de critérios</dt>
+            </div>
+          </dl>
+        </section>
+
         <div className={styles.corpo}>
           <div className={styles.principal}>
             <section className="card pad">
@@ -718,18 +866,8 @@ export default function AvaliacaoIaPage() {
                                 />
                               </li>
                             ) : (
-                              /* Conforme e não aplicável em linha compacta: dez
-                                 cartões com borda, ícone, peso, selo e seta para
-                                 itens que não pedem ação viram ruído em volta dos
-                                 quatro que pedem. */
                               <li key={criterio.id}>
-                                <div className={styles.criterioOk} data-status={criterio.statusChave}>
-                                  <Icon name={ICONE_STATUS[criterio.statusChave]} size={15} />
-                                  <span className={styles.criterioOkNome}>{criterio.nome}</span>
-                                  <span className={styles.criterioOkPontos}>
-                                    {pontuacaoDoCriterio(criterio)}
-                                  </span>
-                                </div>
+                                <CriterioDetalhado criterio={criterio} />
                               </li>
                             ),
                           )}
@@ -880,6 +1018,63 @@ function pontuacaoDoCriterio(criterio) {
  * Responde as três perguntas na ordem em que quem revisa faz:
  * por que falhou -> qual a evidência -> onde no áudio -> o que isso custou.
  */
+function CriterioDetalhado({ criterio }) {
+  const confianca = percentual(criterio.confianca);
+  const temDetalhe = Boolean(criterio.enunciado || criterio.raciocinio || criterio.evidencia);
+
+  return (
+    <details className={styles.criterio} data-status={criterio.statusChave} open={criterio.statusChave !== "conforme"}>
+      <summary>
+        <span className={styles.criterioMarca} aria-hidden="true">
+          <Icon name={ICONE_STATUS[criterio.statusChave]} size={15} />
+        </span>
+        <span className={styles.criterioNome}>{criterio.nome}</span>
+        <span className={styles.criterioMeta}>
+          <span className={`chip ${criterio.statusChave === "conforme" ? "success" : "warning"}`}>
+            {criterio.statusRotulo}
+          </span>
+          <span className={styles.criterioPeso}>{pontuacaoDoCriterio(criterio)}</span>
+        </span>
+        <span className={styles.criterioSeta} aria-hidden="true">
+          <Icon name="chevronDown" size={16} />
+        </span>
+      </summary>
+
+      <div className={styles.criterioCorpo}>
+        {criterio.enunciado ? (
+          <p className={styles.criterioEnunciado}>{criterio.enunciado}</p>
+        ) : null}
+
+        {criterio.raciocinio ? (
+          <div className={styles.bloco} data-tom="raciocinio">
+            <p className={styles.blocoTitulo}>
+              <Icon name="brain" size={14} />
+              Leitura da IA
+            </p>
+            <p>{criterio.raciocinio}</p>
+          </div>
+        ) : null}
+
+        {criterio.evidencia ? (
+          <div className={styles.bloco} data-tom="evidencia">
+            <p className={styles.blocoTitulo}>
+              <Icon name="quote" size={14} />
+              EvidÃªncia na transcriÃ§Ã£o
+              {criterio.momento ? <span className={styles.momentoSelo}>{criterio.momento.rotulo}</span> : null}
+              {confianca ? <span className={styles.confianca}>ConfianÃ§a {confianca}</span> : null}
+            </p>
+            <blockquote>{criterio.evidencia}</blockquote>
+          </div>
+        ) : null}
+
+        {!temDetalhe ? (
+          <p className="subtle-text">Sem evidÃªncia ou justificativa registrada para este critÃ©rio.</p>
+        ) : null}
+      </div>
+    </details>
+  );
+}
+
 function CriterioFalha({ criterio, gravacaoId, temAudio, onOuvir }) {
   const confianca = percentual(criterio.confianca);
 

@@ -95,19 +95,25 @@ const menu = [
   },
 ];
 
+const HREFS_OPERADOR = new Set(["/avaliacoes"]);
+
 export default function Sidebar({ active = "Dashboard", open = false, usuario = null, onNavigate }) {
   const pathname = usePathname();
   const [aberto, setAberto] = useState(null);
+  const menuVisivel = useMemo(() => {
+    if (usuario?.role !== "operador") return menu;
+    return menu.filter((item) => HREFS_OPERADOR.has(item.href));
+  }, [usuario?.role]);
 
   const grupoDaRota = useMemo(
     () =>
-      menu.find(
+      menuVisivel.find(
         (item) =>
           Array.isArray(item.filhos) &&
           item.filhos.length > 0 &&
           (pathname === item.href || pathname.startsWith(`${item.href}/`) || item.filhos.some((filho) => pathname === filho.href)),
       )?.label ?? null,
-    [pathname],
+    [menuVisivel, pathname],
   );
 
   function alternar(label) {
@@ -140,7 +146,7 @@ export default function Sidebar({ active = "Dashboard", open = false, usuario = 
 
       <nav aria-label="Navegação principal">
         <ul className="nav-items">
-          {menu.map((item) => {
+          {menuVisivel.map((item) => {
             const temFilhos = Array.isArray(item.filhos) && item.filhos.length > 0;
             const expandido = (grupoDaRota || aberto) === item.label;
             const atual = active === item.label || pathname === item.href || pathname.startsWith(`${item.href}/`);

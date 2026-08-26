@@ -225,6 +225,22 @@ export async function listarSessoes({ limit = 50, offset = 0, apenasAtivas = tru
 }
 
 /** Trilha de auditoria paginada (aba Usuários > Trilha de Auditoria). */
+export async function revogarSessao({ id, revogadaPorId }) {
+  try {
+    const resultado = await query(
+      "UPDATE user_sessions SET revogada_em = CURRENT_TIMESTAMP, revogada_por_id = :revogadaPorId WHERE id = :id AND revogada_em IS NULL",
+      { id, revogadaPorId },
+    );
+
+    return { id: String(id), revogada: Number(resultado?.affectedRows || 0) > 0 };
+  } catch (error) {
+    if (!isMissingSchemaError(error)) throw error;
+
+    await query("DELETE FROM user_sessions WHERE id = :id", { id });
+    return { id: String(id), revogada: true };
+  }
+}
+
 export async function listarAuditoria({ filtros = {}, limit = 50, offset = 0 } = {}) {
   const condicoes = [];
   const params = {};

@@ -9,9 +9,9 @@ import { resolverCaminhoStorage, respostaArquivo } from "@/server/services/arqui
 // aceita dois nomes diferentes de parâmetro no mesmo nível de pasta.
 async function servir(request, params, apenasCabecalhos) {
   return route(request, async () => {
-    await requireSession();
+    const session = await requireSession();
     const { id } = await params;
-    const arquivo = await obterArquivoAvaliacao(assertSafeId(id, "codigo"));
+    const arquivo = await obterArquivoAvaliacao(assertSafeId(id, "codigo"), { user: session.user });
 
     return respostaArquivo(request, {
       caminhoAbsoluto: resolverCaminhoStorage(arquivo.caminho),

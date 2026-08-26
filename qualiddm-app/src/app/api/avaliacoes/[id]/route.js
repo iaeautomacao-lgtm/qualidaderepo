@@ -6,9 +6,9 @@ import { registrarAuditoria } from "@/server/repositories/administracao";
 
 export async function GET(request, { params }) {
   return route(request, async () => {
-    await requireSession();
+    const session = await requireSession();
     const { id } = await params;
-    return ok({ avaliacao: await obterAvaliacao(assertSafeId(id)) });
+    return ok({ avaliacao: await obterAvaliacao(assertSafeId(id), { user: session.user }) });
   });
 }
 

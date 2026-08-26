@@ -47,7 +47,9 @@ export async function POST(request) {
       novaSenha: senha(corpo.novaSenha, "novaSenha", config.auth.senhaMinima),
     });
 
-    if (session.token) await destroyOtherSessions(session.user.id, session.token);
+    if (session.token) {
+      await destroyOtherSessions(session.user.id, session.token, { revogadaPorId: session.user.id });
+    }
 
     await registrarAuditoria({
       userId: session.user.id,

@@ -8,6 +8,7 @@ import { one, query } from "../db";
    a ela derrube TODO login por coluna inexistente. Memoizado: e uma pergunta
    sobre o schema, nao sobre a requisicao. */
 let temTrocarSenha = null;
+let colunasSessoes = null;
 
 async function colunaTrocarSenha() {
   if (temTrocarSenha === null) {
@@ -16,6 +17,15 @@ async function colunaTrocarSenha() {
       .catch(() => false);
   }
   return temTrocarSenha;
+}
+
+async function colunasUserSessions() {
+  if (colunasSessoes === null) {
+    colunasSessoes = query("SHOW COLUMNS FROM user_sessions")
+      .then((rows) => new Set(rows.map((row) => row.Field)))
+      .catch(() => new Set());
+  }
+  return colunasSessoes;
 }
 
 function digest(token) {
@@ -28,24 +38,59 @@ export function sessionExpiresAt() {
   return expires;
 }
 
-export async function createSession(userId) {
+export async function createSession(userId, { ip = null, userAgent = null } = {}) {
   if (isProduction()) assertProductionConfig();
 
   const token = randomBytes(32).toString("base64url");
   const tokenHash = digest(token);
   const expiresAt = sessionExpiresAt();
+  const colunas = await colunasUserSessions();
+  const campos = ["user_id", "token_hash", "expires_at"];
+  const valores = [":userId", ":tokenHash", ":expiresAt"];
+  const params = { userId, tokenHash, expiresAt };
+
+  if (colunas.has("ip")) {
+    campos.push("ip");
+    valores.push(":ip");
+    params.ip = ip && String(ip).slice(0, 45);
+  }
+  if (colunas.has("user_agent")) {
+    campos.push("user_agent");
+    valores.push(":userAgent");
+    params.userAgent = userAgent && String(userAgent).slice(0, 300);
+  }
+  if (colunas.has("last_seen_at")) {
+    campos.push("last_seen_at");
+    valores.push("CURRENT_TIMESTAMP");
+  }
 
   await query(
-    `INSERT INTO user_sessions (user_id, token_hash, expires_at)
-     VALUES (:userId, :tokenHash, :expiresAt)`,
-    { userId, tokenHash, expiresAt }
+    `INSERT INTO user_sessions (${campos.join(", ")})
+     VALUES (${valores.join(", ")})`,
+    params
   );
 
   return { token, expiresAt };
 }
 
-export async function destroySession(token) {
+export async function destroySession(token, { revogadaPorId = null } = {}) {
   if (!token) return;
+  const colunas = await colunasUserSessions();
+  if (colunas.has("revogada_em")) {
+    await query(
+      `UPDATE user_sessions
+          SET revogada_em = CURRENT_TIMESTAMP
+              ${colunas.has("revogada_por_id") ? ", revogada_por_id = :revogadaPorId" : ""}
+        WHERE token_hash = :tokenHash
+          AND revogada_em IS NULL`,
+      {
+        tokenHash: digest(token),
+        ...(colunas.has("revogada_por_id") ? { revogadaPorId } : {}),
+      },
+    );
+    return;
+  }
+
   await query("DELETE FROM user_sessions WHERE token_hash = :tokenHash", {
     tokenHash: digest(token),
   });
@@ -58,7 +103,25 @@ export async function destroySession(token) {
  * logado com ela em outro lugar continuaria dentro. A sessão de quem trocou
  * fica de pé para não expulsar a própria pessoa da tela.
  */
-export async function destroyOtherSessions(userId, tokenAtual) {
+export async function destroyOtherSessions(userId, tokenAtual, { revogadaPorId = userId } = {}) {
+  const colunas = await colunasUserSessions();
+  if (colunas.has("revogada_em")) {
+    await query(
+      `UPDATE user_sessions
+          SET revogada_em = CURRENT_TIMESTAMP
+              ${colunas.has("revogada_por_id") ? ", revogada_por_id = :revogadaPorId" : ""}
+        WHERE user_id = :userId
+          AND token_hash <> :tokenHash
+          AND revogada_em IS NULL`,
+      {
+        userId,
+        tokenHash: digest(tokenAtual),
+        ...(colunas.has("revogada_por_id") ? { revogadaPorId } : {}),
+      },
+    );
+    return;
+  }
+
   await query(
     `DELETE FROM user_sessions
       WHERE user_id = :userId
@@ -117,22 +180,31 @@ export async function currentSession() {
   if (!token) return null;
 
   const temTrocar = await colunaTrocarSenha();
+  const colunas = await colunasUserSessions();
+  const tokenHash = digest(token);
 
   const session = await one(
-    `SELECT u.id, u.name, u.email, u.role
+    `SELECT s.id AS session_id, u.id, u.name, u.email, u.role
             ${temTrocar ? ", u.trocar_senha" : ""}
        FROM user_sessions s
        JOIN users u ON u.id = s.user_id
       WHERE s.token_hash = :tokenHash
         AND s.expires_at > CURRENT_TIMESTAMP
+        ${colunas.has("revogada_em") ? "AND s.revogada_em IS NULL" : ""}
         AND u.active = 1
       LIMIT 1`,
-    { tokenHash: digest(token) }
+    { tokenHash }
   );
 
   if (!session) return null;
 
-  const { trocar_senha: trocar, ...usuario } = session;
+  if (colunas.has("last_seen_at")) {
+    await query("UPDATE user_sessions SET last_seen_at = CURRENT_TIMESTAMP WHERE id = :id", {
+      id: session.session_id,
+    }).catch(() => {});
+  }
+
+  const { trocar_senha: trocar, session_id: _sessionId, ...usuario } = session;
   return { user: { ...usuario, trocarSenha: trocar === 1 }, token };
 }
 

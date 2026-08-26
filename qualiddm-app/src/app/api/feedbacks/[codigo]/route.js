@@ -1,6 +1,7 @@
 import { ok, route } from "@/server/http";
 import { requireSession } from "@/server/security/sessions";
 import { assertSafeId } from "@/server/validation";
+import { obterAvaliacao } from "@/server/repositories/avaliacoes";
 import {
   MIN_CARACTERES_COMENTARIO,
   listarComentariosDaAvaliacao,
@@ -12,9 +13,10 @@ import {
 // de uma vez — separar em dois endpoints só somaria um round-trip.
 export async function GET(request, { params }) {
   return route(request, async () => {
-    await requireSession();
+    const session = await requireSession();
     const { codigo } = await params;
     const id = assertSafeId(codigo, "codigo");
+    await obterAvaliacao(id, { user: session.user });
 
     const [edicoes, comentarios] = await Promise.all([
       listarEdicoesDaAvaliacao(id),

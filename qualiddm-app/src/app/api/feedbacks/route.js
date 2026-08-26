@@ -13,7 +13,7 @@ const ORDENACOES = ["data_avaliacao", "data_contato", "codigo", "cliente", "aval
 
 export async function GET(request) {
   return route(request, async () => {
-    await requireSession();
+    const session = await requireSession();
 
     const searchParams = new URL(request.url).searchParams;
     // O print da tela avisa "a tabela exibe as 200 monitorias mais recentes";
@@ -31,6 +31,9 @@ export async function GET(request) {
       dataFim: readDateParam(searchParams, "dataFim"),
       busca: readSearchParam(searchParams, "busca", 60),
     };
+    if (session.user.role === "operador") {
+      filtros.avaliadoId = String(session.user.id);
+    }
 
     const [resultado, configuracoes] = await Promise.all([
       listarFeedbacks({

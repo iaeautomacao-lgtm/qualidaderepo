@@ -144,6 +144,7 @@ export const USUARIOS = [
     icone: "activity",
     tom: "green",
     novo: true,
+    href: "/gestao/sessoes-presenca",
   },
   {
     id: "trilha-auditoria",

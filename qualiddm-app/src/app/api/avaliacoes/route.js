@@ -5,13 +5,13 @@ import { listarAvaliacoes, listarOpcoesAvaliacoes } from "@/server/repositories/
 
 export async function GET(request) {
   return route(request, async () => {
-    await requireSession();
+    const session = await requireSession();
     const searchParams = new URL(request.url).searchParams;
     const limit = readIntParam(searchParams, "limit", { default: 100, min: 1, max: 2000 });
     const offset = readIntParam(searchParams, "offset", { default: 0, min: 0, max: 100000 });
 
     const [avaliacoes, opcoes] = await Promise.all([
-      listarAvaliacoes({ limit, offset }),
+      listarAvaliacoes({ limit, offset, user: session.user }),
       listarOpcoesAvaliacoes(),
     ]);
 
