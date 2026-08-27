@@ -224,6 +224,31 @@ export async function listarAvaliacoes({ limit = 100, offset = 0, user = null } 
     .map(({ ordenacao: _ordenacao, ...item }) => item);
 }
 
+/* Export por AVALIACAO, no formato da planilha que o QualiTalk exportava.
+   As quinze primeiras colunas repetem aquele cabecalho na mesma ordem, para
+   quem ja tem planilha ou macro em cima dele nao precisar refazer nada.
+   AVALIADO e AVALIADOR vao no fim, e nao no meio: apendice preserva as quinze
+   primeiras posicoes, insercao no meio quebraria toda formula por indice. */
+const COLUNAS_EXPORTACAO_AVALIACOES = [
+  { chave: "codigo", titulo: "ID DA ANÁLISE", largura: 22 },
+  { chave: "arquivo", titulo: "ARQUIVO", largura: 46 },
+  { chave: "cliente", titulo: "CLIENTE", largura: 24 },
+  { chave: "campanha", titulo: "CAMPANHA", largura: 28 },
+  { chave: "persona", titulo: "PERSONA", largura: 28 },
+  { chave: "formulario", titulo: "FORMULÁRIO", largura: 40 },
+  { chave: "nota", titulo: "NOTA", tipo: "numero", largura: 10 },
+  { chave: "conceito", titulo: "CONCEITO", largura: 16 },
+  { chave: "confianca", titulo: "CONFIANÇA DA IA (%)", tipo: "numero", largura: 20 },
+  { chave: "status", titulo: "STATUS", largura: 18 },
+  { chave: "etapa", titulo: "ETAPA DA ESTEIRA", largura: 20 },
+  { chave: "duracao_min", titulo: "DURAÇÃO (MIN)", tipo: "numero", largura: 16 },
+  { chave: "observacoes", titulo: "OBSERVAÇÕES DA IA", largura: 60 },
+  { chave: "criada_em", titulo: "CRIADA EM", largura: 20 },
+  { chave: "finalizada_em", titulo: "FINALIZADA EM", largura: 20 },
+  { chave: "avaliado", titulo: "AVALIADO", largura: 30 },
+  { chave: "avaliador", titulo: "AVALIADOR", largura: 26 },
+];
+
 const COLUNAS_EXPORTACAO_MONITORIA = [
   { chave: "codigo", titulo: "CODIGO AVALIACAO", largura: 18 },
   { chave: "data_avaliacao", titulo: "DATA/HORA", largura: 22 },
@@ -402,6 +427,97 @@ function montarFiltrosExportacao(filtros = {}, user = null) {
   }
 
   return { where: condicoes.join("\n       AND "), params };
+}
+
+/**
+ * Export por avaliacao — uma linha por monitoria.
+ *
+ * Existe porque o export detalhado sai de `avaliacao_respostas` e, sendo JOIN e
+ * nao LEFT JOIN, some com toda avaliacao que nao tem resposta por criterio. As
+ * 1041 monitorias importadas do QualiTalk sao exatamente esse caso: a planilha
+ * de origem traz resumo consolidado, sem criterio por pergunta. O resultado era
+ * um arquivo com cabecalho e nenhuma linha, sem dizer por que.
+ *
+ * Aqui a consulta parte de `avaliacoes` e todo o resto e LEFT JOIN: uma
+ * monitoria sem campanha, sem gravacao ou sem criterio continua aparecendo,
+ * com a celula vazia onde o dado nao existe. Export que engole registro em
+ * silencio e pior que export com coluna vazia.
+ */
+export async function exportarAvaliacoesResumo({ filtros = {}, limit = 50000, user = null } = {}) {
+  const colunasAvaliacao = await colunasOpcionais("avaliacoes");
+  const tem = (coluna) => colunasAvaliacao.size === 0 || colunasAvaliacao.has(coluna);
+  const { where, params } = montarFiltrosExportacao(filtros, user);
+
+  const rows = await query(
+    `SELECT
+        a.codigo,
+        ${tem("gravacao_id") ? "COALESCE(g.nome_arquivo, a.cod_gravacao)" : "a.cod_gravacao"} AS arquivo,
+        cl.nome AS cliente,
+        ca.nome AS campanha,
+        ${tem("ia_persona") ? "a.ia_persona" : "NULL AS ia_persona"},
+        f.nome AS formulario,
+        a.score,
+        a.zerada,
+        ${tem("quadrante") ? "a.quadrante" : "NULL AS quadrante"},
+        ${tem("ia_confianca") ? "a.ia_confianca" : "NULL AS ia_confianca"},
+        ${tem("ia_observacoes") ? "a.ia_observacoes" : "NULL AS ia_observacoes"},
+        ${tem("duracao_segundos") ? "a.duracao_segundos" : "NULL AS duracao_segundos"},
+        a.status_feedback,
+        a.data_avaliacao,
+        a.data_contato,
+        fb.aplicado_em AS data_feedback,
+        av.name AS avaliado,
+        mo.name AS avaliador
+       FROM avaliacoes a
+       LEFT JOIN clientes cl ON cl.id = a.cliente_id
+       LEFT JOIN campanhas ca ON ca.id = a.campanha_id
+       LEFT JOIN formularios f ON f.id = a.formulario_id
+       LEFT JOIN formulario_categorias fc ON fc.id = a.categoria_id
+       LEFT JOIN users av ON av.id = a.avaliado_id
+       LEFT JOIN users mo ON mo.id = a.avaliador_id
+       LEFT JOIN users su ON su.id = a.supervisor_id
+       LEFT JOIN feedbacks fb ON fb.avaliacao_id = a.id
+       ${tem("gravacao_id") ? "LEFT JOIN gravacoes g ON g.id = a.gravacao_id" : ""}
+      WHERE ${where}
+      ORDER BY a.data_avaliacao DESC, a.id DESC
+      LIMIT :limit`,
+    { ...params, limit },
+  );
+
+  return {
+    colunas: COLUNAS_EXPORTACAO_AVALIACOES,
+    linhas: rows.map((row) => {
+      const nota = row.score == null ? null : Number(row.score);
+      const segundos = row.duracao_segundos == null ? null : Number(row.duracao_segundos);
+      return {
+        codigo: row.codigo,
+        arquivo: row.arquivo || "",
+        cliente: row.cliente || "",
+        campanha: row.campanha || "",
+        persona: row.ia_persona || "",
+        formulario: row.formulario || "",
+        // Nota ausente sai VAZIA, nao zero: no QualiDDM zero quer dizer
+        // "zerada por nao conformidade grave", e escrever 0 onde nao houve
+        // avaliacao inventaria uma reprovacao que nunca existiu.
+        nota,
+        conceito: row.zerada ? "Zerada" : row.quadrante || "",
+        // A planilha de origem guarda percentual (81.2), o banco guarda fracao
+        // (0.812). Converter aqui mantem a coluna com o mesmo significado do
+        // cabecalho que ela imita.
+        confianca: row.ia_confianca == null ? null : Number((Number(row.ia_confianca) * 100).toFixed(1)),
+        status: row.status_feedback || "",
+        etapa: row.status_feedback === "pendente" ? "feedback_pendente" : "finalizada",
+        duracao_min: segundos == null ? null : Number((segundos / 60).toFixed(1)),
+        observacoes: row.ia_observacoes || "",
+        criada_em: row.data_avaliacao || row.data_contato || "",
+        // Sem feedback aplicado, a monitoria nao terminou o ciclo -- a celula
+        // fica vazia em vez de repetir a data de criacao e fingir conclusao.
+        finalizada_em: row.data_feedback || "",
+        avaliado: row.avaliado || "",
+        avaliador: row.avaliador || "",
+      };
+    }),
+  };
 }
 
 export async function exportarAvaliacoesDetalhadas({ filtros = {}, limit = 50000, user = null } = {}) {

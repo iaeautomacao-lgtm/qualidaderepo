@@ -16,12 +16,16 @@ const RELS = `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
   <Relationship Id="rId3" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/extended-properties" Target="docProps/app.xml"/>
 </Relationships>`;
 
-const WORKBOOK = `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+/* Funcao e nao constante: o nome da aba chega por parametro na hora de gerar,
+   entao nao da para congelar este XML no carregamento do modulo. */
+function workbookXml(aba) {
+  return `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
 <workbook xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main" xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships">
   <sheets>
-    <sheet name="Base de Monitoria" sheetId="1" r:id="rId1"/>
+    <sheet name="${nomeAba(aba)}" sheetId="1" r:id="rId1"/>
   </sheets>
 </workbook>`;
+}
 
 const WORKBOOK_RELS = `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
 <Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships">
@@ -221,7 +225,16 @@ function sheetXml({ colunas, linhas }) {
 </worksheet>`;
 }
 
-export function criarXlsx({ colunas, linhas }) {
+/* Nome de aba tem regras proprias do Excel: no maximo 31 caracteres e nada de
+   : \ / ? * [ ]. Passar direto um titulo com barra gera arquivo que o Excel
+   recusa abrir, com mensagem generica de "conteudo ilegivel" -- por isso
+   sanitiza aqui em vez de confiar em quem chama. */
+function nomeAba(valor) {
+  const limpo = String(valor || "Planilha").replace(/[:\\/?*[\]]/g, "-").trim();
+  return escapeXml(limpo.slice(0, 31) || "Planilha");
+}
+
+export function criarXlsx({ colunas, linhas, aba = "Base de Monitoria" }) {
   const agora = new Date().toISOString();
   const app = `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
 <Properties xmlns="http://schemas.openxmlformats.org/officeDocument/2006/extended-properties" xmlns:vt="http://schemas.openxmlformats.org/officeDocument/2006/docPropsVTypes">
@@ -239,7 +252,7 @@ export function criarXlsx({ colunas, linhas }) {
     ["_rels/.rels", RELS],
     ["docProps/app.xml", app],
     ["docProps/core.xml", core],
-    ["xl/workbook.xml", WORKBOOK],
+    ["xl/workbook.xml", workbookXml(aba)],
     ["xl/_rels/workbook.xml.rels", WORKBOOK_RELS],
     ["xl/styles.xml", STYLES],
     ["xl/worksheets/sheet1.xml", sheetXml({ colunas, linhas })],
