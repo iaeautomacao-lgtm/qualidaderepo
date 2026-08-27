@@ -51,7 +51,7 @@ function emptyDashboard(period) {
     recentReviews: [],
     priorities: [],
     topOperacoes: [],
-    topAvaliadores: [],
+    topAvaliados: [],
     performancePorMes: [],
     distribuicaoPorCampanha: { itens: [], totalPeriodo: 0, campanhas: 0 },
   };
@@ -431,7 +431,7 @@ export async function getDashboardOverview({ period, clienteId, campanhaId, oper
     recentReviews,
     priorities,
     iaRows,
-    avaliadoresRows,
+    avaliadosRows,
     mesesRows,
     campanhasRows,
   ] = await Promise.all([
@@ -608,24 +608,35 @@ export async function getDashboardOverview({ period, clienteId, campanhaId, oper
         { ...base, ...gravacoes.params },
       ),
     ),
-    /* Top Avaliadores — quem monitorou, quanto e com que nota média.
-       O balde "Não identificado" existe e aparece: as avaliações históricas
-       importadas do QualiTalk vieram sem avaliador resolvível, e esconder isso
-       faria o total do bloco não fechar com o KPI de avaliações. Ele vai para o
-       FIM da lista, e não para o topo por volume, porque não é uma pessoa — um
-       ranking de "melhores avaliadores" liderado por "desconhecido" não informa
-       nada. */
-    safe("topAvaliadores", [], () =>
+    /* Top Avaliados — quem foi monitorado, quanto e com que nota média.
+       Substituiu "Top Avaliadores", que só tinha uma linha para mostrar: toda
+       análise da IA é assinada pelo mesmo avaliador, então o ranking era um
+       item só ao lado de uma lista de seis, e metade da linha ficava em branco.
+       Quem é monitorado varia, e é sobre isso que a gestão decide.
+
+       Duas linhas não são pessoas e vão para o FIM, nunca para o topo:
+       `avaliado_id` nulo, e o usuário técnico da importação histórica, que
+       carrega as monitorias cujo operador a exportação do QualiTalk não
+       informou. Elas aparecem em vez de serem escondidas porque, somadas, são
+       centenas de avaliações — um ranking que as omite não fecha com o KPI de
+       volume, e quem confere acha que o número está errado. Mas aparecem
+       rotuladas pelo que são, senão "Monitoria IA" lidera a lista como se
+       fosse a operadora mais monitorada da empresa. */
+    safe("topAvaliados", [], () =>
       query(
-        `SELECT COALESCE(u.name, 'Não identificado') AS name,
-                (u.id IS NULL) AS sem_pessoa,
+        `SELECT CASE
+                  WHEN u.email = 'monitoria.ia@qualiddm.local'
+                    THEN 'Sem operador identificado'
+                  ELSE COALESCE(u.name, 'Não identificado')
+                END AS name,
+                (u.id IS NULL OR u.email = 'monitoria.ia@qualiddm.local') AS sem_pessoa,
                 COUNT(a.id) AS reviews,
                 ROUND(COALESCE(AVG(a.score), 0), 1) AS score
            FROM avaliacoes a
-           LEFT JOIN users u ON u.id = a.avaliador_id
+           LEFT JOIN users u ON u.id = a.avaliado_id
           WHERE a.data_avaliacao >= DATE_SUB(CURRENT_DATE, INTERVAL :periodDays DAY)
             ${avaliacoes.sql}
-          GROUP BY COALESCE(u.id, 0), COALESCE(u.name, 'Não identificado')
+          GROUP BY u.id, u.name, u.email
           ORDER BY sem_pessoa ASC, reviews DESC, score DESC
           LIMIT 6`,
         { periodDays, ...avaliacoes.params },
@@ -779,12 +790,12 @@ export async function getDashboardOverview({ period, clienteId, campanhaId, oper
     topOperacoes: [...mergedClients]
       .sort((a, b) => numero(b.reviews) - numero(a.reviews) || numero(b.score) - numero(a.score))
       .slice(0, 6),
-    topAvaliadores: avaliadoresRows.map((row) => ({
+    topAvaliados: avaliadosRows.map((row) => ({
       name: row.name,
       reviews: numero(row.reviews),
       score: numero(row.score),
       // A tela precisa saber que a linha não é uma pessoa, para não rotulá-la
-      // como avaliador nem sugerir abrir o perfil dela.
+      // como operador nem sugerir abrir o perfil dela.
       semPessoa: Boolean(numero(row.sem_pessoa)),
     })),
     performancePorMes: mesesRows.map((row) => ({

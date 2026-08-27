@@ -139,7 +139,7 @@ export default function DashboardPage() {
   const ofensores = data?.offenders ?? [];
   const carteiras = data?.clients ?? [];
   const topOperacoes = data?.topOperacoes ?? [];
-  const topAvaliadores = data?.topAvaliadores ?? [];
+  const topAvaliados = data?.topAvaliados ?? [];
   const performancePorMes = data?.performancePorMes ?? [];
   const campanhas = data?.distribuicaoPorCampanha ?? { itens: [], totalPeriodo: 0, campanhas: 0 };
   const distribuicao = data?.quadrants ?? [];
@@ -394,6 +394,13 @@ export default function DashboardPage() {
         </section>
       </div>
 
+      {/* --- Prioridades e Carteiras em foco ------------------------------
+          Emparelhados porque os dois sao listas longas. Antes, "Prioridades"
+          dividia a linha com "Foco da gestao" -- um bloco de uma frase so --
+          e a coluna da direita ficava com meia tela de branco embaixo. Em
+          grade de duas colunas, quem manda na altura da linha e o cartao mais
+          alto; o vazio ao lado do curto nao tem como ser preenchido, so
+          evitado. */}
       <div className={styles.duasColunas} data-proporcao="dois-um">
         <section className="card pad" aria-labelledby="titulo-prioridades">
           <div className="section-head">
@@ -465,6 +472,45 @@ export default function DashboardPage() {
           )}
         </section>
 
+        <section className="card pad" aria-labelledby="titulo-carteiras">
+          <div className="section-head">
+            <div>
+              <h2 id="titulo-carteiras">Carteiras em foco</h2>
+              <p>Da pior para a melhor nota média.</p>
+            </div>
+          </div>
+
+          {carteiras.length > 0 ? (
+            <ul className="list">
+              {carteiras.map((carteira) => (
+                <li className={`row ${styles.linhaCarteira}`} key={carteira.name}>
+                  <div className="row-main">
+                    <strong className="row-title">{carteira.name}</strong>
+                    <span className="row-meta">{Number(carteira.reviews || 0)} monitoria(s)</span>
+                  </div>
+                  <span className={`score ${classeScore(carteira.score)}`}>{formatarScore(carteira.score)}</span>
+                </li>
+              ))}
+            </ul>
+          ) : (
+            <div className="empty-state">
+              <span className="icon-badge">
+                <Icon name="wallet" size={20} />
+              </span>
+              <h3>Sem carteiras no período</h3>
+              <p>Os uploads analisados alimentam este ranking.</p>
+            </div>
+          )}
+        </section>
+      </div>
+
+      {/* --- Foco da gestao e Principais ofensores -------------------------
+          Os dois curtos, agora juntos. Alem da altura parecida, eles falam da
+          mesma coisa: qual criterio esta custando qualidade. Quando nao ha nao
+          conformidade registrada os dois ficam vazios ao mesmo tempo -- e uma
+          linha inteira vazia se le como "nao ha falhas", enquanto um vazio
+          solto ao lado de uma lista cheia se lia como bloco quebrado. */}
+      <div className={styles.duasColunas}>
         <section className="card pad" aria-labelledby="titulo-foco">
           <div className="section-head">
             <div>
@@ -529,9 +575,7 @@ export default function DashboardPage() {
             </div>
           )}
         </section>
-      </div>
 
-      <div className={styles.duasColunas}>
         <section className="card pad" aria-labelledby="titulo-ofensores">
           <div className="section-head">
             <div>
@@ -581,40 +625,9 @@ export default function DashboardPage() {
             </div>
           )}
         </section>
-
-        <section className="card pad" aria-labelledby="titulo-carteiras">
-          <div className="section-head">
-            <div>
-              <h2 id="titulo-carteiras">Carteiras em foco</h2>
-              <p>Da pior para a melhor nota média.</p>
-            </div>
-          </div>
-
-          {carteiras.length > 0 ? (
-            <ul className="list">
-              {carteiras.map((carteira) => (
-                <li className={`row ${styles.linhaCarteira}`} key={carteira.name}>
-                  <div className="row-main">
-                    <strong className="row-title">{carteira.name}</strong>
-                    <span className="row-meta">{Number(carteira.reviews || 0)} monitoria(s)</span>
-                  </div>
-                  <span className={`score ${classeScore(carteira.score)}`}>{formatarScore(carteira.score)}</span>
-                </li>
-              ))}
-            </ul>
-          ) : (
-            <div className="empty-state">
-              <span className="icon-badge">
-                <Icon name="wallet" size={20} />
-              </span>
-              <h3>Sem carteiras no período</h3>
-              <p>Os uploads analisados alimentam este ranking.</p>
-            </div>
-          )}
-        </section>
       </div>
 
-      {/* --- Top Operações e Top Avaliadores ---------------------------- */}
+      {/* --- Top Operações e Top Avaliados ------------------------------ */}
       <div className={styles.duasColunas}>
         <section className="card pad" aria-labelledby="titulo-top-operacoes">
           <div className="section-head">
@@ -657,17 +670,17 @@ export default function DashboardPage() {
           )}
         </section>
 
-        <section className="card pad" aria-labelledby="titulo-top-avaliadores">
+        <section className="card pad" aria-labelledby="titulo-top-avaliados">
           <div className="section-head">
             <div>
-              <h2 id="titulo-top-avaliadores">Top Avaliadores</h2>
-              <p>Quem monitorou no período, por volume e nota média aplicada.</p>
+              <h2 id="titulo-top-avaliados">Top Avaliados</h2>
+              <p>Quem foi monitorado no período, por volume e nota média recebida.</p>
             </div>
           </div>
 
-          {topAvaliadores.length > 0 ? (
+          {topAvaliados.length > 0 ? (
             <ol className={styles.ranking}>
-              {topAvaliadores.map((item, indice) => (
+              {topAvaliados.map((item, indice) => (
                 <li className={styles.rankingItem} key={item.name}>
                   <span
                     className={styles.rankingPos}
@@ -682,7 +695,7 @@ export default function DashboardPage() {
                       {formatarNumero(Number(item.reviews || 0))} avaliação(ões)
                       {/* A linha sem pessoa precisa dizer o que é, senão parece
                           um avaliador chamado "Não identificado". */}
-                      {item.semPessoa ? " · sem avaliador registrado" : ""}
+                      {item.semPessoa ? " · não é um operador" : ""}
                     </span>
                   </span>
                   <span className={`score ${classeScore(item.score)}`}>
@@ -696,7 +709,7 @@ export default function DashboardPage() {
               <span className="icon-badge">
                 <Icon name="users" size={20} />
               </span>
-              <h3>Sem avaliadores no período</h3>
+              <h3>Sem avaliados no período</h3>
               <p>A lista aparece quando houver monitoria registrada.</p>
             </div>
           )}

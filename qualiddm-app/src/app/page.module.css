@@ -170,6 +170,16 @@
   grid-template-columns: minmax(0, 2fr) minmax(0, 1fr);
 }
 
+/* Vazio dentro de cartão do dashboard é recado curto, não tela de erro.
+
+   O `.empty-state` global reserva `--sp-8` de respiro vertical porque nasceu
+   para ocupar página inteira. Num cartão de meia largura esse respiro vira
+   exatamente o espaço em branco que incomoda: o cartão fica alto por causa da
+   moldura, não do conteúdo, e ainda estica a linha inteira. */
+.duasColunas :global(.empty-state) {
+  padding: var(--sp-5) var(--sp-4);
+}
+
 /* --- distribuição por faixa ---------------------------------------------- */
 
 .faixas {
