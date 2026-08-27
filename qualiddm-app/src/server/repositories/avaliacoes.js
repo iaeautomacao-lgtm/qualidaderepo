@@ -247,7 +247,46 @@ const COLUNAS_EXPORTACAO_AVALIACOES = [
   { chave: "finalizada_em", titulo: "FINALIZADA EM", largura: 20 },
   { chave: "avaliado", titulo: "AVALIADO", largura: 30 },
   { chave: "avaliador", titulo: "AVALIADOR", largura: 26 },
+  { chave: "media_filtro", titulo: "MÉDIA DO AVALIADO (FILTRO)", tipo: "numero", largura: 26 },
+  { chave: "media_mes", titulo: "MÉDIA DO AVALIADO NO MÊS", tipo: "numero", largura: 26 },
 ];
+
+/* Aba de resumo: uma linha por avaliado x mes.
+
+   As duas medias convivem de proposito, porque respondem perguntas
+   diferentes e uma sozinha engana:
+
+   MÉDIA (FILTRO) fecha com as linhas da primeira aba. Quem somar a coluna na
+   mao chega nesse numero -- e alguem sempre soma.
+
+   MÉDIA DO MÊS ignora os demais filtros e usa o mes inteiro do operador. E "a
+   nota da Gisele em setembro", que nao muda porque a supervisora filtrou uma
+   campanha antes de exportar.
+
+   Sem filtro alem do periodo as duas coincidem. Quando divergem, a diferenca
+   e a informacao: mostra que o recorte exportado nao representa o mes. */
+const COLUNAS_RESUMO_AVALIADO = [
+  { chave: "avaliado", titulo: "AVALIADO", largura: 30 },
+  { chave: "mes", titulo: "MÊS", largura: 12 },
+  { chave: "monitorias", titulo: "MONITORIAS", tipo: "numero", largura: 14 },
+  { chave: "media_filtro", titulo: "MÉDIA (FILTRO)", tipo: "numero", largura: 16 },
+  { chave: "media_mes", titulo: "MÉDIA DO MÊS", tipo: "numero", largura: 16 },
+  { chave: "monitorias_mes", titulo: "MONITORIAS NO MÊS", tipo: "numero", largura: 20 },
+  { chave: "zeradas", titulo: "ZERADAS", tipo: "numero", largura: 12 },
+  { chave: "sem_nota", titulo: "SEM NOTA", tipo: "numero", largura: 12 },
+];
+
+/* Media que ignora nota ausente mas conta o zero.
+
+   Zero e nota: veio de nao conformidade grave e e exatamente o que a
+   supervisora precisa enxergar. Ja `null` e "nao foi pontuada" -- somar como
+   zero afundaria a media de quem nao errou nada. A distincao muda o numero em
+   dezenas de pontos numa carteira com muitas monitorias sem nota. */
+function mediaDeNotas(valores) {
+  const notas = valores.filter((v) => v != null && Number.isFinite(Number(v))).map(Number);
+  if (notas.length === 0) return null;
+  return Number((notas.reduce((a, b) => a + b, 0) / notas.length).toFixed(2));
+}
 
 const COLUNAS_EXPORTACAO_MONITORIA = [
   { chave: "codigo", titulo: "CODIGO AVALIACAO", largura: 18 },
@@ -466,6 +505,7 @@ export async function exportarAvaliacoesResumo({ filtros = {}, limit = 50000, us
         a.data_avaliacao,
         a.data_contato,
         fb.aplicado_em AS data_feedback,
+        a.avaliado_id,
         av.name AS avaliado,
         mo.name AS avaliador
        FROM avaliacoes a
@@ -484,9 +524,87 @@ export async function exportarAvaliacoesResumo({ filtros = {}, limit = 50000, us
     { ...params, limit },
   );
 
+  /* Media do mes inteiro: consulta a parte, de proposito.
+
+     Nao da para calcular a partir de `rows`, porque `rows` ja passou pelos
+     filtros -- se a supervisora exportou so a campanha Churn, a media do mes
+     tirada dali seria a media de Churn com nome de media do mes.
+
+     O recorte de operador continua valendo: operador que exporta so enxerga a
+     propria media, mesmo aqui. Os outros filtros e que sao ignorados, que e o
+     ponto desta coluna. */
+  const mesDe = (valor) => (valor ? String(valor).slice(0, 7) : "");
+  const idsAvaliados = [...new Set(rows.map((r) => r.avaliado_id).filter((id) => Number.isInteger(Number(id)) && Number(id) > 0))];
+  const meses = [...new Set(rows.map((r) => mesDe(r.data_avaliacao)).filter(Boolean))];
+  const mediasDoMes = new Map();
+
+  if (idsAvaliados.length > 0 && meses.length > 0) {
+    const listaIds = idsAvaliados.map((id) => Number(id)).join(",");
+    const chavesMes = meses.map((_, i) => `:mes${i}`).join(",");
+    const paramsMes = Object.fromEntries(meses.map((mes, i) => [`mes${i}`, mes]));
+
+    const totaisMes = await query(
+      `SELECT a.avaliado_id,
+              DATE_FORMAT(a.data_avaliacao, '%Y-%m') AS mes,
+              AVG(a.score) AS media,
+              COUNT(*) AS monitorias
+         FROM avaliacoes a
+        WHERE a.excluida_em IS NULL
+          AND a.score IS NOT NULL
+          AND a.avaliado_id IN (${listaIds})
+          AND DATE_FORMAT(a.data_avaliacao, '%Y-%m') IN (${chavesMes})
+          ${user?.role === "operador" ? "AND a.avaliado_id = :usuarioLogadoId" : ""}
+        GROUP BY a.avaliado_id, mes`,
+      { ...paramsMes, ...(user?.role === "operador" ? { usuarioLogadoId: user.id } : {}) },
+    );
+
+    for (const linha of totaisMes) {
+      mediasDoMes.set(`${linha.avaliado_id}|${linha.mes}`, {
+        media: linha.media == null ? null : Number(Number(linha.media).toFixed(2)),
+        monitorias: Number(linha.monitorias || 0),
+      });
+    }
+  }
+
+  // Media do conjunto exportado, agrupada pela mesma chave avaliado + mes.
+  const grupos = new Map();
+  for (const row of rows) {
+    const chave = `${row.avaliado_id}|${mesDe(row.data_avaliacao)}`;
+    const grupo = grupos.get(chave) || {
+      avaliado: row.avaliado || "Não identificado",
+      mes: mesDe(row.data_avaliacao),
+      notas: [],
+      monitorias: 0,
+      zeradas: 0,
+      semNota: 0,
+    };
+    grupo.monitorias += 1;
+    if (row.score == null) grupo.semNota += 1;
+    else {
+      grupo.notas.push(Number(row.score));
+      if (Number(row.score) === 0) grupo.zeradas += 1;
+    }
+    grupos.set(chave, grupo);
+  }
+
+  const resumo = [...grupos.entries()]
+    .map(([chave, grupo]) => ({
+      avaliado: grupo.avaliado,
+      mes: grupo.mes,
+      monitorias: grupo.monitorias,
+      media_filtro: mediaDeNotas(grupo.notas),
+      media_mes: mediasDoMes.get(chave)?.media ?? null,
+      monitorias_mes: mediasDoMes.get(chave)?.monitorias ?? null,
+      zeradas: grupo.zeradas,
+      sem_nota: grupo.semNota,
+    }))
+    .sort((a, b) => a.avaliado.localeCompare(b.avaliado, "pt-BR") || a.mes.localeCompare(b.mes));
+
   return {
     colunas: COLUNAS_EXPORTACAO_AVALIACOES,
+    resumo: { colunas: COLUNAS_RESUMO_AVALIADO, linhas: resumo },
     linhas: rows.map((row) => {
+      const chaveGrupo = `${row.avaliado_id}|${mesDe(row.data_avaliacao)}`;
       const nota = row.score == null ? null : Number(row.score);
       const segundos = row.duracao_segundos == null ? null : Number(row.duracao_segundos);
       return {
@@ -515,6 +633,8 @@ export async function exportarAvaliacoesResumo({ filtros = {}, limit = 50000, us
         finalizada_em: row.data_feedback || "",
         avaliado: row.avaliado || "",
         avaliador: row.avaliador || "",
+        media_filtro: mediaDeNotas(grupos.get(chaveGrupo)?.notas || []),
+        media_mes: mediasDoMes.get(chaveGrupo)?.media ?? null,
       };
     }),
   };
@@ -740,6 +860,10 @@ function mapearAvaliacaoOficial(row) {
     departamento: row.cliente,
     categoria: formatarCategoria(row.categoria),
     score: formatarScore(row.score),
+    /* Nota crua ao lado da formatada: `formatarScore` devolve texto e trata
+       nulo como "0.00", entao a tela nao tem como distinguir monitoria zerada
+       de monitoria sem nota -- nem como somar uma media honesta. */
+    scoreNumero: row.score == null ? null : Number(row.score),
     data: formatarDataIso(row.data_avaliacao),
     hora: formatarHora(row.data_avaliacao),
     dataContato: formatarDataIso(row.data_contato),

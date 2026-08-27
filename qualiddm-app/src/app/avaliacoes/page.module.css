@@ -119,9 +119,12 @@
   font-size: var(--fs-100);
 }
 
+/* `auto-fit` e nao `repeat(3, ...)`: o terceiro card entrou agora, e travar a
+   contagem faria o proximo cair sozinho numa linha de meia largura -- que e
+   exatamente o vazio que o dashboard tinha. */
 .resumoGrid {
   display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 220px), 1fr));
   gap: var(--sp-4);
 }
 

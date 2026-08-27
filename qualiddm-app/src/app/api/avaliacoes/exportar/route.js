@@ -25,9 +25,18 @@ export async function POST(request) {
     const formato = body.formato === "criterio" ? "criterio" : "avaliacao";
     const exportar =
       formato === "criterio" ? exportarAvaliacoesDetalhadas : exportarAvaliacoesResumo;
-    const { colunas, linhas } = await exportar({ filtros, user: session.user });
+    const { colunas, linhas, resumo } = await exportar({ filtros, user: session.user });
     const aba = formato === "criterio" ? "Base de Monitoria" : "Avaliações";
-    const arquivo = criarXlsx({ colunas, linhas, aba });
+    /* A aba de resumo so entra quando ha o que resumir. Aba vazia num arquivo
+       operacional vira duvida ("perdi um filtro?"), e a ausencia dela ja diz
+       que nao houve monitoria no recorte. */
+    const abas = resumo?.linhas?.length
+      ? [
+          { nome: aba, colunas, linhas },
+          { nome: "Resumo por operador", colunas: resumo.colunas, linhas: resumo.linhas },
+        ]
+      : null;
+    const arquivo = criarXlsx({ colunas, linhas, aba, abas });
     const data = new Date().toISOString().slice(0, 10).replace(/-/g, "");
     const nome = formato === "criterio" ? "base_monitoria" : "avaliacoes";
 

@@ -193,6 +193,19 @@ export default function AvaliacoesPage() {
     });
   }, [avaliacoes, filtros]);
 
+  /* Zerada entra na conta, sem nota fica de fora.
+
+     Zero e nota de verdade -- veio de nao conformidade grave, e some da media
+     justamente o caso que a gestao precisa ver. Ja a monitoria sem nota nao
+     foi pontuada; conta-la como zero afundaria a media de quem nao errou. */
+  const notasPontuadas = filtradas
+    .map((item) => item.scoreNumero)
+    .filter((nota) => nota != null && Number.isFinite(Number(nota)))
+    .map(Number);
+  const pontuadas = notasPontuadas.length;
+  const mediaFiltrada =
+    pontuadas === 0 ? null : notasPontuadas.reduce((a, b) => a + b, 0) / pontuadas;
+
   const paginas = Math.max(1, Math.ceil(filtradas.length / POR_PAGINA));
   const paginaAtual = Math.min(pagina, paginas - 1);
   const visiveis = filtradas.slice(paginaAtual * POR_PAGINA, paginaAtual * POR_PAGINA + POR_PAGINA);
@@ -395,6 +408,17 @@ export default function AvaliacoesPage() {
           <div className={`card ${styles.resumoCard}`}>
             <strong>{filtradas.length}</strong>
             <span>Total de Avaliações</span>
+          </div>
+          {/* Média do que está filtrado, não da base inteira: é o número que a
+              supervisora quer ao cruzar operador e mês, e é o mesmo que sai na
+              coluna MÉDIA DO AVALIADO (FILTRO) da exportação. Se divergissem,
+              quem confere na mão acharia que um dos dois está com defeito. */}
+          <div className={`card ${styles.resumoCard}`}>
+            <strong>{mediaFiltrada == null ? "—" : mediaFiltrada.toFixed(2)}</strong>
+            <span>
+              Nota média
+              {pontuadas !== filtradas.length ? ` · ${pontuadas} de ${filtradas.length} pontuadas` : ""}
+            </span>
           </div>
           <div className={`card ${styles.resumoCard}`}>
             <strong>{paginaAtual + 1}<span> / {paginas}</span></strong>

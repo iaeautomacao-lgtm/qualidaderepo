@@ -1,13 +1,25 @@
-const CONTENT_TYPES = `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+/* As tres partes abaixo (tipos, workbook e rels) precisam concordar sobre
+   quantas abas existem e como cada uma se chama. Se uma listar sheet2 e outra
+   nao, o Excel abre com "conteudo ilegivel" e nao diz onde -- por isso as tres
+   sao geradas da MESMA lista, e nenhuma delas e constante. */
+function contentTypesXml(total) {
+  const abas = Array.from(
+    { length: total },
+    (_, i) =>
+      `  <Override PartName="/xl/worksheets/sheet${i + 1}.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.worksheet+xml"/>`,
+  ).join("\n");
+
+  return `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
 <Types xmlns="http://schemas.openxmlformats.org/package/2006/content-types">
   <Default Extension="rels" ContentType="application/vnd.openxmlformats-package.relationships+xml"/>
   <Default Extension="xml" ContentType="application/xml"/>
   <Override PartName="/xl/workbook.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet.main+xml"/>
-  <Override PartName="/xl/worksheets/sheet1.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.worksheet+xml"/>
+${abas}
   <Override PartName="/xl/styles.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.styles+xml"/>
   <Override PartName="/docProps/core.xml" ContentType="application/vnd.openxmlformats-package.core-properties+xml"/>
   <Override PartName="/docProps/app.xml" ContentType="application/vnd.openxmlformats-officedocument.extended-properties+xml"/>
 </Types>`;
+}
 
 const RELS = `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
 <Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships">
@@ -16,22 +28,37 @@ const RELS = `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
   <Relationship Id="rId3" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/extended-properties" Target="docProps/app.xml"/>
 </Relationships>`;
 
-/* Funcao e nao constante: o nome da aba chega por parametro na hora de gerar,
-   entao nao da para congelar este XML no carregamento do modulo. */
-function workbookXml(aba) {
+/* Funcao e nao constante: os nomes das abas chegam por parametro na hora de
+   gerar, entao nao da para congelar este XML no carregamento do modulo. */
+function workbookXml(folhas) {
+  const abas = folhas
+    .map((folha, i) => `    <sheet name="${nomeAba(folha.nome)}" sheetId="${i + 1}" r:id="rId${i + 1}"/>`)
+    .join("\n");
+
   return `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
 <workbook xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main" xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships">
   <sheets>
-    <sheet name="${nomeAba(aba)}" sheetId="1" r:id="rId1"/>
+${abas}
   </sheets>
 </workbook>`;
 }
 
-const WORKBOOK_RELS = `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+/* O estilo entra DEPOIS das abas na numeracao: com duas abas ele e rId3, nao
+   rId2. Deixar fixo em rId2 faria a segunda aba e os estilos disputarem o
+   mesmo id, e o arquivo nao abre. */
+function workbookRelsXml(total) {
+  const abas = Array.from(
+    { length: total },
+    (_, i) =>
+      `  <Relationship Id="rId${i + 1}" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/worksheet" Target="worksheets/sheet${i + 1}.xml"/>`,
+  ).join("\n");
+
+  return `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
 <Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships">
-  <Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/worksheet" Target="worksheets/sheet1.xml"/>
-  <Relationship Id="rId2" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/styles" Target="styles.xml"/>
+${abas}
+  <Relationship Id="rId${total + 1}" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/styles" Target="styles.xml"/>
 </Relationships>`;
+}
 
 const STYLES = `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
 <styleSheet xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main">
@@ -234,7 +261,15 @@ function nomeAba(valor) {
   return escapeXml(limpo.slice(0, 31) || "Planilha");
 }
 
-export function criarXlsx({ colunas, linhas, aba = "Base de Monitoria" }) {
+/**
+ * Monta o .xlsx.
+ *
+ * Aceita uma aba (`colunas`/`linhas`/`aba`) ou varias (`abas`), sem quebrar
+ * quem ja chamava com a forma antiga.
+ */
+export function criarXlsx({ colunas, linhas, aba = "Base de Monitoria", abas = null }) {
+  const folhas =
+    Array.isArray(abas) && abas.length > 0 ? abas : [{ nome: aba, colunas, linhas }];
   const agora = new Date().toISOString();
   const app = `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
 <Properties xmlns="http://schemas.openxmlformats.org/officeDocument/2006/extended-properties" xmlns:vt="http://schemas.openxmlformats.org/officeDocument/2006/docPropsVTypes">
@@ -248,13 +283,16 @@ export function criarXlsx({ colunas, linhas, aba = "Base de Monitoria" }) {
 </cp:coreProperties>`;
 
   return montarZip([
-    ["[Content_Types].xml", CONTENT_TYPES],
+    ["[Content_Types].xml", contentTypesXml(folhas.length)],
     ["_rels/.rels", RELS],
     ["docProps/app.xml", app],
     ["docProps/core.xml", core],
-    ["xl/workbook.xml", workbookXml(aba)],
-    ["xl/_rels/workbook.xml.rels", WORKBOOK_RELS],
+    ["xl/workbook.xml", workbookXml(folhas)],
+    ["xl/_rels/workbook.xml.rels", workbookRelsXml(folhas.length)],
     ["xl/styles.xml", STYLES],
-    ["xl/worksheets/sheet1.xml", sheetXml({ colunas, linhas })],
+    ...folhas.map((folha, i) => [
+      `xl/worksheets/sheet${i + 1}.xml`,
+      sheetXml({ colunas: folha.colunas, linhas: folha.linhas }),
+    ]),
   ]);
 }
