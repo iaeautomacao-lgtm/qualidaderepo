@@ -4,6 +4,7 @@ import { useMemo, useState } from "react";
 import Image from "next/image";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import BotaoTema from "./BotaoTema";
 import { Icon } from "./icons";
 
 const PERFIL = {
@@ -23,7 +24,6 @@ function iniciaisDe(nome) {
   return `${primeira}${ultima}`.toUpperCase();
 }
 
-const versao = { numero: "v1.5.0", ambiente: "PROD" };
 
 /**
  * Menu espelhado do QualiTalk de referência, na mesma ordem.
@@ -210,10 +210,7 @@ export default function Sidebar({ active = "Dashboard", open = false, usuario = 
           <Icon name="logout" size={16} />
           Sair
         </Link>
-        <span className="version-row">
-          <span className="chip warning">{versao.ambiente}</span>
-          <span>{versao.numero}</span>
-        </span>
+        <BotaoTema />
       </div>
     </aside>
   );

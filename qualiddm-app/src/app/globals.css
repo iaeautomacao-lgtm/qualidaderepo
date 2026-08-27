@@ -218,6 +218,37 @@
   --shadow-sm: 0 1px 2px rgb(0 0 0 / 0.22), 0 2px 6px rgb(0 0 0 / 0.22);
   --shadow-md: 0 2px 4px rgb(0 0 0 / 0.24), 0 8px 20px rgb(0 0 0 / 0.28);
   --shadow-lg: 0 8px 16px rgb(0 0 0 / 0.28), 0 24px 48px rgb(0 0 0 / 0.34);
+
+  /* Texto de estado.
+     Sem estas quatro linhas o tema escuro fica ilegivel: os fundos suaves
+     acima ja sao escuros (--danger-soft e #351715), mas os textos herdados do
+     claro sao escuros tambem (#b02318), e todo chip e alerta vira texto
+     escuro sobre fundo escuro. Os valores abaixo foram medidos contra o
+     proprio fundo suave e contra a superficie do cartao: o pior par fica em
+     8,6:1, bem acima dos 4,5:1 que a WCAG pede para texto. */
+  --success-text: #6ee7b7;
+  --warning-text: #fcd34d;
+  --danger-text: #fca5a5;
+  --info-text: #93c5fd;
+
+  /* Cores solidas de barra, ponto e indicador. As do claro foram escolhidas
+     para contrastar com branco e somem contra #211f1c. */
+  --success: #34d399;
+  --warning: #fbbf24;
+  --danger: #f87171;
+  --info: #60a5fa;
+
+  /* O acento carrega dois papeis no mesmo token: cor de TEXTO laranja e
+     PREENCHIMENTO de botao com rotulo em cima. No claro os dois funcionam com
+     o mesmo valor; no escuro brigam -- #c93b04 da 5,11:1 com branco (bom como
+     botao) e so 3,22:1 sobre a superficie escura (ruim como texto).
+
+     Resolvido clareando o acento, o que conserta o texto (6,97:1), e virando
+     o rotulo do botao primario para quase-preto na regra logo abaixo, que
+     devolve 6,97:1 do outro lado. E o padrao de dark mode: botao de acento
+     vivo com letra escura. */
+  --accent-strong: #ff7a38;
+  --accent-deep: #ff9d63;
 }
 
 /* ==========================================================================
@@ -1533,6 +1564,22 @@ tr:hover .copy-id,
   max-width: var(--content-max);
   margin-inline: auto;
   padding: var(--sp-6) var(--sp-6) var(--sp-12);
+  /* `clip` e nao `hidden`: os dois impedem a pagina inteira de deslizar de
+     lado, mas `hidden` transforma este elemento em container de rolagem e
+     quebra todo `position: sticky` dentro dele -- incluindo a lateral do
+     Acordito na ficha de IA. `clip` contem sem criar container.
+
+     Tabela larga continua rolando: ela tem `.scroll-x` proprio, com rolagem
+     interna, que nao depende da rolagem do documento. */
+  overflow-x: clip;
+}
+
+/* Rotulo escuro no botao de acento, so no tema escuro.
+
+   O preenchimento clareou para o laranja funcionar como texto; branco em cima
+   dele cairia para 2,59:1. Quase-preto devolve 6,97:1. */
+:root[data-theme="escuro"] .btn.primary {
+  color: var(--bg);
 }
 
 /* --- topbar ------------------------------------------------------------- */
@@ -1852,14 +1899,9 @@ tr:hover .copy-id,
   justify-content: center;
 }
 
-.version-row {
-  display: flex;
-  align-items: center;
+.theme-toggle {
   justify-content: center;
-  gap: var(--sp-2);
-  color: var(--text-muted);
-  font-size: var(--fs-100);
-  font-variant-numeric: tabular-nums;
+  width: 100%;
 }
 
 /* Bloco de identidade do usuário, logo abaixo da marca. */

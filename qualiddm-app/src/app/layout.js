@@ -16,6 +16,21 @@ export default function RootLayout({ children }) {
   return (
     <html lang="pt-BR">
       <body>
+        {/* Roda antes de qualquer pintura, de proposito.
+
+            Se a escolha do tema so fosse aplicada depois que o React monta, a
+            pagina apareceria clara por uma fracao de segundo antes de virar
+            escura -- o "flash" branco que incomoda justamente quem escolheu o
+            escuro. Por isso e script sincrono no topo do body, e nao efeito de
+            componente. O try/catch cobre navegador com armazenamento bloqueado:
+            sem ele, uma excecao aqui abortaria o resto do documento. */}
+        <script
+          dangerouslySetInnerHTML={{
+            __html:
+              'try{if(localStorage.getItem("qualiddm-tema")==="escuro")' +
+              'document.documentElement.setAttribute("data-theme","escuro")}catch(e){}',
+          }}
+        />
         <a className="skip-link" href="#conteudo">
           Pular para o conteúdo
         </a>
