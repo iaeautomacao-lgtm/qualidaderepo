@@ -34,6 +34,19 @@
 -- que filtra por ativo = 1, e continua auditavel. Apagar ali arrastaria junto
 -- as campanhas em cascata.
 -- ---------------------------------------------------------------------------
+-- ---------------------------------------------------------------------------
+-- Banco alvo, escrito aqui e nao herdado da tela.
+--
+-- O phpMyAdmin executa no banco que ELE considera ativo, e isso nem sempre e o
+-- que a barra de navegacao mostra: depois de abrir qualquer tabela do
+-- information_schema, o contexto fica preso la e a importacao falha com
+--   #1109 - Tabela 'campanhas' desconhecida em 'information_schema'
+-- O USE resolve na origem: nao importa o que estava selecionado.
+--
+-- >>> Se o banco tiver outro nome (homologacao, copia local), troque aqui. <<<
+-- ---------------------------------------------------------------------------
+USE `grpia_qualiddm`;
+
 SET NAMES utf8mb4;
 
 -- ---------------------------------------------------------------------------
@@ -94,7 +107,21 @@ CREATE TABLE IF NOT EXISTS qualiddm_nomes_manuais (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_bin;
 
 INSERT IGNORE INTO qualiddm_nomes_manuais (alvo, nome_atual, nome_correto) VALUES
-  ('clientes', 'N?o informado', 'Não informado');
+  ('clientes',  'N?o informado', 'Não informado'),
+  ('campanhas', 'N?o informado', 'Não informado');
+
+-- As duas linhas abaixo tratam outro estrago do mesmo import: a campanha
+-- "Canais Online (E-mail, Chat e WhatsApp)" foi partida na virgula e virou dois
+-- registros, em sete carteiras -- 14 linhas no total. A linha correta ja existe
+-- em cada carteira, entao mapear os dois pedacos para o nome inteiro faz a
+-- fusao devolver as referencias e sumir com os cacos.
+--
+-- Ficam comentadas de proposito: isto e leitura minha do padrao, nao um acento
+-- quebrado que se prove sozinho. Confira as 14 linhas no relatorio do script 12
+-- e descomente se concordar.
+-- INSERT IGNORE INTO qualiddm_nomes_manuais (alvo, nome_atual, nome_correto) VALUES
+--   ('campanhas', 'Canais Online (E-mail', 'Canais Online (E-mail, Chat e WhatsApp)'),
+--   ('campanhas', 'Chat e WhatsApp)',      'Canais Online (E-mail, Chat e WhatsApp)');
 
 -- ---------------------------------------------------------------------------
 -- Log da execucao. Fica no banco depois do script -- e o comprovante do que
@@ -128,21 +155,30 @@ DELIMITER $$
 -- Desfaz "UTF-8 lido como latin1". Devolve o proprio texto quando nao ha nada
 -- a desfazer, e NULL quando desfazer perderia caractere.
 --
--- Trabalha em TEXT, nao VARCHAR: duas das colunas alvo (users.campanhas_
--- importadas, users.cliente_nome_importado) sao TEXT, e um parametro VARCHAR
--- truncaria o valor silenciosamente na entrada.
+-- Trabalha em LONGTEXT, nao VARCHAR nem TEXT. As colunas alvo vao de
+-- VARCHAR(80) ate LONGTEXT (avaliacoes.ia_analise_json,
+-- transcricoes.segmentos_json), e um parametro estreito trunca na ENTRADA, em
+-- silencio: a funcao devolveria o pedaco convertido e o UPDATE gravaria de
+-- volta um valor cortado. Perder metade de uma analise para consertar um
+-- acento e um negocio ruim.
+--
+-- A collation vem escrita, nao herdada. CHARACTER SET sozinho pega a collation
+-- PADRAO do charset -- utf8mb4_general_ci no MariaDB -- enquanto as colunas
+-- deste banco sao utf8mb4_unicode_ci. Duas collations implicitas diferentes na
+-- mesma comparacao dao "#1267 combinacao ilegal de collations", e o erro
+-- aparece la no WHERE, longe daqui.
 --
 -- O laco existe porque o import pode ter passado duas vezes pelo mesmo erro
 -- ("CobranÃƒÂ§a"): cada volta desencapa uma camada. Tres e teto de seguranca.
 -- ---------------------------------------------------------------------------
-CREATE FUNCTION qualiddm_utf8_fix(p_texto TEXT CHARACTER SET utf8mb4)
-RETURNS TEXT CHARACTER SET utf8mb4
+CREATE FUNCTION qualiddm_utf8_fix(p_texto LONGTEXT CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci)
+RETURNS LONGTEXT CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci
 DETERMINISTIC
 NO SQL
 BEGIN
-  DECLARE v_atual   TEXT CHARACTER SET utf8mb4;
-  DECLARE v_proximo TEXT CHARACTER SET utf8mb4;
-  DECLARE v_bytes   BLOB;
+  DECLARE v_atual   LONGTEXT CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
+  DECLARE v_proximo LONGTEXT CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
+  DECLARE v_bytes   LONGBLOB;
   DECLARE v_passo   TINYINT DEFAULT 0;
 
   IF p_texto IS NULL THEN RETURN NULL; END IF;
@@ -159,11 +195,15 @@ BEGIN
     SET v_bytes = CONVERT(v_atual USING latin1);
 
     -- CONVERT troca por '?' tudo que nao cabe em latin1. Se apareceu um '?'
-    -- que nao existia no original, a volta perderia informacao: aborta e
-    -- devolve NULL, que o chamador trata como "revisar a mao".
+    -- que nao existia no original, esta volta perderia informacao: para aqui.
+    --
+    -- Parar NAO e o mesmo que desistir. Se alguma passada anterior ja deu
+    -- certo, o valor dela e bom e e o que sai; so a passada a mais e que nao
+    -- vale. Devolver NULL aqui jogaria fora a correcao que ja funcionou --
+    -- foi assim que "A-til-virgula-nima" ficou sem conserto no primeiro teste.
     IF (LENGTH(v_bytes) - LENGTH(REPLACE(v_bytes, '?', '')))
      > (CHAR_LENGTH(v_atual) - CHAR_LENGTH(REPLACE(v_atual, '?', ''))) THEN
-      RETURN NULL;
+      RETURN CASE WHEN v_passo = 0 THEN NULL ELSE v_atual END;
     END IF;
 
     -- Reinterpreta os bytes como UTF-8.
@@ -178,7 +218,7 @@ BEGIN
     IF v_proximo IS NULL
        OR v_proximo = ''
        OR HEX(CAST(v_proximo AS BINARY)) <> HEX(v_bytes) THEN
-      RETURN NULL;
+      RETURN CASE WHEN v_passo = 0 THEN NULL ELSE v_atual END;
     END IF;
 
     SET v_atual = v_proximo;
@@ -194,12 +234,12 @@ END$$
 -- diferentes conforme quem o criou -- e o slug e chave de busca em
 -- resolverClienteId, no upload.
 -- ---------------------------------------------------------------------------
-CREATE FUNCTION qualiddm_slug(p_nome VARCHAR(200) CHARACTER SET utf8mb4)
-RETURNS VARCHAR(120) CHARACTER SET utf8mb4
+CREATE FUNCTION qualiddm_slug(p_nome VARCHAR(200) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci)
+RETURNS VARCHAR(120) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci
 DETERMINISTIC
 NO SQL
 BEGIN
-  DECLARE v VARCHAR(300) CHARACTER SET utf8mb4;
+  DECLARE v VARCHAR(300) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
 
   SET v = LOWER(TRIM(COALESCE(p_nome, '')));
   SET v = REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(v, 'á','a'), 'à','a'), 'â','a'), 'ã','a'), 'ä','a');
@@ -314,7 +354,7 @@ CREATE PROCEDURE qualiddm_funde_campanha(
   IN p_canon BIGINT UNSIGNED)
 BEGIN
   DECLARE v_sobras INT DEFAULT 0;
-  DECLARE v_nome   VARCHAR(160) CHARACTER SET utf8mb4;
+  DECLARE v_nome   VARCHAR(160) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
 
   SET v_nome = (SELECT nome FROM campanhas WHERE id = p_dup);
   CALL qualiddm_repontar('campanhas', p_dup, p_canon, v_sobras);
@@ -354,7 +394,7 @@ BEGIN
   DECLARE v_sobras  INT DEFAULT 0;
   DECLARE v_ca_id   BIGINT UNSIGNED;
   DECLARE v_gemeo   BIGINT UNSIGNED;
-  DECLARE v_nome    VARCHAR(160) CHARACTER SET utf8mb4;
+  DECLARE v_nome    VARCHAR(160) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
   DECLARE v_voltas  INT DEFAULT 0;
 
   SET v_nome = (SELECT nome FROM clientes WHERE id = p_dup);
@@ -416,11 +456,11 @@ BEGIN
   DECLARE v_id     BIGINT UNSIGNED;
   DECLARE v_prox   BIGINT UNSIGNED;
   DECLARE v_cli    BIGINT UNSIGNED;
-  DECLARE v_nome   VARCHAR(160) CHARACTER SET utf8mb4;
-  DECLARE v_novo   VARCHAR(200) CHARACTER SET utf8mb4;
-  DECLARE v_manual VARCHAR(160) CHARACTER SET utf8mb4;
+  DECLARE v_nome   VARCHAR(160) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
+  DECLARE v_novo   VARCHAR(200) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
+  DECLARE v_manual VARCHAR(160) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
   DECLARE v_gemeo  BIGINT UNSIGNED;
-  DECLARE v_slug   VARCHAR(120) CHARACTER SET utf8mb4;
+  DECLARE v_slug   VARCHAR(120) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
 
   -- === clientes ============================================================
   SET v_id = 0;
@@ -519,9 +559,8 @@ CALL qualiddm_normaliza();
 
 -- Nomes de pessoa e os campos de texto que a importacao gravou.
 --
--- Lista curada, nao varredura. Coluna de texto longo (transcricao, resumo,
--- evidencia) fica de fora de proposito: o ganho e cosmetico e o risco de
--- reescrever prova de monitoria nao e.
+-- Lista curada, nao varredura -- cada coluna entra porque alguem a ve
+-- quebrada em algum lugar da tela.
 CALL qualiddm_fix_coluna('users', 'name');
 CALL qualiddm_fix_coluna('users', 'cliente_nome_importado');
 CALL qualiddm_fix_coluna('users', 'campanhas_importadas');
@@ -535,6 +574,25 @@ CALL qualiddm_fix_coluna('formularios', 'nome');
 CALL qualiddm_fix_coluna('formulario_categorias', 'nome');
 CALL qualiddm_fix_coluna('formulario_criterios', 'nome');
 CALL qualiddm_fix_coluna('formulario_secoes', 'nome');
+CALL qualiddm_fix_coluna('formulario_criterios', 'enunciado');
+
+-- Texto longo da analise importada do QualiTalk.
+--
+-- Estas cinco ficaram de fora ate agora por prudencia: reescrever prova de
+-- monitoria em massa e mais grave do que um acento feio. O que mudou foi a
+-- prova -- o cabecalho da ficha mostra "FORMULARIO EDUCACIONAL" com acento
+-- quebrado e o bloco "Leitura do Acordito" exibe o texto corrompido inteiro,
+-- entao o dano de deixar como esta e maior que o risco de mexer.
+--
+-- O risco continua coberto pela mesma regra de sempre: a funcao so devolve
+-- valor quando a conversao fecha byte a byte na ida e na volta. JSON aguenta
+-- porque chave, chave-de-fecho e aspas sao ASCII -- o conserto so alcanca as
+-- sequencias multibyte dentro dos valores, e a estrutura nao e tocada.
+CALL qualiddm_fix_coluna('avaliacoes', 'ia_resumo');
+CALL qualiddm_fix_coluna('avaliacoes', 'ia_observacoes');
+CALL qualiddm_fix_coluna('avaliacoes', 'ia_analise_json');
+CALL qualiddm_fix_coluna('transcricoes', 'texto');
+CALL qualiddm_fix_coluna('transcricoes', 'segmentos_json');
 
 COMMIT;
 
@@ -545,13 +603,24 @@ COMMIT;
 -- ---------------------------------------------------------------------------
 SELECT * FROM qualiddm_normalizacao_log ORDER BY id;
 
--- O que ainda tem acento quebrado depois da passada. Vazio = terminou. Cada
--- linha que sobrar precisa de uma entrada em qualiddm_nomes_manuais.
-SELECT 'clientes' AS tabela, id, nome FROM clientes
- WHERE HEX(nome) REGEXP 'C383|C382|C3A2' OR nome LIKE '%?%'
+-- O que ainda precisa de gente depois da passada. Vazio = terminou; cada linha
+-- que sobrar quer uma entrada em qualiddm_nomes_manuais.
+--
+-- O criterio e "a funcao tem conserto a oferecer", nao "tem byte C383/C382".
+-- Nome legitimo com A-circunflexo ou A-til carrega esses bytes por direito --
+-- "Anima" com circunflexo apareceria aqui em toda execucao, para sempre, e uma
+-- pendencia que nunca zera treina a pessoa a ignorar o relatorio.
+SELECT 'clientes' AS tabela, id, nome, qualiddm_utf8_fix(nome) AS sugestao
+  FROM clientes
+ WHERE (qualiddm_utf8_fix(nome) IS NOT NULL
+        AND qualiddm_utf8_fix(nome) COLLATE utf8mb4_bin <> nome)
+    OR nome LIKE '%?%'
 UNION ALL
-SELECT 'campanhas', id, nome FROM campanhas
- WHERE HEX(nome) REGEXP 'C383|C382|C3A2' OR nome LIKE '%?%';
+SELECT 'campanhas', id, nome, qualiddm_utf8_fix(nome)
+  FROM campanhas
+ WHERE (qualiddm_utf8_fix(nome) IS NOT NULL
+        AND qualiddm_utf8_fix(nome) COLLATE utf8mb4_bin <> nome)
+    OR nome LIKE '%?%';
 
 DROP PROCEDURE qualiddm_normaliza;
 DROP PROCEDURE qualiddm_funde_cliente;

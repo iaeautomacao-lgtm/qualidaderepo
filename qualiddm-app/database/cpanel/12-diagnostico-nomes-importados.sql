@@ -22,6 +22,19 @@
 --   b) nome com perda real ("N?o informado") -- o caractere ja morreu no
 --      import e nenhuma conversao traz de volta: entra no mapa manual;
 --   c) o par duplicado que cada correcao vai encontrar do outro lado.
+-- ---------------------------------------------------------------------------
+-- Banco alvo, escrito aqui e nao herdado da tela.
+--
+-- O phpMyAdmin executa no banco que ELE considera ativo, e isso nem sempre e o
+-- que a barra de navegacao mostra: depois de abrir qualquer tabela do
+-- information_schema, o contexto fica preso la e a importacao falha com
+--   #1109 - Tabela 'campanhas' desconhecida em 'information_schema'
+-- O USE resolve na origem: nao importa o que estava selecionado.
+--
+-- >>> Se o banco tiver outro nome (homologacao, copia local), troque aqui. <<<
+-- ---------------------------------------------------------------------------
+USE `grpia_qualiddm`;
+
 SET NAMES utf8mb4;
 
 -- ---------------------------------------------------------------------------
@@ -53,6 +66,14 @@ SELECT TABLE_NAME AS tabela, TABLE_COLLATION AS collation_atual
 --
 -- `id_do_gemeo` preenchido = a correcao vai esbarrar numa linha que ja existe
 -- com o nome certo. Essa e a duplicata: as duas viram uma so no script 13.
+--
+-- O COLLATE colado no CONVERT nao e enfeite. CONVERT(... USING utf8mb4) devolve
+-- a collation PADRAO do charset -- general_ci no MariaDB -- e a coluna e
+-- unicode_ci; sem casar as duas, a juncao abaixo morre com "#1267 combinacao
+-- ilegal de collations". E tem de ser unicode_ci mesmo, e nao _bin: quem decide
+-- se ja existe uma linha com esse nome e o indice unico, que compara sem
+-- distinguir acento nem caixa. Comparar por byte aqui acharia menos gemeos do
+-- que o banco de fato tem, e o script 13 esbarraria neles so na hora do UPDATE.
 -- ---------------------------------------------------------------------------
 SELECT p.id,
        p.nome            AS nome_atual,
@@ -73,6 +94,7 @@ SELECT p.id,
                    - CHAR_LENGTH(REPLACE(CONVERT(c.nome USING latin1), '?', '')))
                 > (CHAR_LENGTH(c.nome) - CHAR_LENGTH(REPLACE(c.nome, '?', ''))) THEN NULL
              ELSE CONVERT(BINARY(CONVERT(c.nome USING latin1)) USING utf8mb4)
+                    COLLATE utf8mb4_unicode_ci
            END AS nome_proposto
       FROM clientes c
   ) p
@@ -108,6 +130,7 @@ SELECT p.id,
                    - CHAR_LENGTH(REPLACE(CONVERT(ca.nome USING latin1), '?', '')))
                 > (CHAR_LENGTH(ca.nome) - CHAR_LENGTH(REPLACE(ca.nome, '?', ''))) THEN NULL
              ELSE CONVERT(BINARY(CONVERT(ca.nome USING latin1)) USING utf8mb4)
+                    COLLATE utf8mb4_unicode_ci
            END AS nome_proposto
       FROM campanhas ca
   ) p
