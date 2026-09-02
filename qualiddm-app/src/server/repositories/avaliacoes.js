@@ -120,7 +120,13 @@ async function listarOpcoesNomes(sql, fallback = []) {
 export async function listarOpcoesAvaliacoes() {
   const [operacoes, campanhas, avaliadores, avaliados, categorias, departamentos] = await Promise.all([
     listarOpcoesNomes("SELECT nome FROM clientes WHERE ativo = 1 ORDER BY nome", OPERACOES_AVALIACAO_INICIAIS.map((cliente) => cliente.nome)),
-    listarOpcoesNomes("SELECT nome FROM campanhas WHERE ativa = 1 ORDER BY nome", CAMPANHAS_INICIAIS),
+    query(
+      `SELECT ca.nome, cl.nome AS cliente
+         FROM campanhas ca
+         LEFT JOIN clientes cl ON cl.id = ca.cliente_id
+        WHERE ca.ativa = 1
+        ORDER BY ca.nome`,
+    ).catch(() => CAMPANHAS_INICIAIS.map((nome) => ({ nome, cliente: null }))),
     listarOpcoesNomes(
       `SELECT name AS nome
          FROM users
@@ -141,7 +147,11 @@ export async function listarOpcoesAvaliacoes() {
 
   return {
     operacoes,
-    campanhas,
+    campanhas: campanhas.map((row) => ({
+      value: row.nome,
+      label: row.nome,
+      cliente: row.cliente || null,
+    })),
     avaliadores,
     avaliados,
     categorias,

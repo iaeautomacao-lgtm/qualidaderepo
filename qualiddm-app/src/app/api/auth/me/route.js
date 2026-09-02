@@ -1,5 +1,6 @@
 import { ok, route } from "@/server/http";
 import { requireSession } from "@/server/security/sessions";
+import { podeExcluirMonitoria } from "@/server/permissions";
 
 /**
  * Quem está logado.
@@ -12,7 +13,7 @@ export async function GET(request) {
   return route(request, async () => {
     const session = await requireSession({ senhaPendenteOk: true });
     return ok({
-      user: session.user,
+      user: { ...session.user, permissoes: { excluirMonitoria: podeExcluirMonitoria(session.user) } },
       devBypass: Boolean(session.devBypass),
       trocarSenha: Boolean(session.user.trocarSenha),
     });

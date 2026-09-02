@@ -1,8 +1,10 @@
+import { forbidden } from "@/server/errors";
 import { ipDaRequisicao, ok, route } from "@/server/http";
 import { requireRole, requireSession } from "@/server/security/sessions";
 import { assertSafeId, parseJsonObject, readString } from "@/server/validation";
 import { excluirAvaliacao, obterAvaliacao } from "@/server/repositories/avaliacoes";
 import { registrarAuditoria } from "@/server/repositories/administracao";
+import { podeExcluirMonitoria } from "@/server/permissions";
 
 export async function GET(request, { params }) {
   return route(request, async () => {
@@ -24,7 +26,10 @@ export async function GET(request, { params }) {
  */
 export async function DELETE(request, { params }) {
   return route(request, async () => {
-    const session = await requireRole(["administrador", "supervisor"]);
+    const session = await requireRole(["administrador", "supervisor", "monitor"]);
+    if (!podeExcluirMonitoria(session.user)) {
+      throw forbidden("A exclusao de monitorias esta restrita ao usuario autorizado.");
+    }
     const { id } = await params;
     const codigo = assertSafeId(id, "codigo");
 

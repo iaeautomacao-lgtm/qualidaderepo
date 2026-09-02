@@ -1,8 +1,9 @@
 import { badRequest } from "@/server/errors";
 import { ipDaRequisicao, ok, route } from "@/server/http";
-import { requireRole } from "@/server/security/sessions";
+import { requireRole, requireSession } from "@/server/security/sessions";
 import { parseJsonObject, readString } from "@/server/validation";
 import { registrarAuditoria } from "@/server/repositories/administracao";
+import { getFormularioParaAplicacaoManual } from "@/server/repositories/catalog";
 import {
   STATUS_FORMULARIO,
   TIPOS_CALCULO,
@@ -17,6 +18,14 @@ function idDeFormulario(id) {
     throw badRequest("Identificador de formulário inválido.");
   }
   return id;
+}
+
+export async function GET(request, { params }) {
+  return route(request, async () => {
+    await requireSession();
+    const { id } = await params;
+    return ok({ formulario: await getFormularioParaAplicacaoManual({ formularioId: idDeFormulario(id) }) });
+  });
 }
 
 /**

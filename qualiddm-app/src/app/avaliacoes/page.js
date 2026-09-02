@@ -49,6 +49,11 @@ function opcoesComPadrao(rotulo, opcoesBanco, valoresFallback) {
   return opcoes(rotulo, valoresFallback);
 }
 
+function campanhasDoRecorte(opcoesCampanha, operacao) {
+  if (operacao === TODOS) return opcoesCampanha;
+  return opcoesCampanha.filter((opcao) => opcao.value === TODOS || opcao.cliente === operacao);
+}
+
 function scoreFaixa(score) {
   const valor = Number(score);
   if (valor >= 90) return "excelente";
@@ -84,6 +89,7 @@ export default function AvaliacoesPage() {
   const [excluindo, setExcluindo] = useState(null);
   const [erroExclusao, setErroExclusao] = useState("");
   const [exportando, setExportando] = useState(false);
+  const [podeExcluir, setPodeExcluir] = useState(false);
 
   useEffect(() => {
     let ativo = true;
@@ -115,16 +121,34 @@ export default function AvaliacoesPage() {
     };
   }, []);
 
+  useEffect(() => {
+    let ativo = true;
+    fetch("/api/auth/me", { cache: "no-store" })
+      .then((resposta) => resposta.json())
+      .then((payload) => {
+        if (ativo) setPodeExcluir(Boolean(payload?.data?.user?.permissoes?.excluirMonitoria));
+      })
+      .catch(() => {
+        if (ativo) setPodeExcluir(false);
+      });
+    return () => {
+      ativo = false;
+    };
+  }, []);
+
   const opcoesFiltro = useMemo(
     () => ({
       operacao: opcoesComPadrao("Todas as Operações", opcoesBanco?.operacoes, avaliacoes.map((item) => item.cliente)),
-      campanha: opcoesComPadrao("Todas as Campanhas", opcoesBanco?.campanhas, avaliacoes.map((item) => item.campanha)),
+      campanha: campanhasDoRecorte(
+        opcoesComPadrao("Todas as Campanhas", opcoesBanco?.campanhas, avaliacoes.map((item) => item.campanha)),
+        filtros.operacao,
+      ),
       avaliador: opcoesComPadrao("Todos os Avaliadores", opcoesBanco?.avaliadores, avaliacoes.map((item) => item.avaliador)),
       avaliado: opcoesComPadrao("Todos os Avaliados", opcoesBanco?.avaliados, avaliacoes.map((item) => item.avaliado)),
       categoria: opcoesComPadrao("Todas as Categorias", opcoesBanco?.categorias, avaliacoes.map((item) => item.categoria)),
       departamento: opcoesComPadrao("Todos os Departamentos", opcoesBanco?.departamentos, avaliacoes.map((item) => item.departamento)),
     }),
-    [avaliacoes, opcoesBanco],
+    [avaliacoes, filtros.operacao, opcoesBanco],
   );
 
   /**
@@ -212,7 +236,11 @@ export default function AvaliacoesPage() {
   const filtrosAtivos = contarFiltros(filtros);
 
   function alterarFiltro(chave, valor) {
-    setFiltros((atual) => ({ ...atual, [chave]: valor }));
+    setFiltros((atual) => {
+      const proximo = { ...atual, [chave]: valor };
+      if (chave === "operacao") proximo.campanha = TODOS;
+      return proximo;
+    });
     setPagina(0);
   }
 
@@ -491,7 +519,7 @@ export default function AvaliacoesPage() {
                         {/* O botão de agendar saiu: não havia agendamento por
                             trás dele, e controle que não faz nada é pior que
                             controle ausente. */}
-                        {confirmando === item.id ? (
+                        {podeExcluir && confirmando === item.id ? (
                           <span className={styles.confirmarExclusao}>
                             Excluir esta monitoria?
                             <button
@@ -515,7 +543,7 @@ export default function AvaliacoesPage() {
                               Cancelar
                             </button>
                           </span>
-                        ) : (
+                        ) : podeExcluir ? (
                           <button
                             className="btn ghost icon-only danger"
                             type="button"
@@ -530,7 +558,7 @@ export default function AvaliacoesPage() {
                               label={`Excluir a monitoria ${item.id}`}
                             />
                           </button>
-                        )}
+                        ) : null}
                       </div>
                     </div>
 

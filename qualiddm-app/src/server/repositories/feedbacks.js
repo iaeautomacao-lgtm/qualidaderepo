@@ -76,7 +76,15 @@ function montarFiltros(filtros = {}) {
     params.dataFim = `${filtros.dataFim} 23:59:59`;
   }
   if (filtros.busca) {
-    condicoes.push("(a.codigo LIKE :busca OR a.cod_gravacao LIKE :busca)");
+    condicoes.push(`(
+      a.codigo LIKE :busca OR
+      a.cod_gravacao LIKE :busca OR
+      av.name LIKE :busca OR
+      mo.name LIKE :busca OR
+      su.name LIKE :busca OR
+      cl.nome LIKE :busca OR
+      ca.nome LIKE :busca
+    )`);
     params.busca = paraLike(filtros.busca);
   }
 
@@ -184,9 +192,14 @@ export async function listarFeedbacks({
           SUM(a.status_feedback = 'assinatura')  AS assinatura,
           SUM(a.status_feedback = 'concluida')   AS concluida,
           SUM(a.status_feedback = 'justificada') AS justificada,
-          SUM(a.status_feedback = 'revisao')     AS revisao,
-          SUM(a.status_feedback = 'dispensado')  AS dispensado
+         SUM(a.status_feedback = 'revisao')     AS revisao,
+         SUM(a.status_feedback = 'dispensado')  AS dispensado
          FROM avaliacoes a
+         JOIN clientes cl ON cl.id = a.cliente_id
+         LEFT JOIN campanhas ca ON ca.id = a.campanha_id
+         JOIN users av ON av.id = a.avaliado_id
+         JOIN users mo ON mo.id = a.avaliador_id
+         LEFT JOIN users su ON su.id = a.supervisor_id
         WHERE ${where}`,
       params,
     );
@@ -266,7 +279,7 @@ export const ACOES_FEEDBACK = ["aplicar", "justificar"];
 // junto da escrita, para a rota e a validação usarem o mesmo número.
 export const MIN_CARACTERES_MENSAGEM = 20;
 
-const STATUS_POR_ACAO = { aplicar: "concluida", justificar: "justificada" };
+const STATUS_POR_ACAO = { aplicar: "assinatura", justificar: "justificada" };
 
 /**
  * Registra o feedback global de uma avaliação e move o status da ficha.

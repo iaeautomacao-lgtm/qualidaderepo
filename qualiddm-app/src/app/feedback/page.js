@@ -19,6 +19,7 @@ const FILTROS_VAZIOS = {
   clienteId: "",
   campanhaId: "",
   avaliadorId: "",
+  avaliadoId: "",
   supervisorId: "",
   dataInicio: "",
   dataFim: "",
@@ -54,7 +55,7 @@ const APARENCIA_STATUS = {
 };
 
 function contarFiltros(filtros) {
-  const simples = ["busca", "clienteId", "campanhaId", "avaliadorId", "supervisorId"];
+  const simples = ["busca", "clienteId", "campanhaId", "avaliadorId", "avaliadoId", "supervisorId"];
   const total = simples.filter((chave) => filtros[chave].trim() !== "").length;
   // Período conta como UM filtro: para quem usa a tela é um campo só, e contar 2
   // com as duas datas preenchidas faria o rótulo mentir.
@@ -75,6 +76,7 @@ export default function FeedbackPage() {
     clienteId: filtros.clienteId,
     campanhaId: filtros.campanhaId,
     avaliadorId: filtros.avaliadorId,
+    avaliadoId: filtros.avaliadoId,
     supervisorId: filtros.supervisorId,
     dataInicio: filtros.dataInicio,
     dataFim: filtros.dataFim,
@@ -97,6 +99,7 @@ export default function FeedbackPage() {
     clientes: opcoesApi?.clientes ?? [],
     campanhas: opcoesApi?.campanhas ?? [],
     avaliadores: opcoesApi?.avaliadores ?? [],
+    avaliados: opcoesApi?.avaliados ?? [],
   };
 
   const paginas = Math.max(1, Math.ceil(totalDoRecorte / POR_PAGINA));
@@ -107,7 +110,11 @@ export default function FeedbackPage() {
   const fimDaFaixa = paginaAtual * POR_PAGINA + itens.length;
 
   function alterar(chave, valor) {
-    setFiltros((atual) => ({ ...atual, [chave]: valor }));
+    setFiltros((atual) => {
+      const proximo = { ...atual, [chave]: valor };
+      if (chave === "clienteId") proximo.campanhaId = "";
+      return proximo;
+    });
     // Trocar o recorte reinicia a paginação: a página 4 do filtro anterior
     // provavelmente não existe no filtro novo, e a tabela viria vazia.
     setPagina(0);
@@ -241,6 +248,23 @@ export default function FeedbackPage() {
                       {campanha.nome}
                     </option>
                   ))}
+              </select>
+            </div>
+
+            <div className="field">
+              <label htmlFor="feedback-avaliado">Operador</label>
+              <select
+                className="select"
+                id="feedback-avaliado"
+                value={filtros.avaliadoId}
+                onChange={(evento) => alterar("avaliadoId", evento.target.value)}
+              >
+                <option value="">Todos os operadores</option>
+                {opcoes.avaliados.map((avaliado) => (
+                  <option key={avaliado.id} value={avaliado.id}>
+                    {avaliado.nome}
+                  </option>
+                ))}
               </select>
             </div>
 
@@ -448,6 +472,7 @@ export default function FeedbackPage() {
                     <th scope="col">ID</th>
                     <th scope="col">Data avaliação</th>
                     <th scope="col">Status feedback</th>
+                    <th scope="col">Operador</th>
                     <th scope="col">Superior</th>
                     <th scope="col">Avaliador</th>
                     <th scope="col">Data contato</th>
@@ -485,6 +510,7 @@ export default function FeedbackPage() {
                             {item.statusLabel}
                           </span>
                         </td>
+                        <td>{item.avaliado}</td>
                         <td>{item.superior}</td>
                         <td>{item.avaliador}</td>
                         <td>{item.dataContatoFormatada}</td>

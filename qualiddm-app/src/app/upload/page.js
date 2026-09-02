@@ -130,6 +130,7 @@ export default function UploadPage() {
           const opcoesApi = {
             clientes: payloadOpcoes.data?.clientes || [],
             campanhas: payloadOpcoes.data?.campanhas || [],
+            avaliados: payloadOpcoes.data?.avaliados || [],
           };
           setOpcoes(opcoesApi);
 
@@ -209,7 +210,7 @@ export default function UploadPage() {
   const campanhasDisponiveis = useMemo(
     () =>
       opcoes.campanhas.filter(
-        (campanha) => !clienteId || !campanha.clienteId || campanha.clienteId === clienteId,
+        (campanha) => !clienteId || campanha.clienteId === clienteId,
       ),
     [clienteId, opcoes.campanhas],
   );

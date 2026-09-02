@@ -1,9 +1,10 @@
 import { ipDaRequisicao, ok, route } from "@/server/http";
 import { requireRole, requireSession } from "@/server/security/sessions";
-import { badRequest } from "@/server/errors";
+import { badRequest, forbidden } from "@/server/errors";
 import { parseJsonObject, readString } from "@/server/validation";
 import { atualizarDadosGravacao, excluirGravacao, obterTranscricao } from "@/server/repositories/transcricoes";
 import { registrarAuditoria } from "@/server/repositories/administracao";
+import { podeExcluirMonitoria } from "@/server/permissions";
 
 /** Id de gravação é numérico e vem da URL — validado antes de tocar no banco. */
 function idDeGravacao(id) {
@@ -79,7 +80,10 @@ export async function PATCH(request, { params }) {
  */
 export async function DELETE(request, { params }) {
   return route(request, async () => {
-    const session = await requireRole(["administrador", "supervisor"]);
+    const session = await requireRole(["administrador", "supervisor", "monitor"]);
+    if (!podeExcluirMonitoria(session.user)) {
+      throw forbidden("A exclusao de gravacoes esta restrita ao usuario autorizado.");
+    }
     const { id } = await params;
     const gravacaoId = idDeGravacao(id);
 

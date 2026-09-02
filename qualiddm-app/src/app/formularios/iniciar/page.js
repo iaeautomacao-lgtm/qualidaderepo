@@ -36,7 +36,7 @@ export default function IniciarAvaliacaoPage() {
           </Link>
           <div>
             <h1>Iniciar avaliação</h1>
-            <p>Escolha a ficha e envie o atendimento para análise.</p>
+            <p>Escolha a ficha e selecione como a monitoria será aplicada.</p>
           </div>
         </div>
       </section>
@@ -62,10 +62,17 @@ export default function IniciarAvaliacaoPage() {
         <div className="btn-row">
           <Link
             className={`btn primary ${!formularioId ? "disabled" : ""}`}
+            href={formularioId ? `/formularios/iniciar/manual?formularioId=${encodeURIComponent(formularioId)}` : "/formularios/iniciar"}
+          >
+            <Icon name="edit" size={16} />
+            Preencher manualmente
+          </Link>
+          <Link
+            className={`btn ${!formularioId ? "disabled" : ""}`}
             href={formularioId ? `/upload?formularioId=${encodeURIComponent(formularioId)}` : "/formularios/iniciar"}
           >
             <Icon name="upload" size={16} />
-            Enviar arquivo
+            Enviar arquivo para IA
           </Link>
         </div>
 

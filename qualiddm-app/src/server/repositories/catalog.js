@@ -343,6 +343,92 @@ export async function getFormularioParaAvaliacaoIa({ formularioId = null } = {})
   return { ...formulario, secoes };
 }
 
+export async function getFormularioParaAplicacaoManual({ formularioId }) {
+  if (!/^\d{1,20}$/.test(String(formularioId || "")) || String(formularioId) === "0") {
+    throw notFound("Formulario nao encontrado.");
+  }
+
+  const formulario = await one(
+    `SELECT
+        f.id,
+        f.nome,
+        f.categoria,
+        f.cliente_id,
+        c.nome AS cliente
+       FROM formularios f
+       JOIN clientes c ON c.id = f.cliente_id
+      WHERE f.id = :formularioId
+        AND f.status IN ('ativo', 'desenvolvimento')
+      LIMIT 1`,
+    { formularioId },
+  );
+
+  if (!formulario) throw notFound("Formulario nao encontrado ou indisponivel para avaliacao.");
+
+  const [campanhas, criterios] = await Promise.all([
+    query(
+      `SELECT ca.id, ca.nome
+         FROM formulario_campanhas fc
+         JOIN campanhas ca ON ca.id = fc.campanha_id
+        WHERE fc.formulario_id = :formularioId
+          AND ca.ativa = 1
+        ORDER BY ca.nome`,
+      { formularioId },
+    ),
+    query(
+      `SELECT
+          s.id AS secao_id,
+          s.nome AS secao_nome,
+          s.descricao AS secao_descricao,
+          s.posicao AS secao_posicao,
+          c.id AS criterio_id,
+          c.nome AS criterio_nome,
+          c.enunciado,
+          c.peso_pts,
+          c.eliminatoria,
+          c.posicao AS criterio_posicao
+         FROM formulario_secoes s
+         JOIN formulario_criterios c ON c.secao_id = s.id
+        WHERE s.formulario_id = :formularioId
+        ORDER BY s.posicao, c.posicao`,
+      { formularioId },
+    ),
+  ]);
+
+  const secoes = [];
+  const porSecao = new Map();
+  for (const row of criterios) {
+    if (!porSecao.has(row.secao_id)) {
+      const secao = {
+        id: String(row.secao_id),
+        nome: row.secao_nome,
+        descricao: row.secao_descricao,
+        criterios: [],
+      };
+      porSecao.set(row.secao_id, secao);
+      secoes.push(secao);
+    }
+
+    porSecao.get(row.secao_id).criterios.push({
+      id: String(row.criterio_id),
+      nome: row.criterio_nome,
+      enunciado: row.enunciado,
+      peso: row.peso_pts == null ? null : Number(row.peso_pts),
+      eliminatoria: Boolean(row.eliminatoria),
+    });
+  }
+
+  return {
+    id: String(formulario.id),
+    nome: formulario.nome,
+    categoria: formulario.categoria,
+    clienteId: String(formulario.cliente_id),
+    cliente: formulario.cliente,
+    campanhas: campanhas.map((campanha) => ({ id: String(campanha.id), nome: campanha.nome })),
+    secoes,
+  };
+}
+
 function codigoAvaliacao() {
   const ano = String(new Date().getFullYear()).slice(-2);
   const sufixo = String(Date.now()).slice(-6);
@@ -544,6 +630,149 @@ export async function createAvaliacaoFromIa({
     }
 
     return { codigo, avaliacaoId };
+  });
+}
+
+const STATUS_MANUAL = new Set(["conforme", "nao_conforme", "nao_aplicavel"]);
+
+function respostaManualPorStatus(status) {
+  if (status === "conforme") return normalizarResposta("sim");
+  if (status === "nao_conforme") return normalizarResposta("nao");
+  return null;
+}
+
+function normalizarDataHoraManual(valor) {
+  const texto = String(valor || "").trim();
+  if (!texto) return null;
+  if (!/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}$/.test(texto)) return null;
+  return texto.replace("T", " ");
+}
+
+export async function createAvaliacaoManual({
+  formularioId,
+  campanhaId = null,
+  avaliadoId,
+  avaliadorId,
+  codGravacao = null,
+  dataContato = null,
+  respostas = [],
+}) {
+  const formulario = await getFormularioParaAplicacaoManual({ formularioId });
+  if (formulario.secoes.length === 0) {
+    throw conflict("O formulario selecionado nao possui criterios para avaliacao.");
+  }
+
+  const avaliado = await one(
+    `SELECT id, supervisor_id
+       FROM users
+      WHERE id = :avaliadoId
+        AND active = 1
+        AND role = 'operador'
+      LIMIT 1`,
+    { avaliadoId },
+  );
+  if (!avaliado) throw notFound("Operador avaliado nao encontrado.");
+
+  const campanhaValida =
+    campanhaId && formulario.campanhas.some((campanha) => campanha.id === String(campanhaId));
+  if (campanhaId && !campanhaValida) {
+    throw conflict("A campanha selecionada nao esta vinculada ao formulario.");
+  }
+
+  const criterios = formulario.secoes.flatMap((secao) => secao.criterios);
+  const criteriosPorId = new Map(criterios.map((criterio) => [String(criterio.id), criterio]));
+  const respostasPorId = new Map(
+    (Array.isArray(respostas) ? respostas : []).map((item) => [String(item?.criterioId || ""), item]),
+  );
+
+  let totalPeso = 0;
+  let pesoObtido = 0;
+  let conformes = 0;
+  let naoConformes = 0;
+  let naoAplicaveis = 0;
+  let zerada = false;
+  const linhas = [];
+
+  for (const criterio of criterios) {
+    const item = respostasPorId.get(String(criterio.id));
+    const status = STATUS_MANUAL.has(item?.status) ? item.status : "nao_aplicavel";
+    const observacao = String(item?.observacao || "").trim().slice(0, 5000) || null;
+
+    if (status === "conforme") conformes += 1;
+    if (status === "nao_conforme") naoConformes += 1;
+    if (status === "nao_aplicavel") naoAplicaveis += 1;
+
+    let pesoAplicado = null;
+    if (criterio.eliminatoria) {
+      pesoAplicado = 0;
+      if (status === "nao_conforme") zerada = true;
+    } else if (status !== "nao_aplicavel") {
+      const peso = Number(criterio.peso ?? 0);
+      totalPeso += peso;
+      pesoAplicado = status === "conforme" ? peso : 0;
+      pesoObtido += pesoAplicado;
+    } else {
+      pesoAplicado = 0;
+    }
+
+    linhas.push({
+      criterioId: criterio.id,
+      resposta: respostaManualPorStatus(status),
+      status,
+      pesoAplicado,
+      observacao,
+    });
+  }
+
+  const score = zerada ? 0 : totalPeso > 0 ? Number(((pesoObtido / totalPeso) * 100).toFixed(2)) : null;
+  const codigo = codigoAvaliacao();
+  const dataContatoSql = normalizarDataHoraManual(dataContato);
+
+  return transaction(async (connection) => {
+    const [insert] = await connection.execute(
+      `INSERT INTO avaliacoes (
+          codigo, cod_gravacao, cliente_id, campanha_id, formulario_id,
+          avaliado_id, avaliador_id, supervisor_id, categoria, origem, score, zerada,
+          data_contato, data_avaliacao, status_feedback,
+          total_conformes, total_nao_conformes, total_nao_aplicaveis, total_criterios
+       ) VALUES (
+          :codigo, :codGravacao, :clienteId, :campanhaId, :formularioId,
+          :avaliadoId, :avaliadorId, :supervisorId, :categoria, 'humana', :score, :zerada,
+          :dataContato, CURRENT_TIMESTAMP, 'pendente',
+          :conformes, :naoConformes, :naoAplicaveis, :total
+       )`,
+      {
+        codigo,
+        codGravacao: String(codGravacao || "").trim().slice(0, 60) || null,
+        clienteId: formulario.clienteId,
+        campanhaId: campanhaValida ? campanhaId : null,
+        formularioId: formulario.id,
+        avaliadoId: avaliado.id,
+        avaliadorId,
+        supervisorId: avaliado.supervisor_id || null,
+        categoria: formulario.categoria || "padrao",
+        score,
+        zerada: zerada ? 1 : 0,
+        dataContato: dataContatoSql,
+        conformes,
+        naoConformes,
+        naoAplicaveis,
+        total: criterios.length,
+      },
+    );
+
+    for (const linha of linhas) {
+      await connection.execute(
+        `INSERT INTO avaliacao_respostas (
+            avaliacao_id, criterio_id, resposta, status, peso_aplicado, observacao_monitor
+         ) VALUES (
+            :avaliacaoId, :criterioId, :resposta, :status, :pesoAplicado, :observacao
+         )`,
+        { avaliacaoId: insert.insertId, ...linha },
+      );
+    }
+
+    return { codigo, avaliacaoId: String(insert.insertId), score };
   });
 }
 
