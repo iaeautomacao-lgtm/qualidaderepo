@@ -1,0 +1,315 @@
+/* ==========================================================================
+   Gerenciamento de Formulários — cartão por régua de monitoria.
+   ========================================================================== */
+
+.filtros {
+  display: grid;
+  gap: var(--sp-4);
+}
+
+.chips {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 260px), 1fr));
+  gap: var(--sp-4);
+  align-items: start;
+}
+
+.grupoChips {
+  display: grid;
+  gap: var(--sp-2);
+  min-width: 0;
+  border: 0;
+}
+
+.grupoChips legend {
+  color: var(--text-muted);
+  font-size: var(--fs-100);
+  font-weight: var(--fw-semibold);
+  letter-spacing: var(--tracking-label);
+  text-transform: uppercase;
+}
+
+.linhaChips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--sp-2);
+}
+
+/* Chip de filtro é menor que botão de ação: eles convivem na mesma tela e o
+   peso visual tem de dizer qual é navegação e qual é comando. */
+.linhaChips :global(.btn) {
+  min-height: 34px;
+  padding-inline: var(--sp-3);
+  font-size: var(--fs-200);
+}
+
+.campoCliente {
+  min-width: 0;
+}
+
+.resumoFiltro {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--sp-2);
+  padding-top: var(--sp-3);
+  border-top: 1px solid var(--line);
+  color: var(--text-soft);
+  font-size: var(--fs-100);
+}
+
+.resumoFiltro > svg {
+  flex: 0 0 auto;
+  margin-top: 2px;
+}
+
+/* --- lista de cartões ---------------------------------------------------- */
+
+.lista {
+  display: grid;
+  gap: var(--sp-4);
+  list-style: none;
+}
+
+.cartao {
+  display: grid;
+  gap: var(--sp-4);
+  padding: var(--sp-5);
+}
+
+/* Formulário inativo continua legível, mas não compete com os ativos. */
+.cartao[data-inativo="true"] {
+  background: var(--surface-2);
+}
+
+.cartaoTopo {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: var(--sp-4);
+}
+
+.identidade {
+  display: flex;
+  min-width: 0;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--sp-2);
+}
+
+.identidade h3 {
+  font-size: var(--fs-500);
+  overflow-wrap: anywhere;
+}
+
+/* Id técnico em monoespaçada: é para conferir e copiar, não para ler. */
+.idTecnico {
+  padding: 2px var(--sp-2);
+  border: 1px solid var(--border-control);
+  border-radius: var(--r-sm);
+  color: var(--text-soft);
+  font-family: var(--font-mono, ui-monospace, monospace);
+  font-size: var(--fs-100);
+}
+
+.acoes {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--sp-2);
+}
+
+.confirmar {
+  display: inline-flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--sp-2);
+  font-size: var(--fs-200);
+  font-weight: var(--fw-semibold);
+}
+
+.descricao {
+  max-width: 90ch;
+  color: var(--text);
+  font-size: var(--fs-300);
+  line-height: var(--lh-normal);
+}
+
+.semDescricao {
+  color: var(--text-muted);
+  font-size: var(--fs-200);
+  font-style: italic;
+}
+
+/* --- metadados ---------------------------------------------------------- */
+
+.meta {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 150px), 1fr));
+  gap: var(--sp-3);
+  padding: var(--sp-3) var(--sp-4);
+  border-radius: var(--r-md);
+  background: var(--surface-2);
+}
+
+.cartao[data-inativo="true"] .meta {
+  background: var(--surface-3);
+}
+
+.meta > div {
+  display: grid;
+  gap: 2px;
+  min-width: 0;
+}
+
+.metaLarga {
+  grid-column: span 2;
+}
+
+.meta dt {
+  color: var(--text-muted);
+  font-size: var(--fs-100);
+  font-weight: var(--fw-semibold);
+  letter-spacing: var(--tracking-label);
+  text-transform: uppercase;
+}
+
+.meta dd {
+  font-size: var(--fs-200);
+  font-weight: var(--fw-semibold);
+  overflow-wrap: anywhere;
+}
+
+/* --- tipo de cálculo ---------------------------------------------------- */
+
+.calculo {
+  display: grid;
+  gap: var(--sp-3);
+}
+
+.calculo h4 {
+  font-size: var(--fs-400);
+}
+
+.modos {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 240px), 1fr));
+  gap: var(--sp-3);
+  list-style: none;
+}
+
+.modo {
+  display: grid;
+  gap: var(--sp-1);
+  padding: var(--sp-3) var(--sp-4);
+  border: 1px solid var(--line);
+  border-radius: var(--r-md);
+  background: var(--surface);
+  color: var(--text-soft);
+}
+
+/* O modo escolhido ganha borda e fundo de acento — não o verde do print, que é
+   de outra marca. Ícone de seleção acompanha a cor: cor sozinha não informa. */
+.modo[data-escolhido="true"] {
+  border-color: var(--accent-strong);
+  background: var(--accent-soft);
+  color: var(--accent-deep);
+}
+
+.modoTopo {
+  display: flex;
+  align-items: center;
+  gap: var(--sp-2);
+  font-size: var(--fs-100);
+  font-weight: var(--fw-bold);
+  letter-spacing: var(--tracking-label);
+}
+
+/* Só o ícone de seleção vai para a direita — e só no cartão escolhido. Sem o
+   escopo, o cartão sem seleção tem um svg só, ele casa com :last-child e o
+   rótulo era empurrado para a borda. */
+.modo[data-escolhido="true"] .modoTopo > svg:last-child {
+  margin-left: auto;
+}
+
+.modo strong {
+  font-size: var(--fs-300);
+}
+
+.modo span {
+  font-size: var(--fs-200);
+  line-height: var(--lh-normal);
+}
+
+.modo em {
+  font-size: var(--fs-100);
+  opacity: 0.85;
+}
+
+.avisoCalculo {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--sp-2);
+  padding: var(--sp-3);
+  border: 1px solid var(--info);
+  border-radius: var(--r-md);
+  background: var(--info-soft);
+  color: var(--info-text);
+  font-size: var(--fs-100);
+  line-height: var(--lh-normal);
+}
+
+.avisoCalculo > svg {
+  flex: 0 0 auto;
+  margin-top: 2px;
+}
+
+/* --- edição ------------------------------------------------------------- */
+
+.edicao {
+  display: grid;
+  gap: var(--sp-4);
+  padding-top: var(--sp-4);
+  border-top: 1px dashed var(--line);
+}
+
+.area {
+  min-height: 100px;
+  resize: vertical;
+}
+
+.notaEdicao {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--sp-2);
+  color: var(--text-soft);
+  font-size: var(--fs-100);
+  line-height: var(--lh-normal);
+}
+
+.notaEdicao > svg {
+  flex: 0 0 auto;
+  margin-top: 2px;
+}
+
+/* --- esqueleto ---------------------------------------------------------- */
+
+.esqueleto {
+  display: grid;
+  gap: var(--sp-4);
+}
+
+.esqueleto > span {
+  height: 260px;
+  border-radius: var(--r-lg);
+}
+
+@media (max-width: 640px) {
+  .metaLarga {
+    grid-column: auto;
+  }
+
+  .cartaoTopo {
+    flex-direction: column;
+  }
+}

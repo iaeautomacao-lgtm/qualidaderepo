@@ -1,0 +1,41 @@
+/* Estilos do KpiCard. Só tokens — nenhuma cor ou medida crua. */
+
+.kpi {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  align-items: start;
+  gap: var(--sp-3);
+  padding: var(--sp-4);
+}
+
+/* Três faixas fixas (selo / valor / rótulo). A primeira existe mesmo sem selo:
+   sem isso o cartão de "Tempo Médio" — o único sem badge — subiria o número e
+   quebraria o alinhamento da linha inteira. */
+.corpo {
+  display: grid;
+  grid-template-rows: 26px auto auto;
+  row-gap: var(--sp-1);
+  min-width: 0;
+}
+
+.selo {
+  grid-row: 1;
+  justify-self: start;
+}
+
+.valor {
+  grid-row: 2;
+  font-size: var(--fs-700);
+  font-weight: var(--fw-bold);
+  line-height: var(--lh-tight);
+  letter-spacing: -0.02em;
+  font-variant-numeric: tabular-nums;
+}
+
+.rotulo {
+  grid-row: 3;
+  color: var(--text-soft);
+  font-size: var(--fs-200);
+  font-weight: var(--fw-medium);
+  line-height: var(--lh-snug);
+}

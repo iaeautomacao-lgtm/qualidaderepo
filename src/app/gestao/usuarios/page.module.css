@@ -1,0 +1,349 @@
+.headerTitle {
+  display: flex;
+  align-items: center;
+  gap: var(--sp-3);
+  min-width: 0;
+}
+
+.filtros {
+  display: grid;
+  gap: var(--sp-4);
+}
+
+.chips {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--sp-2);
+}
+
+.chips :global(.btn) {
+  min-height: 34px;
+  padding-inline: var(--sp-3);
+  font-size: var(--fs-200);
+}
+
+.rotuloFiltro {
+  color: var(--text-muted);
+  font-size: var(--fs-100);
+  font-weight: var(--fw-semibold);
+  letter-spacing: var(--tracking-label);
+  text-transform: uppercase;
+}
+
+.resumo {
+  color: var(--text-soft);
+  font-size: var(--fs-100);
+}
+
+.senha {
+  padding: 2px var(--sp-2);
+  border: 1px solid var(--success);
+  border-radius: var(--r-sm);
+  background: var(--surface);
+  font-family: var(--font-mono, ui-monospace, monospace);
+  font-weight: var(--fw-bold);
+}
+
+.cards {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 360px), 1fr));
+  gap: var(--sp-4);
+  list-style: none;
+}
+
+.cardUsuario {
+  display: grid;
+  gap: var(--sp-3);
+  overflow: hidden;
+  border: 1px solid var(--line);
+  border-top: 4px solid color-mix(in srgb, var(--accent) 70%, white);
+  border-radius: var(--r-md);
+  background: var(--surface);
+  box-shadow: var(--shadow-sm);
+}
+
+.cardUsuario[data-inativo="true"] {
+  opacity: 0.75;
+}
+
+.cardTopo {
+  display: flex;
+  gap: var(--sp-3);
+  padding: var(--sp-4) var(--sp-4) 0;
+}
+
+.cardTopo > div {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  min-width: 0;
+  gap: var(--sp-2);
+}
+
+.cardTopo strong {
+  flex-basis: 100%;
+  font-size: var(--fs-300);
+  overflow-wrap: anywhere;
+}
+
+.avatar {
+  display: grid;
+  flex: 0 0 52px;
+  width: 52px;
+  height: 52px;
+  place-items: center;
+  border-radius: var(--r-md);
+  background: color-mix(in srgb, var(--accent) 78%, white);
+  color: white;
+  font-weight: var(--fw-bold);
+  box-shadow: var(--shadow-sm);
+}
+
+.matricula {
+  color: var(--text-soft);
+  font-size: var(--fs-100);
+}
+
+.identidade {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: var(--sp-3);
+  margin-inline: var(--sp-4);
+  padding: var(--sp-3);
+  border: 1px solid var(--line);
+  border-radius: var(--r-sm);
+  background: var(--surface-2);
+}
+
+.identidade span,
+.metaGrid dd {
+  overflow-wrap: anywhere;
+}
+
+.identidade small,
+.metaGrid dt {
+  display: block;
+  color: var(--text-muted);
+  font-size: var(--fs-100);
+  font-weight: var(--fw-semibold);
+  letter-spacing: var(--tracking-label);
+  text-transform: uppercase;
+}
+
+.metaGrid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: var(--sp-3);
+  margin-inline: var(--sp-4);
+}
+
+.metaGrid dd {
+  font-weight: var(--fw-semibold);
+}
+
+.campanhas {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--sp-2);
+  margin-inline: var(--sp-4);
+}
+
+.acoesCard {
+  display: grid;
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+  gap: var(--sp-2);
+  padding: var(--sp-3);
+  border-top: 1px solid var(--line);
+  background: var(--surface-2);
+}
+
+.acoesCard :global(.btn),
+.acoesTabela :global(.btn) {
+  min-height: 34px;
+  padding-inline: var(--sp-2);
+  font-size: var(--fs-100);
+}
+
+.acoesTabela {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--sp-2);
+}
+
+.tabela {
+  min-width: 1040px;
+}
+
+.tabela td {
+  vertical-align: middle;
+}
+
+.tabela td strong,
+.tabela td small {
+  display: block;
+}
+
+.tabela td small {
+  color: var(--text-soft);
+  font-size: var(--fs-100);
+}
+
+.backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 90;
+  display: grid;
+  place-items: center;
+  padding: var(--sp-5);
+  background: color-mix(in srgb, var(--text) 45%, transparent);
+}
+
+.modalUsuario {
+  width: min(960px, calc(100vw - 32px));
+  max-height: calc(100vh - 40px);
+  overflow: auto;
+}
+
+.formUsuario {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: var(--sp-4);
+}
+
+.campoLargo {
+  grid-column: 1 / -1;
+}
+
+.modalCampanhas {
+  display: grid;
+  grid-template-rows: auto minmax(0, 1fr) auto;
+  width: min(920px, calc(100vw - 32px));
+  max-height: calc(100vh - 40px);
+  border-radius: var(--r-md);
+  background: linear-gradient(135deg, #5a2f91, #334f96);
+  color: white;
+  box-shadow: var(--shadow-lg);
+}
+
+.campanhasHead,
+.campanhasFooter {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--sp-3);
+  padding: var(--sp-4);
+}
+
+.campanhasHead h2 {
+  color: white;
+}
+
+.campanhasHead p {
+  color: rgb(255 255 255 / 0.72);
+}
+
+.campanhasLista {
+  display: grid;
+  gap: var(--sp-3);
+  overflow: auto;
+  padding: 0 var(--sp-4) var(--sp-4);
+}
+
+.campanhaGrupo {
+  display: grid;
+  gap: var(--sp-3);
+  padding: var(--sp-4);
+  border: 1px solid rgb(255 255 255 / 0.18);
+  border-radius: var(--r-md);
+  background: rgb(255 255 255 / 0.08);
+}
+
+.campanhaGrupo header {
+  display: flex;
+  justify-content: space-between;
+  gap: var(--sp-3);
+}
+
+.campanhaGrupo label,
+.campanhaItens label {
+  display: flex;
+  align-items: center;
+  gap: var(--sp-2);
+}
+
+.campanhaGrupo input {
+  width: 20px;
+  height: 20px;
+  accent-color: #b45cff;
+}
+
+.campanhaItens {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: var(--sp-3);
+}
+
+.campanhaItens span {
+  margin-left: auto;
+  padding: 2px var(--sp-2);
+  border: 1px solid #24f2a6;
+  border-radius: 999px;
+  color: #24f2a6;
+  font-size: var(--fs-100);
+  font-weight: var(--fw-bold);
+}
+
+.campanhasFooter {
+  border-top: 1px solid rgb(255 255 255 / 0.18);
+}
+
+.campanhasFooter :global(.btn.primary) {
+  flex: 1;
+  background: #b04cff;
+  border-color: #b04cff;
+}
+
+.historico {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: var(--sp-3);
+}
+
+.historico div {
+  padding: var(--sp-3);
+  border: 1px solid var(--line);
+  border-radius: var(--r-sm);
+}
+
+.historico dt {
+  color: var(--text-muted);
+  font-size: var(--fs-100);
+  font-weight: var(--fw-semibold);
+  letter-spacing: var(--tracking-label);
+  text-transform: uppercase;
+}
+
+.historico dd {
+  font-weight: var(--fw-semibold);
+  overflow-wrap: anywhere;
+}
+
+@media (max-width: 780px) {
+  .headerTitle {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+
+  .formUsuario,
+  .identidade,
+  .metaGrid,
+  .campanhaItens,
+  .historico {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .acoesCard {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}

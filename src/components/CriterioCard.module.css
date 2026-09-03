@@ -1,0 +1,186 @@
+/* Cartão de critério — compartilhado pela ficha de monitoria e pela ficha IA. */
+
+.criterio {
+  display: grid;
+  gap: var(--sp-3);
+  padding: var(--sp-4);
+  border: 1px solid var(--line);
+  border-radius: var(--r-md);
+  background: var(--surface);
+}
+
+/* Faixa lateral no status: reforça o chip para quem varre a lista de olho, sem
+   pintar o fundo do cartão (texto sobre tinta reduziria o contraste do corpo). */
+.criterio[data-status="nao_conforme"] {
+  border-color: var(--danger-soft);
+  box-shadow: inset 3px 0 0 var(--danger);
+}
+
+.criterio[data-status="nao_aplicavel"] {
+  box-shadow: inset 3px 0 0 var(--warning);
+}
+
+.criterio[data-status="conforme"] {
+  box-shadow: inset 3px 0 0 var(--success);
+}
+
+.topo {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: var(--sp-3);
+}
+
+.nome {
+  min-width: 0;
+  font-size: var(--fs-400);
+  font-weight: var(--fw-semibold);
+  line-height: var(--lh-snug);
+}
+
+.rotuloInline {
+  color: var(--text);
+  font-weight: var(--fw-semibold);
+}
+
+.enunciado {
+  color: var(--text-soft);
+  font-size: var(--fs-200);
+  line-height: var(--lh-normal);
+}
+
+.enunciado .rotuloInline {
+  color: var(--text-soft);
+}
+
+.resposta {
+  font-size: var(--fs-300);
+}
+
+.bloco {
+  display: grid;
+  gap: var(--sp-2);
+  padding: var(--sp-3);
+  border: 1px solid var(--line);
+  border-radius: var(--r-sm);
+  background: var(--surface-2);
+  font-size: var(--fs-200);
+  line-height: var(--lh-normal);
+}
+
+.bloco[data-tom="monitor"] {
+  border-color: transparent;
+  background: var(--info-soft);
+}
+
+.bloco[data-tom="anexo"] {
+  border-color: var(--accent-soft-strong);
+  background: var(--accent-soft);
+}
+
+.bloco[data-tom="evidencia"] {
+  border-color: transparent;
+  background: var(--surface-3);
+}
+
+.bloco[data-tom="raciocinio"] {
+  border-color: transparent;
+  background: var(--warning-soft);
+}
+
+.blocoTitulo {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--sp-2);
+  color: var(--text);
+  font-size: var(--fs-100);
+  font-weight: var(--fw-semibold);
+  letter-spacing: var(--tracking-label);
+  text-transform: uppercase;
+}
+
+.bloco[data-tom="raciocinio"] .blocoTitulo {
+  color: var(--warning-text);
+}
+
+.confianca {
+  margin-left: auto;
+  padding: 1px var(--sp-2);
+  border-radius: var(--r-pill);
+  background: var(--surface);
+  color: var(--text-soft);
+  font-variant-numeric: tabular-nums;
+  letter-spacing: 0;
+  text-transform: none;
+}
+
+.evidencia {
+  margin: 0;
+  padding-left: var(--sp-3);
+  border-left: 3px solid var(--line-strong);
+  color: var(--text);
+  font-style: italic;
+}
+
+/* Quebra de palavra: nome de arquivo longo não pode empurrar o cartão. */
+.anexos {
+  display: grid;
+  gap: var(--sp-2);
+}
+
+.anexos li {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--sp-2);
+  min-width: 0;
+}
+
+.anexos a,
+.anexos span:first-child {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--sp-2);
+  min-width: 0;
+  min-height: 28px;
+  overflow-wrap: anywhere;
+  font-weight: var(--fw-medium);
+}
+
+.anexos a {
+  color: var(--accent-deep);
+  text-decoration: underline;
+}
+
+.anexoTamanho {
+  color: var(--text-muted);
+  font-size: var(--fs-100);
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+.rodape {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--sp-3);
+  padding-top: var(--sp-1);
+}
+
+.peso {
+  color: var(--text-soft);
+  font-size: var(--fs-200);
+}
+
+.peso strong {
+  color: var(--accent-strong);
+  font-variant-numeric: tabular-nums;
+}
+
+@media print {
+  .criterio {
+    break-inside: avoid;
+    box-shadow: none;
+  }
+}

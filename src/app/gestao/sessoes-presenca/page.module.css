@@ -1,0 +1,137 @@
+.cabecalho {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--sp-4);
+}
+
+.titulo {
+  display: flex;
+  min-width: 0;
+  align-items: center;
+  gap: var(--sp-3);
+}
+
+.titulo h1 {
+  font-size: var(--fs-700);
+}
+
+.titulo p {
+  margin-top: var(--sp-1);
+  color: var(--text-soft);
+  font-size: var(--fs-300);
+}
+
+.acoes {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--sp-2);
+}
+
+.toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--sp-2);
+  min-height: var(--tap-min);
+  padding: 0 var(--sp-3);
+  border: 1px solid var(--border-control);
+  border-radius: var(--r-md);
+  background: var(--surface);
+  color: var(--text-soft);
+  font-size: var(--fs-200);
+  font-weight: var(--fw-medium);
+}
+
+.toggle input {
+  accent-color: var(--accent);
+}
+
+.kpis {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 180px), 1fr));
+  gap: var(--sp-4);
+}
+
+.kpi {
+  display: grid;
+  gap: var(--sp-1);
+  padding: var(--sp-4);
+  border: 1px solid var(--line);
+  border-radius: var(--r-md);
+  background: var(--surface);
+  box-shadow: var(--shadow-xs);
+}
+
+.kpi span {
+  color: var(--text-muted);
+  font-size: var(--fs-100);
+  font-weight: var(--fw-semibold);
+  letter-spacing: var(--tracking-label);
+  text-transform: uppercase;
+}
+
+.kpi strong {
+  font-size: var(--fs-600);
+  font-variant-numeric: tabular-nums;
+}
+
+.tabelaHead {
+  padding: var(--sp-5) var(--sp-5) var(--sp-3);
+}
+
+.tabelaWrap {
+  overflow-x: auto;
+}
+
+.tabela {
+  width: 100%;
+  min-width: 980px;
+  border-collapse: collapse;
+}
+
+.tabela th,
+.tabela td {
+  padding: var(--sp-3) var(--sp-4);
+  border-top: 1px solid var(--line);
+  text-align: left;
+  vertical-align: middle;
+}
+
+.tabela th {
+  color: var(--text-muted);
+  font-size: var(--fs-100);
+  font-weight: var(--fw-semibold);
+  letter-spacing: var(--tracking-label);
+  text-transform: uppercase;
+}
+
+.tabela td {
+  color: var(--text-soft);
+  font-size: var(--fs-200);
+}
+
+.tabela td:first-child {
+  display: grid;
+  gap: 2px;
+  color: var(--text);
+}
+
+.tabela td:first-child span {
+  color: var(--text-muted);
+}
+
+@media (max-width: 640px) {
+  .cabecalho {
+    align-items: stretch;
+  }
+
+  .acoes {
+    width: 100%;
+  }
+
+  .acoes > * {
+    flex: 1 1 auto;
+  }
+}

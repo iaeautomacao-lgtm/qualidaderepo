@@ -1,0 +1,109 @@
+/* Combobox com busca — ver SelectBusca.js.
+   Reaproveita `.input` do globals; aqui só o que é específico do componente. */
+
+.raiz {
+  position: relative;
+  display: grid;
+  gap: var(--sp-2);
+  min-width: 0;
+}
+
+.rotulo {
+  color: var(--text);
+  font-size: var(--fs-200);
+  font-weight: var(--fw-semibold);
+}
+
+.campoWrap {
+  position: relative;
+}
+
+/* Espaço à direita para o chevron não cobrir o texto digitado. */
+.campo {
+  padding-right: calc(var(--sp-4) + 20px);
+  text-overflow: ellipsis;
+}
+
+.gatilho {
+  position: absolute;
+  top: 50%;
+  right: var(--sp-1);
+  display: grid;
+  place-items: center;
+  width: 32px;
+  height: 32px;
+  border: 0;
+  border-radius: var(--r-sm);
+  background: transparent;
+  color: var(--text-soft);
+  transform: translateY(-50%);
+}
+
+.gatilho:hover {
+  background: var(--surface-3);
+  color: var(--text);
+}
+
+/* A lista flutua sobre o conteúdo: dentro do fluxo ela empurraria os filtros
+   para baixo e a tela passaria a exigir rolagem só por abrir um dropdown. */
+.lista {
+  position: absolute;
+  top: calc(100% + var(--sp-1));
+  left: 0;
+  z-index: var(--z-overlay);
+  display: grid;
+  align-content: start;
+  max-height: 264px;
+  width: 100%;
+  min-width: 220px;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  padding: var(--sp-1);
+  border: 1px solid var(--line-strong);
+  border-radius: var(--r-md);
+  background: var(--surface);
+  box-shadow: var(--shadow-lg);
+}
+
+.lista[hidden] {
+  display: none;
+}
+
+.opcao {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--sp-2);
+  min-height: 34px;
+  padding: var(--sp-2) var(--sp-3);
+  border-radius: var(--r-sm);
+  color: var(--text-soft);
+  font-size: var(--fs-200);
+  cursor: pointer;
+}
+
+/* Cursor do teclado e do mouse são o mesmo estado — quem digita e quem aponta
+   veem o mesmo destaque, e ele não depende só da cor: o texto ganha peso. */
+.opcao[data-ativo="true"] {
+  background: var(--accent-soft);
+  color: var(--accent-strong);
+  font-weight: var(--fw-semibold);
+}
+
+.opcao[aria-selected="true"] {
+  color: var(--text);
+  font-weight: var(--fw-semibold);
+}
+
+.opcaoTexto {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.vazio {
+  padding: var(--sp-3);
+  color: var(--text-muted);
+  font-size: var(--fs-200);
+}

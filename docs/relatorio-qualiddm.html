@@ -1,0 +1,795 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<title>QualiDDM — Relatório Técnico</title>
+<style>
+  @page { size: A4; margin: 16mm 14mm 18mm; }
+
+  :root {
+    --tinta: #171614;
+    --tinta-media: #45423b;
+    --tinta-fraca: #6b6760;
+    --linha: #ddd9d1;
+    --linha-forte: #b9b4a9;
+    --papel-2: #faf9f7;
+    --papel-3: #f2f0eb;
+    --laranja: #ff5106;
+    --laranja-forte: #c93b04;
+    --laranja-fundo: #fff4ed;
+    --ok: #04785a;
+    --ok-fundo: #e6f5ef;
+    --atencao: #7a4e07;
+    --atencao-fundo: #fdf4da;
+    --erro: #b02318;
+    --erro-fundo: #fdecea;
+  }
+
+  * { box-sizing: border-box; }
+
+  body {
+    margin: 0;
+    color: var(--tinta);
+    font-family: "Segoe UI", system-ui, -apple-system, Roboto, sans-serif;
+    font-size: 9.6pt;
+    line-height: 1.5;
+  }
+
+  h1, h2, h3, h4 { margin: 0; line-height: 1.2; }
+
+  h1 { font-size: 26pt; letter-spacing: -0.02em; }
+
+  h2 {
+    margin: 0 0 8pt;
+    padding-bottom: 4pt;
+    border-bottom: 1.5pt solid var(--laranja);
+    font-size: 14pt;
+    letter-spacing: -0.01em;
+  }
+
+  h3 { margin: 14pt 0 5pt; font-size: 11pt; }
+  h4 { margin: 10pt 0 3pt; font-size: 9.6pt; color: var(--tinta-media); }
+
+  p { margin: 0 0 6pt; }
+
+  section { page-break-inside: auto; }
+  .pagina-nova { page-break-before: always; }
+  .junto { page-break-inside: avoid; }
+
+  /* --- capa ------------------------------------------------------------- */
+
+  .capa {
+    display: flex;
+    height: 247mm;
+    flex-direction: column;
+    justify-content: space-between;
+    page-break-after: always;
+  }
+
+  .capa-marca {
+    display: flex;
+    align-items: center;
+    gap: 8pt;
+    padding-bottom: 10pt;
+    border-bottom: 3pt solid var(--laranja);
+  }
+
+  .capa-logo {
+    display: grid;
+    width: 34pt;
+    height: 34pt;
+    border-radius: 8pt;
+    background: var(--laranja);
+    color: #fff;
+    font-size: 15pt;
+    font-weight: 700;
+    place-items: center;
+  }
+
+  .capa-titulo { font-size: 30pt; }
+  .capa-sub { margin-top: 6pt; color: var(--tinta-media); font-size: 12pt; }
+
+  .capa-meta {
+    display: grid;
+    gap: 0;
+    border: 1pt solid var(--linha);
+    border-radius: 6pt;
+    overflow: hidden;
+  }
+
+  .capa-meta div {
+    display: flex;
+    justify-content: space-between;
+    padding: 5pt 9pt;
+    border-bottom: 1pt solid var(--linha);
+  }
+
+  .capa-meta div:last-child { border-bottom: 0; }
+  .capa-meta span { color: var(--tinta-fraca); }
+  .capa-meta strong { font-weight: 600; }
+
+  /* --- blocos ----------------------------------------------------------- */
+
+  .destaque {
+    margin: 8pt 0;
+    padding: 8pt 10pt;
+    border-left: 3pt solid var(--laranja);
+    background: var(--laranja-fundo);
+    border-radius: 0 4pt 4pt 0;
+  }
+
+  .alerta {
+    margin: 8pt 0;
+    padding: 8pt 10pt;
+    border-left: 3pt solid var(--erro);
+    background: var(--erro-fundo);
+    border-radius: 0 4pt 4pt 0;
+  }
+
+  table { width: 100%; border-collapse: collapse; margin: 6pt 0 10pt; font-size: 8.8pt; }
+
+  th {
+    padding: 4pt 6pt;
+    border-bottom: 1pt solid var(--linha-forte);
+    color: var(--tinta-fraca);
+    font-size: 7.6pt;
+    font-weight: 700;
+    letter-spacing: 0.05em;
+    text-align: left;
+    text-transform: uppercase;
+  }
+
+  td { padding: 4pt 6pt; border-bottom: 0.5pt solid var(--linha); vertical-align: top; }
+  tr { page-break-inside: avoid; }
+  td.num { text-align: right; font-variant-numeric: tabular-nums; }
+
+  code {
+    padding: 0.5pt 3pt;
+    border-radius: 3pt;
+    background: var(--papel-3);
+    font-family: "Cascadia Mono", Consolas, monospace;
+    font-size: 8.2pt;
+  }
+
+  pre {
+    margin: 6pt 0;
+    padding: 8pt 10pt;
+    border: 1pt solid var(--linha);
+    border-radius: 5pt;
+    background: var(--papel-2);
+    font-family: "Cascadia Mono", Consolas, monospace;
+    font-size: 7.8pt;
+    line-height: 1.45;
+    page-break-inside: avoid;
+    white-space: pre-wrap;
+  }
+
+  pre .c { color: var(--tinta-fraca); }
+
+  ul, ol { margin: 0 0 6pt; padding-left: 15pt; }
+  li { margin-bottom: 2.5pt; }
+
+  .selo {
+    display: inline-block;
+    padding: 1pt 5pt;
+    border-radius: 20pt;
+    font-size: 7.4pt;
+    font-weight: 700;
+    letter-spacing: 0.03em;
+    text-transform: uppercase;
+    white-space: nowrap;
+  }
+
+  .s-ok { background: var(--ok-fundo); color: var(--ok); }
+  .s-atencao { background: var(--atencao-fundo); color: var(--atencao); }
+  .s-erro { background: var(--erro-fundo); color: var(--erro); }
+  .s-neutro { background: var(--papel-3); color: var(--tinta-media); }
+
+  .cartoes { display: flex; gap: 8pt; margin: 8pt 0; }
+
+  .cartao {
+    flex: 1;
+    padding: 8pt;
+    border: 1pt solid var(--linha);
+    border-radius: 5pt;
+    background: var(--papel-2);
+  }
+
+  .cartao .valor { font-size: 19pt; font-weight: 700; line-height: 1; }
+  .cartao .rotulo { margin-top: 3pt; color: var(--tinta-fraca); font-size: 7.6pt; text-transform: uppercase; letter-spacing: 0.04em; }
+
+  .nota { color: var(--tinta-fraca); font-size: 8.2pt; font-style: italic; }
+
+  .sumario { columns: 2; column-gap: 18pt; }
+  .sumario li { break-inside: avoid; }
+</style>
+</head>
+<body>
+
+<!-- ====================== CAPA ====================== -->
+<div class="capa">
+  <div>
+    <div class="capa-marca">
+      <div class="capa-logo">Q</div>
+      <div>
+        <strong style="font-size:13pt">QualiDDM</strong><br>
+        <span style="color:var(--tinta-fraca);font-size:9pt">Sistema de Qualidade · Grupo DDM</span>
+      </div>
+    </div>
+  </div>
+
+  <div>
+    <h1 class="capa-titulo">Relatório Técnico<br>de Entrega</h1>
+    <p class="capa-sub">Arquitetura, estrutura de arquivos, segurança de dados<br>e próximos passos</p>
+  </div>
+
+  <div>
+    <div class="capa-meta">
+      <div><span>Data</span><strong>13 de agosto de 2026</strong></div>
+      <div><span>Versão da aplicação</span><strong>0.1.0 (desenvolvimento)</strong></div>
+      <div><span>Stack</span><strong>Next.js 16.3 · React 19 · MySQL</strong></div>
+      <div><span>Telas entregues</span><strong>15 rotas</strong></div>
+      <div><span>Estado</span><strong>Front completo · Backend não integrado</strong></div>
+    </div>
+    <p class="nota" style="margin-top:8pt">
+      Documento gerado a partir de leitura direta do código-fonte, não de estimativa.
+      Cada afirmação de segurança aponta o arquivo que a sustenta.
+    </p>
+  </div>
+</div>
+
+<!-- ====================== SUMÁRIO EXECUTIVO ====================== -->
+<section>
+  <h2>1. Sumário executivo</h2>
+
+  <p>
+    O QualiDDM é a reconstrução interna do <strong>QualiTalk</strong>, ferramenta de monitoria de
+    qualidade usada como referência. O produto recebe áudios de atendimento, gera transcrição e
+    análise por IA, e devolve nota, indicadores e plano de ação — com regras de negócio próprias
+    por carteira (cliente/operação).
+  </p>
+
+  <div class="cartoes">
+    <div class="cartao"><div class="valor">15</div><div class="rotulo">Rotas no ar</div></div>
+    <div class="cartao"><div class="valor">12</div><div class="rotulo">Rotas de API</div></div>
+    <div class="cartao"><div class="valor">9</div><div class="rotulo">Tabelas do domínio</div></div>
+    <div class="cartao"><div class="valor">0</div><div class="rotulo">Erros de lint</div></div>
+  </div>
+
+  <h3>O que está pronto</h3>
+  <ul>
+    <li>Interface completa: 8 telas funcionais e 7 esqueletos honestos, todas respondendo HTTP 200.</li>
+    <li>Camada de backend escrita: autenticação, sessão, validação, repositórios e tratamento de erro.</li>
+    <li>Modelo de dados correto do domínio de monitoria, em migration versionada.</li>
+    <li>Motor de relatórios com IA (Gemini), com prompts e schema de saída estruturada.</li>
+    <li>Design system acessível, com contrastes WCAG 2.2 AA medidos e documentados.</li>
+  </ul>
+
+  <h3>O que ainda não está</h3>
+  <ul>
+    <li><strong>Nada está ligado ao banco.</strong> Toda tela lê dados estáticos de <code>src/data/seed.js</code>.</li>
+    <li><strong>O áudio enviado não é armazenado.</strong> O upload grava apenas metadados; o arquivo é descartado.</li>
+    <li><strong>A IA é simulada na tela.</strong> O backend está pronto, mas falta a chave e o banco para alimentá-lo.</li>
+    <li>Faltam controles de segurança relevantes — detalhados na seção 6, com severidade.</li>
+  </ul>
+
+  <div class="destaque">
+    <strong>Leitura honesta do estágio:</strong> o sistema está em <em>protótipo navegável de alta
+    fidelidade</em> com a fundação de backend construída. Não é um sistema em produção, e não deve
+    receber dado real de cliente antes dos itens de severidade alta da seção 6 serem resolvidos.
+  </div>
+</section>
+
+<!-- ====================== PRODUTO ====================== -->
+<section class="pagina-nova">
+  <h2>2. O produto e as telas entregues</h2>
+
+  <p>
+    O menu espelha o sistema de referência na mesma ordem, com uma adição consciente:
+    <strong>Upload</strong>, que não existe no QualiTalk mas é por onde o áudio entra no QualiDDM.
+    Sem esse item a tela seria inalcançável.
+  </p>
+
+  <table>
+    <thead>
+      <tr><th style="width:26%">Rota</th><th style="width:15%">Estado</th><th>Conteúdo</th></tr>
+    </thead>
+    <tbody>
+      <tr><td><code>/</code></td><td><span class="selo s-ok">Completa</span></td><td>Dashboard: 4 KPIs, evolução em linha com eixo duplo, distribuição por quadrante em rosca, ofensores, status atual</td></tr>
+      <tr><td><code>/upload</code></td><td><span class="selo s-atencao">Parcial</span></td><td>Envio de áudio. Valida tipo, extensão e tamanho, mas não persiste o arquivo</td></tr>
+      <tr><td><code>/clientes</code></td><td><span class="selo s-ok">Completa</span></td><td>12 clientes reais em cards paginados, com busca ao vivo</td></tr>
+      <tr><td><code>/formularios</code></td><td><span class="selo s-ok">Completa</span></td><td>KPIs, ações rápidas, formulários recentes</td></tr>
+      <tr><td><code>/avaliacoes</code></td><td><span class="selo s-ok">Completa</span></td><td>Lista em cards com 6 filtros; combobox com busca para 104 avaliados e 26 campanhas</td></tr>
+      <tr><td><code>/avaliacoes/[id]</code></td><td><span class="selo s-ok">Completa</span></td><td>Ficha: player, metadados, resumo de conformidade, 25 critérios em 4 seções por abas</td></tr>
+      <tr><td><code>/relatorios</code></td><td><span class="selo s-ok">Completa</span></td><td>14 relatórios de sistema + 4 análises com IA, filtros sob demanda, exportação</td></tr>
+      <tr><td><code>/login</code></td><td><span class="selo s-ok">Completa</span></td><td>Autenticação com proteção contra redirecionamento aberto</td></tr>
+      <tr><td colspan="3" style="padding-top:6pt"><em>Esqueletos — sem print de referência, sem dado inventado:</em></td></tr>
+      <tr><td><code>/quizzes</code> <code>/monitor-ia</code> <code>/feedback</code> <code>/contestacoes</code> <code>/calibracao</code> <code>/calendario</code> <code>/administracao</code></td><td><span class="selo s-neutro">Esqueleto</span></td><td>Título, propósito e estado vazio declarando que o módulo será construído</td></tr>
+    </tbody>
+  </table>
+
+  <div class="destaque">
+    <strong>Decisão de projeto — nenhuma tela rola.</strong> Foi requisito explícito. Onde o conteúdo
+    não cabia, a solução foi paginar (clientes, avaliações) ou usar abas (os 25 critérios da ficha),
+    nunca empurrar conteúdo para baixo. Única exceção: a coluna de tipos de relatório, com 14 itens,
+    tem rolagem interna própria — documentada no código.
+  </div>
+
+  <div class="destaque">
+    <strong>Decisão de marca.</strong> O QualiTalk de referência é azul e roxo. O QualiDDM mantém o
+    laranja <code>#FF5106</code> extraído do logo do Grupo DDM. Estrutura e dados foram copiados;
+    identidade visual, não.
+  </div>
+</section>
+
+<!-- ====================== ARQUITETURA ====================== -->
+<section class="pagina-nova">
+  <h2>3. Arquitetura</h2>
+
+  <h3>3.1 Modelo em camadas</h3>
+  <p>
+    A aplicação usa Next.js como <em>Backend for Frontend</em>: o mesmo projeto serve as páginas e as
+    rotas de API. Não há serviço separado, e essa é a escolha certa para o volume atual — um segundo
+    serviço traria complexidade de deploy sem resolver problema que exista hoje.
+  </p>
+
+  <pre><span class="c">navegador
+   │
+   ▼
+página React (src/app/**/page.js)          <span class="c">← só apresentação</span>
+   │
+   ▼
+rota de API (src/app/api/**/route.js)      <span class="c">← valida entrada, autoriza, responde</span>
+   │
+   ▼
+serviço (src/server/services/)             <span class="c">← regra de negócio</span>
+   │
+   ▼
+repositório (src/server/repositories/)     <span class="c">← SQL, sempre parametrizado</span>
+   │
+   ▼
+MySQL (cPanel)</span></pre>
+
+  <p>
+    A regra que sustenta o desenho: <strong>a página nunca fala com o banco</strong>, e o repositório
+    nunca decide regra de negócio. Isso mantém o SQL num só lugar — o que também é o que torna a
+    auditoria de segurança da seção 6 possível de fazer por leitura.
+  </p>
+
+  <h3>3.2 Estrutura de pastas</h3>
+
+  <pre>qualiddm-app/
+├── <strong>src/app/</strong>                      <span class="c">rotas (App Router): cada pasta é uma URL</span>
+│   ├── page.js                    <span class="c">Dashboard — rota "/"</span>
+│   ├── layout.js                  <span class="c">casca HTML, metadados, fonte</span>
+│   ├── globals.css                <span class="c">design tokens + primitivas compartilhadas</span>
+│   ├── login/                     <span class="c">tela fora da casca do app</span>
+│   ├── clientes/ formularios/ relatorios/ upload/
+│   ├── avaliacoes/
+│   │   ├── page.js                <span class="c">listagem com filtros</span>
+│   │   └── [id]/page.js           <span class="c">ficha da avaliação</span>
+│   └── <strong>api/</strong>                     <span class="c">back-end HTTP</span>
+│       ├── auth/{login,logout,me}
+│       ├── relatorios/ia/         <span class="c">geração de análise por IA</span>
+│       ├── upload/ analyze/ dashboard/ reviews/ health/
+│       └── wallets/ operators/ checklists/
+│
+├── <strong>src/components/</strong>               <span class="c">componentes reutilizáveis entre telas</span>
+│   ├── AppShell.js                <span class="c">sidebar + topbar + área de trabalho</span>
+│   ├── Sidebar.js                 <span class="c">menu, acordeão, sem rolagem</span>
+│   ├── SelectBusca.js             <span class="c">combobox acessível para listas longas</span>
+│   ├── KpiCard.js  AudioPlayer.js  ModuloEmConstrucao.js
+│   └── icons.js                   <span class="c">set SVG inline, sem dependência externa</span>
+│
+├── <strong>src/data/</strong>                     <span class="c">dados estáticos — provisório</span>
+│   ├── seed.js                    <span class="c">tudo transcrito dos 41 prints de referência</span>
+│   └── avaliacoes.js
+│
+├── <strong>src/server/</strong>                   <span class="c">só roda no servidor. Nunca importar do cliente</span>
+│   ├── config.js                  <span class="c">leitura de ambiente + exigências de produção</span>
+│   ├── db.js                      <span class="c">pool MySQL, placeholders nomeados</span>
+│   ├── http.js                    <span class="c">resposta padrão, tratamento de erro, CORS</span>
+│   ├── validation.js  errors.js
+│   ├── security/
+│   │   ├── passwords.js           <span class="c">PBKDF2-SHA256</span>
+│   │   └── sessions.js            <span class="c">criação, leitura e revogação de sessão</span>
+│   ├── services/
+│   │   ├── auth-service.js  upload-service.js
+│   │   ├── gemini.js              <span class="c">cliente da API de IA</span>
+│   │   └── relatorios-ia.js       <span class="c">prompts e schema dos 4 relatórios</span>
+│   └── repositories/
+│       ├── analytics.js           <span class="c">agregados que alimentam a IA</span>
+│       └── reviews.js  users.js  catalog.js  dashboard.js
+│
+├── <strong>src/middleware.js</strong>             <span class="c">porteiro de borda: barra sem cookie de sessão</span>
+│
+├── <strong>database/</strong>
+│   ├── migrations/001_initial_schema.sql    <span class="c">domínio antigo (substituído)</span>
+│   ├── migrations/002_dominio_qualitalk.sql <span class="c">domínio correto</span>
+│   └── seeds/001_demo_data.sql
+│
+├── docs/                          <span class="c">este relatório e a arquitetura de backend</span>
+├── public/logo.png
+└── .env.secure.example            <span class="c">modelo de configuração — sem segredo real</span></pre>
+
+  <h3>3.3 Convenção de estilos</h3>
+  <p>
+    <code>globals.css</code> carrega os <em>design tokens</em> (cores, escala tipográfica, espaçamento)
+    e as primitivas usadas em mais de uma tela. Estilo específico de uma tela vive num
+    <code>page.module.css</code> ao lado dela. Os pares de cor não foram estimados: estão medidos e
+    anotados no topo do arquivo, com a razão de contraste de cada um.
+  </p>
+
+  <h3>3.4 Modelo de dados</h3>
+  <p>
+    A migration <code>002</code> corrige o domínio. A estrutura anterior falava em carteiras e
+    checklists; o domínio real da monitoria é outro:
+  </p>
+
+  <pre>clientes ──┬── campanhas
+           └── formularios ── formulario_secoes ── formulario_criterios
+                                                          │
+users ─────────────────── avaliacoes ── avaliacao_respostas
+                              ├── feedbacks
+                              └── contestacoes</pre>
+
+  <table>
+    <thead><tr><th style="width:34%">Regra do negócio</th><th>Como está garantida</th></tr></thead>
+    <tbody>
+      <tr>
+        <td>Um critério ou vale pontos, ou é eliminatório — nunca os dois</td>
+        <td><code>CHECK</code> no banco, não só no código. É o que separa NCG dos demais critérios</td>
+      </tr>
+      <tr>
+        <td>Falha eliminatória zera a avaliação</td>
+        <td>Coluna <code>zerada</code> em <code>avaliacoes</code>; alimenta o indicador de zeradas do dashboard</td>
+      </tr>
+      <tr>
+        <td>Feedbacks abertos e aplicados particionam o total</td>
+        <td><code>UNIQUE (avaliacao_id)</code> em <code>feedbacks</code>: um feedback por avaliação</td>
+      </tr>
+      <tr>
+        <td>Campanhas homônimas em clientes diferentes</td>
+        <td>Unicidade por <code>(cliente_id, nome)</code>, não global — o sistema de origem tem duas "Chat"</td>
+      </tr>
+    </tbody>
+  </table>
+
+  <p class="nota">
+    A migration 002 não derruba as tabelas da 001. Remoção de dado é decisão do responsável pelo
+    banco, não da migration.
+  </p>
+</section>
+
+<!-- ====================== IA ====================== -->
+<section class="pagina-nova">
+  <h2>4. Inteligência artificial</h2>
+
+  <p>
+    Provedor: <strong>Google Gemini</strong> (<code>gemini-2.5-flash</code>), configurável por
+    ambiente. A escolha considerou custo por token e transcrição de áudio nativa — o mesmo provedor
+    pode resolver áudio-para-texto e análise.
+  </p>
+
+  <h3>4.1 Os quatro relatórios</h3>
+  <table>
+    <thead><tr><th style="width:26%">Relatório</th><th>O que entrega</th></tr></thead>
+    <tbody>
+      <tr><td><strong>Resumo Executivo</strong></td><td>Síntese do período: o que mudou, o que puxou o score para baixo, o que exige atenção imediata</td></tr>
+      <tr><td><strong>Análise de Ofensores</strong></td><td>Critérios que mais reprovam, agrupados por causa provável em vez de listados um a um</td></tr>
+      <tr><td><strong>Plano de Coaching</strong></td><td>Ações por operador, priorizadas por impacto na nota</td></tr>
+      <tr><td><strong>Risco de NCG</strong></td><td>Onde há maior chance de falha eliminatória, separando risco de conformidade de risco de conduta</td></tr>
+    </tbody>
+  </table>
+
+  <h3>4.2 Decisões que protegem a confiabilidade</h3>
+
+  <div class="destaque">
+    <strong>A IA interpreta, não calcula.</strong> Todo número que aparece no relatório nasce de um
+    <code>SELECT</code> agregado em <code>analytics.js</code>. O modelo recebe as contagens prontas.
+    Dois motivos: um modelo de linguagem somando milhares de linhas erra, e enviar transcrição
+    inteira ao provedor seria expor dado de cliente sem necessidade.
+  </div>
+
+  <ul>
+    <li>
+      <strong>Recusa amostra pequena.</strong> Menos de 10 avaliações no recorte devolve erro, não
+      análise. Análise confiante sobre 3 chamadas vira decisão errada.
+    </li>
+    <li>
+      <strong>Coaching prioriza impacto, não pior nota</strong>, e exige no mínimo 5 avaliações por
+      operador. Média de duas chamadas é ruído, e conversa de desenvolvimento sobre ruído é injusta
+      com a pessoa.
+    </li>
+    <li>
+      <strong>Saída estruturada obrigatória.</strong> O modelo responde num schema JSON fixo; texto
+      em prosa livre tornaria o <em>parse</em> uma loteria.
+    </li>
+    <li>
+      <strong>Confiança declarada e justificada.</strong> Todo relatório traz percentual de confiança
+      e o motivo — volume da amostra, lacunas no dado.
+    </li>
+    <li>
+      <strong>Defesa contra injeção de prompt.</strong> Nomes de operadores e observações de monitores
+      entram como conteúdo a analisar; a instrução ao modelo diz explicitamente para ignorar comandos
+      embutidos nesses campos.
+    </li>
+    <li>
+      <strong>Aviso na tela.</strong> O painel exibe que a análise foi gerada por IA e deve ser
+      revisada antes de decidir.
+    </li>
+  </ul>
+
+  <div class="alerta">
+    <strong>Estado real:</strong> o backend de IA está completo e a rota responde, mas o painel da tela
+    ainda usa dados simulados. Ligar a IA de verdade depende de dois insumos: a chave
+    <code>GEMINI_API_KEY</code> e o banco populado — sem dados agregados não há o que analisar.
+  </div>
+</section>
+
+<!-- ====================== SEGURANÇA ====================== -->
+<section class="pagina-nova">
+  <h2>5. Segurança dos dados — o que já protege</h2>
+
+  <p>
+    Cada item abaixo foi verificado por leitura do arquivo indicado, não presumido a partir da
+    documentação.
+  </p>
+
+  <table>
+    <thead><tr><th style="width:23%">Controle</th><th style="width:44%">Como está implementado</th><th>Arquivo</th></tr></thead>
+    <tbody>
+      <tr>
+        <td><strong>Senhas</strong></td>
+        <td>PBKDF2-SHA256 com <strong>210.000 iterações</strong> (recomendação OWASP), salt aleatório de 16 bytes por senha, comparação em tempo constante contra ataque de temporização. Senha nunca é armazenada nem registrada em log</td>
+        <td><code>security/passwords.js</code></td>
+      </tr>
+      <tr>
+        <td><strong>Sessão</strong></td>
+        <td>Token aleatório de 32 bytes. O banco guarda apenas o <em>hash</em> SHA-256 do token combinado com o segredo do servidor — vazamento da tabela não permite se passar por usuário. Cookie <code>httpOnly</code> (inacessível a JavaScript), <code>sameSite=lax</code>, <code>secure</code> em produção, com expiração</td>
+        <td><code>security/sessions.js</code></td>
+      </tr>
+      <tr>
+        <td><strong>Injeção de SQL</strong></td>
+        <td>Todas as consultas usam <em>placeholders</em> nomeados do driver. Nos filtros dinâmicos, apenas chaves de uma lista fechada viram cláusula SQL; valor de usuário jamais é concatenado</td>
+        <td><code>db.js</code>, <code>repositories/analytics.js</code></td>
+      </tr>
+      <tr>
+        <td><strong>Autorização</strong></td>
+        <td>Verificação por papel nas rotas sensíveis. O relatório de IA cruza desempenho individual, então exige administrador, supervisor ou monitor — operador não vê o relatório do time</td>
+        <td><code>api/relatorios/ia/route.js</code></td>
+      </tr>
+      <tr>
+        <td><strong>Barreira de borda</strong></td>
+        <td>Requisição sem cookie de sessão não chega à página: API recebe 401 em JSON, página é redirecionada ao login. É camada extra — a autorização real continua em cada rota</td>
+        <td><code>middleware.js</code></td>
+      </tr>
+      <tr>
+        <td><strong>Redirecionamento aberto</strong></td>
+        <td>O parâmetro de retorno após login só aceita caminho interno; <code>//site-malicioso</code> e URL absoluta são rejeitados</td>
+        <td><code>app/login/page.js</code></td>
+      </tr>
+      <tr>
+        <td><strong>Vazamento por mensagem de erro</strong></td>
+        <td>Erro inesperado devolve mensagem genérica e um identificador de requisição. <em>Stack trace</em> só aparece fora de produção. O login não distingue e-mail inexistente de senha errada, evitando enumeração de usuários</td>
+        <td><code>http.js</code>, <code>services/auth-service.js</code></td>
+      </tr>
+      <tr>
+        <td><strong>Upload</strong></td>
+        <td>Valida tipo MIME, extensão e tamanho máximo contra listas configuráveis; nome do arquivo é truncado</td>
+        <td><code>services/upload-service.js</code></td>
+      </tr>
+      <tr>
+        <td><strong>Segredos</strong></td>
+        <td>Nenhuma chave no código. Toda configuração vem de ambiente, e em produção a aplicação recusa subir sem as variáveis obrigatórias. A chave da IA nunca é enviada ao navegador</td>
+        <td><code>config.js</code>, <code>services/gemini.js</code></td>
+      </tr>
+      <tr>
+        <td><strong>Cache</strong></td>
+        <td>Toda resposta de API sai com <code>cache-control: no-store</code> — dado de avaliação não fica em cache intermediário</td>
+        <td><code>http.js</code></td>
+      </tr>
+    </tbody>
+  </table>
+</section>
+
+<section class="pagina-nova">
+  <h2>6. Segurança dos dados — o que falta</h2>
+
+  <p>
+    Lista sem indulgência, ordenada por severidade. Os itens <span class="selo s-erro">Alta</span>
+    devem ser resolvidos <strong>antes</strong> de o sistema receber dado real de cliente.
+  </p>
+
+  <table>
+    <thead><tr><th style="width:8%">Sev.</th><th style="width:26%">Lacuna</th><th>Risco concreto e correção</th></tr></thead>
+    <tbody>
+      <tr>
+        <td><span class="selo s-erro">Alta</span></td>
+        <td><strong>Bypass de autenticação em desenvolvimento</strong></td>
+        <td>
+          <code>QUALITALK_DEV_AUTH_BYPASS</code> vem <strong>ligado por padrão</strong> fora de produção
+          e devolve um usuário administrador falso. Se a aplicação subir com <code>NODE_ENV</code>
+          diferente de <code>production</code>, o sistema fica aberto a qualquer um.
+          <em>Correção:</em> definir <code>NODE_ENV=production</code> e
+          <code>QUALITALK_DEV_AUTH_BYPASS=false</code> no painel do cPanel — já previsto em
+          <code>.env.secure.example</code>.
+        </td>
+      </tr>
+      <tr>
+        <td><span class="selo s-erro">Alta</span></td>
+        <td><strong>Segredo de sessão com valor padrão</strong></td>
+        <td>
+          <code>SESSION_SECRET</code> tem o valor de fábrica <code>dev-only-change-me</code>. Em
+          produção a aplicação recusa subir sem ele, mas fora de produção usaria o padrão — e quem
+          conhece o padrão forja sessões. <em>Correção:</em> gerar segredo aleatório de 48 bytes e
+          nunca reaproveitar entre ambientes.
+        </td>
+      </tr>
+      <tr>
+        <td><span class="selo s-erro">Alta</span></td>
+        <td><strong>Áudio não é armazenado</strong></td>
+        <td>
+          O upload grava apenas metadados no banco; o arquivo é descartado. Além de quebrar o produto
+          (não há o que reproduzir na ficha nem o que transcrever), quando o armazenamento for
+          implementado ele precisará nascer com controle de acesso — áudio de cobrança contém dado
+          pessoal e financeiro. <em>Correção:</em> armazenar fora da pasta pública, servir por rota
+          autenticada com URL de validade curta, nunca por link direto.
+        </td>
+      </tr>
+      <tr>
+        <td><span class="selo s-erro">Alta</span></td>
+        <td><strong>Sem limite de tentativas de login</strong></td>
+        <td>
+          Nenhuma rota tem limitação de taxa. Um atacante pode testar senhas indefinidamente, e a rota
+          de IA pode ser acionada em série gerando custo real no provedor.
+          <em>Correção:</em> limitar por IP e por conta no login, e por usuário na geração de análise.
+        </td>
+      </tr>
+      <tr>
+        <td><span class="selo s-atencao">Média</span></td>
+        <td><strong>Trilha de auditoria morta</strong></td>
+        <td>
+          A tabela <code>audit_logs</code> existe desde a primeira migration, mas <strong>nenhum código
+          escreve nela</strong>. Hoje não há como responder quem viu, editou ou excluiu uma avaliação
+          — exatamente o que uma auditoria de qualidade exige, e o que o próprio sistema de referência
+          oferece em relatório. <em>Correção:</em> registrar login, alteração de avaliação, exclusão e
+          exportação.
+        </td>
+      </tr>
+      <tr>
+        <td><span class="selo s-atencao">Média</span></td>
+        <td><strong>Sem cabeçalhos de segurança</strong></td>
+        <td>
+          <code>next.config.mjs</code> não define <em>Content-Security-Policy</em>, <em>HSTS</em>,
+          <em>X-Frame-Options</em> nem <em>X-Content-Type-Options</em>. Sem CSP, uma falha de XSS tem
+          alcance máximo; sem X-Frame-Options, a aplicação pode ser embutida em site de terceiro.
+          <em>Correção:</em> declarar os cabeçalhos na configuração do Next.
+        </td>
+      </tr>
+      <tr>
+        <td><span class="selo s-atencao">Média</span></td>
+        <td><strong>Proteção contra CSRF apenas parcial</strong></td>
+        <td>
+          A defesa hoje é o <code>sameSite=lax</code> do cookie, que cobre a maioria dos casos mas não
+          é garantia formal. <em>Correção:</em> validar a origem da requisição nas rotas que alteram
+          estado, ou adotar token anti-CSRF.
+        </td>
+      </tr>
+      <tr>
+        <td><span class="selo s-atencao">Média</span></td>
+        <td><strong>Sem tratamento de dado pessoal (LGPD)</strong></td>
+        <td>
+          Transcrições e áudios de cobrança contêm CPF, valores, dados de saúde e financeiros. Não há
+          mascaramento de dado sensível na transcrição, nem política de retenção, nem rotina de
+          exclusão a pedido do titular. <em>Correção:</em> definir prazo de retenção, implementar
+          exclusão por titular e mascarar identificadores antes de enviar texto a qualquer provedor
+          externo.
+        </td>
+      </tr>
+      <tr>
+        <td><span class="selo s-neutro">Baixa</span></td>
+        <td><strong>Sessão não é revogada em massa</strong></td>
+        <td>
+          Trocar a senha não encerra as sessões abertas em outros dispositivos.
+          <em>Correção:</em> apagar as sessões do usuário na troca de senha e na desativação da conta.
+        </td>
+      </tr>
+      <tr>
+        <td><span class="selo s-neutro">Baixa</span></td>
+        <td><strong>Sessões expiradas não são limpas</strong></td>
+        <td>
+          Registros vencidos permanecem na tabela indefinidamente. Sem impacto de segurança direto,
+          mas a tabela cresce sem limite. <em>Correção:</em> rotina periódica de limpeza.
+        </td>
+      </tr>
+    </tbody>
+  </table>
+
+  <h3>Dívida técnica identificada</h3>
+  <p>
+    Arquivos que ficaram órfãos durante a reconstrução e não são importados por nenhuma tela:
+    <code>src/app/data.js</code>, <code>components/BarChart.js</code>,
+    <code>components/FeedbackCard.js</code>, <code>components/DataTable.js</code> e
+    <code>components/FilterBar.js</code>. Não causam erro, mas confundem quem for manter o código.
+    Devem ser removidos ou reaproveitados.
+  </p>
+</section>
+
+<!-- ====================== PRÓXIMOS PASSOS ====================== -->
+<section class="pagina-nova">
+  <h2>7. Próximos passos</h2>
+
+  <h3>Fase 1 — Ligar o banco <span class="selo s-erro">bloqueia tudo</span></h3>
+  <ol>
+    <li>Fornecer as credenciais MySQL do cPanel (host, base, usuário, senha) ou importar os arquivos SQL pelo phpMyAdmin.</li>
+    <li>Executar <code>database/migrations/002_dominio_qualitalk.sql</code>.</li>
+    <li>Escrever o seed do domínio novo a partir de <code>src/data/seed.js</code> — os dados dos prints já estão transcritos e prontos.</li>
+    <li>Criar o primeiro usuário administrador com senha gerada pela função de hash do próprio sistema.</li>
+  </ol>
+  <p class="nota">Sem esta fase, nenhuma das seguintes pode começar. É o único item que depende de insumo externo.</p>
+
+  <h3>Fase 2 — Fechar a segurança <span class="selo s-erro">antes de dado real</span></h3>
+  <ol>
+    <li>Definir <code>NODE_ENV=production</code>, <code>SESSION_SECRET</code> aleatório e <code>QUALITALK_DEV_AUTH_BYPASS=false</code>.</li>
+    <li>Adicionar limitação de taxa no login e na geração de análise por IA.</li>
+    <li>Declarar os cabeçalhos de segurança na configuração do Next.</li>
+    <li>Ativar a trilha de auditoria: gravar em <code>audit_logs</code> login, edição, exclusão e exportação.</li>
+    <li>Validar origem nas rotas que alteram estado.</li>
+  </ol>
+
+  <h3>Fase 3 — Trocar dado simulado por dado real</h3>
+  <ol>
+    <li>Substituir os <em>imports</em> de <code>src/data/seed.js</code> por chamadas às rotas de API, tela por tela.</li>
+    <li>Ligar o painel de IA à rota <code>/api/relatorios/ia</code> — a função <code>gerarAnalise()</code> já está isolada para essa troca.</li>
+    <li>Configurar <code>GEMINI_API_KEY</code> e validar os quatro relatórios com dado real.</li>
+    <li>Remover os arquivos órfãos listados na seção 6.</li>
+  </ol>
+
+  <h3>Fase 4 — Completar o produto</h3>
+  <ol>
+    <li>Armazenamento de áudio com acesso controlado, fora da pasta pública.</li>
+    <li>Transcrição real substituindo o simulador de <code>/api/analyze</code>, com diarização por interlocutor.</li>
+    <li>Construir os módulos hoje em esqueleto, na ordem de valor: <strong>Feedback</strong> e <strong>Contestações</strong> primeiro — são os que fecham o ciclo da monitoria — depois Administração, Sala de Calibração, Calendário e Quizzes.</li>
+    <li>Exportação real em Excel, CSV e PDF.</li>
+    <li>Política de retenção e rotina de exclusão por titular, para conformidade com a LGPD.</li>
+  </ol>
+
+  <h3>Fase 5 — Confiabilidade da nota</h3>
+  <p>
+    O documento de requisitos original pede <em>"verificar o quão de confiabilidade em nota teremos"</em>.
+    Isso exige um período de operação em paralelo: a mesma chamada avaliada pela IA e por um monitor
+    humano, medindo a divergência critério a critério. Só depois desse comparativo faz sentido decidir
+    quais critérios a IA pode pontuar sozinha e quais exigem revisão humana obrigatória.
+  </p>
+
+  <div class="destaque">
+    <strong>Recomendação de sequência:</strong> não inverter as fases 1 e 2. É tentador ligar o banco e
+    já começar a usar, mas o bypass de autenticação ligado por padrão significa que um sistema
+    conectado ao MySQL sem a fase 2 concluída fica acessível sem senha.
+  </div>
+</section>
+
+<section>
+  <h2>8. Verificação desta entrega</h2>
+  <table>
+    <thead><tr><th style="width:42%">Verificação</th><th>Resultado</th></tr></thead>
+    <tbody>
+      <tr><td>Rotas respondendo HTTP 200</td><td>15 de 15</td></tr>
+      <tr><td><code>npx eslint src --max-warnings=0</code></td><td>0 erros, 0 avisos</td></tr>
+      <tr><td>Links órfãos ou rotas mortas</td><td>Nenhum</td></tr>
+      <tr><td>Textos em português com acentuação correta</td><td>365 correções aplicadas em 18 arquivos</td></tr>
+      <tr><td>Revisão visual das telas renderizadas</td><td><strong>Pendente</strong> — exige conferência humana no navegador</td></tr>
+      <tr><td>Testes automatizados</td><td><strong>Inexistentes</strong> — nenhuma suíte foi escrita até aqui</td></tr>
+    </tbody>
+  </table>
+
+  <div class="alerta">
+    <strong>Duas ausências que este relatório não disfarça:</strong> não há testes automatizados no
+    projeto, e as telas não foram conferidas visualmente por pessoa alguma — a validação feita cobre
+    compilação, lint e resposta HTTP, o que não captura layout quebrado.
+  </div>
+</section>
+
+</body>
+</html>

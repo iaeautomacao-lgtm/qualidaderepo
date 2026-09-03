@@ -1,0 +1,161 @@
+/* ==========================================================================
+   Metas mensais de monitoria.
+   ========================================================================== */
+
+.cabecalho {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--sp-4);
+}
+
+.cabecalhoIdent {
+  display: flex;
+  min-width: 0;
+  align-items: center;
+  gap: var(--sp-3);
+}
+
+.cabecalhoIdent h1 {
+  font-size: var(--fs-700);
+}
+
+.cabecalhoIdent p {
+  margin-top: var(--sp-1);
+  color: var(--text-soft);
+  font-size: var(--fs-200);
+}
+
+.marca {
+  display: grid;
+  place-items: center;
+  flex: 0 0 auto;
+  width: 44px;
+  height: 44px;
+  border: 1px solid var(--accent-soft-strong);
+  border-radius: var(--r-md);
+  background: var(--accent-soft);
+  color: var(--accent);
+}
+
+.cabecalhoAcoes {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  gap: var(--sp-2);
+}
+
+.cabecalhoAcoes .field {
+  min-width: 130px;
+}
+
+.kpis {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 180px), 1fr));
+  gap: var(--sp-4);
+}
+
+.kpi {
+  display: grid;
+  align-content: start;
+  gap: var(--sp-1);
+  padding: var(--sp-4) var(--sp-5);
+  border: 1px solid var(--line);
+  border-radius: var(--r-lg);
+  background: var(--surface);
+  box-shadow: var(--shadow-xs);
+}
+
+.kpi[data-tom="accent"] {
+  border-color: var(--accent-soft-strong);
+  background: var(--accent-soft);
+}
+
+.kpiRotulo {
+  color: var(--text-muted);
+  font-size: var(--fs-100);
+  font-weight: var(--fw-semibold);
+  letter-spacing: var(--tracking-label);
+  text-transform: uppercase;
+}
+
+.kpiValor {
+  font-size: var(--fs-kpi);
+  font-weight: var(--fw-bold);
+  line-height: var(--lh-tight);
+  font-variant-numeric: tabular-nums;
+}
+
+.kpi[data-tom="accent"] .kpiValor {
+  color: var(--accent-strong);
+}
+
+.kpiNota {
+  color: var(--text-muted);
+  font-size: var(--fs-100);
+  line-height: var(--lh-snug);
+}
+
+.formulario {
+  border-color: var(--accent-soft-strong);
+}
+
+.formGrade {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 240px), 1fr));
+  gap: var(--sp-4);
+  align-items: start;
+}
+
+.formGrade > :global(.btn-row) {
+  grid-column: 1 / -1;
+}
+
+/* Canal ao lado do nome da campanha: mesma campanha pode existir em dois
+   canais, e o nome sozinho não distingue. */
+.canal {
+  display: inline-block;
+  margin-left: var(--sp-2);
+  padding: 1px var(--sp-2);
+  border-radius: var(--r-pill);
+  background: var(--surface-3);
+  color: var(--text-soft);
+  font-size: var(--fs-100);
+}
+
+.progresso {
+  display: flex;
+  align-items: center;
+  gap: var(--sp-2);
+  min-width: 140px;
+}
+
+.progresso :global(.progress-track) {
+  flex: 1 1 auto;
+}
+
+.progresso strong {
+  flex: 0 0 auto;
+  font-variant-numeric: tabular-nums;
+}
+
+.acoes {
+  display: flex;
+  align-items: center;
+  gap: var(--sp-1);
+}
+
+@media (max-width: 640px) {
+  .cabecalho {
+    align-items: stretch;
+  }
+
+  .cabecalhoAcoes {
+    width: 100%;
+  }
+
+  .kpis {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}

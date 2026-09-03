@@ -1,0 +1,303 @@
+/* ==========================================================================
+   Painel de cadastro com desempenho — Operações, Campanhas e Avaliados.
+   ========================================================================== */
+
+.cabecalho {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: var(--sp-4);
+}
+
+.cabecalho h1 {
+  font-size: var(--fs-700);
+}
+
+.cabecalho p {
+  margin-top: var(--sp-1);
+  color: var(--text-soft);
+  font-size: var(--fs-300);
+}
+
+.cabecalhoAcoes {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--sp-2);
+}
+
+.cabecalhoAcoes :global(.search-field) {
+  width: min(300px, 60vw);
+}
+
+/* --- formulário de cadastro ---------------------------------------------- */
+
+.formulario {
+  border-color: var(--accent-soft-strong);
+}
+
+.formGrade {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 240px), 1fr));
+  gap: var(--sp-4);
+  align-items: start;
+}
+
+/* Alerta e botões ocupam a linha inteira, não uma coluna do grid. */
+.formGrade > :global(.alert),
+.formGrade > :global(.btn-row) {
+  grid-column: 1 / -1;
+}
+
+/* --- KPIs ---------------------------------------------------------------- */
+
+.kpis {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 180px), 1fr));
+  gap: var(--sp-4);
+}
+
+.kpi {
+  display: grid;
+  align-content: start;
+  gap: var(--sp-1);
+  padding: var(--sp-4) var(--sp-5);
+  border: 1px solid var(--line);
+  border-radius: var(--r-lg);
+  background: var(--surface);
+  box-shadow: var(--shadow-xs);
+}
+
+.kpi[data-tom="accent"] {
+  border-color: var(--accent-soft-strong);
+  background: var(--accent-soft);
+}
+
+.kpiRotulo {
+  color: var(--text-muted);
+  font-size: var(--fs-100);
+  font-weight: var(--fw-semibold);
+  letter-spacing: var(--tracking-label);
+  text-transform: uppercase;
+}
+
+.kpiValor {
+  font-size: var(--fs-kpi);
+  font-weight: var(--fw-bold);
+  line-height: var(--lh-tight);
+  font-variant-numeric: tabular-nums;
+  letter-spacing: -0.02em;
+}
+
+.kpi[data-tom="accent"] .kpiValor {
+  color: var(--accent-strong);
+}
+
+.kpi[data-tom="danger"] .kpiValor {
+  color: var(--danger-text);
+}
+
+.kpiNota {
+  color: var(--text-muted);
+  font-size: var(--fs-100);
+  line-height: var(--lh-snug);
+}
+
+/* --- cartões ------------------------------------------------------------- */
+
+.grade {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(min(100%, 340px), 1fr));
+  gap: var(--sp-4);
+}
+
+.grade > li {
+  display: grid;
+}
+
+.cartao {
+  display: grid;
+  align-content: start;
+  gap: var(--sp-3);
+  height: 100%;
+}
+
+/* Inativo continua visível — some da operação, não do histórico — mas perde
+   presença para não competir com o que está no ar. */
+.cartao[data-inativo="true"] {
+  background: var(--surface-2);
+}
+
+.cartaoTopo {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: var(--sp-3);
+}
+
+.cartaoIdent {
+  min-width: 0;
+  display: grid;
+  gap: 2px;
+}
+
+.cartaoIdent h3 {
+  font-size: var(--fs-500);
+  line-height: var(--lh-snug);
+  overflow-wrap: anywhere;
+}
+
+.cartaoIdent p {
+  color: var(--text-muted);
+  font-size: var(--fs-200);
+  overflow-wrap: anywhere;
+}
+
+.campos {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 90px), 1fr));
+  gap: var(--sp-2);
+}
+
+.campos > div {
+  display: grid;
+  gap: 2px;
+  padding: var(--sp-2) var(--sp-3);
+  border-radius: var(--r-sm);
+  background: var(--surface-2);
+}
+
+.cartao[data-inativo="true"] .campos > div {
+  background: var(--surface-3);
+}
+
+.campos dt {
+  color: var(--text-muted);
+  font-size: var(--fs-100);
+  font-weight: var(--fw-semibold);
+}
+
+.campos dd {
+  font-size: var(--fs-400);
+  font-weight: var(--fw-bold);
+  font-variant-numeric: tabular-nums;
+}
+
+.campos dd[data-tom="danger"] {
+  color: var(--danger-text);
+}
+
+.campos dd[data-tom="warning"] {
+  color: var(--warning-text);
+}
+
+.campos dd[data-tom="success"] {
+  color: var(--success-text);
+}
+
+/* --- quebra por canal ---------------------------------------------------- */
+
+.canais {
+  display: grid;
+  gap: var(--sp-1);
+  padding-top: var(--sp-2);
+  border-top: 1px solid var(--line);
+}
+
+.canais li {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: var(--sp-3);
+  padding: var(--sp-1) 0;
+}
+
+/* Canal sem monitoria no período fica esmaecido: "—" com o mesmo peso do
+   número real faria parecer que houve medição. */
+.canais li[data-vazio="true"] {
+  opacity: 0.6;
+}
+
+.canalNome {
+  color: var(--text-soft);
+  font-size: var(--fs-200);
+  font-weight: var(--fw-medium);
+}
+
+.canalNumeros {
+  display: flex;
+  align-items: baseline;
+  gap: var(--sp-2);
+  font-variant-numeric: tabular-nums;
+}
+
+.canalNumeros strong {
+  font-size: var(--fs-400);
+  font-weight: var(--fw-bold);
+}
+
+.canalNumeros small {
+  color: var(--text-muted);
+  font-size: var(--fs-100);
+}
+
+.insight {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--sp-2);
+  padding: var(--sp-3);
+  border-radius: var(--r-md);
+  background: var(--surface-2);
+  color: var(--text-soft);
+  font-size: var(--fs-200);
+  line-height: var(--lh-normal);
+}
+
+.insight > svg {
+  flex: 0 0 auto;
+  margin-top: 2px;
+  color: var(--accent);
+}
+
+.cartaoAcoes {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--sp-2);
+  margin-top: auto;
+  padding-top: var(--sp-2);
+}
+
+.confirmar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--sp-2);
+  font-size: var(--fs-200);
+  font-weight: var(--fw-semibold);
+}
+
+.esqueletoCartao {
+  height: 280px;
+  border-radius: var(--r-lg);
+}
+
+@media (max-width: 640px) {
+  .cabecalho {
+    align-items: stretch;
+  }
+
+  .cabecalhoAcoes {
+    width: 100%;
+  }
+
+  .cabecalhoAcoes :global(.search-field) {
+    width: 100%;
+  }
+
+  .kpis {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: var(--sp-3);
+  }
+}

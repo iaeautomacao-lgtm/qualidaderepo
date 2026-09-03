@@ -1,0 +1,216 @@
+/* ==========================================================================
+   Dashboard de Formulários — métricas das avaliações aplicadas.
+   ========================================================================== */
+
+.cabecalho {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--sp-4);
+}
+
+.cabecalhoIdent {
+  display: flex;
+  min-width: 0;
+  align-items: center;
+  gap: var(--sp-3);
+}
+
+.cabecalhoIdent h1 {
+  font-size: var(--fs-700);
+}
+
+.cabecalhoIdent p {
+  margin-top: var(--sp-1);
+  color: var(--text-soft);
+  font-size: var(--fs-300);
+}
+
+.marca {
+  display: grid;
+  place-items: center;
+  flex: 0 0 auto;
+  width: 44px;
+  height: 44px;
+  border: 1px solid var(--accent-soft-strong);
+  border-radius: var(--r-md);
+  background: var(--accent-soft);
+  color: var(--accent);
+}
+
+.cabecalhoAcoes {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--sp-2);
+}
+
+.filtros {
+  display: grid;
+  gap: var(--sp-2);
+}
+
+.filtrosGrade {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 200px), 1fr));
+  gap: var(--sp-4);
+}
+
+.filtros label {
+  color: var(--text-muted);
+  font-size: var(--fs-100);
+  font-weight: var(--fw-semibold);
+  letter-spacing: var(--tracking-label);
+  text-transform: uppercase;
+}
+
+.kpis {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 190px), 1fr));
+  gap: var(--sp-4);
+}
+
+.kpi {
+  display: grid;
+  align-content: start;
+  gap: var(--sp-2);
+  padding: var(--sp-4) var(--sp-5);
+  border: 1px solid var(--line);
+  border-radius: var(--r-lg);
+  background: var(--surface);
+  box-shadow: var(--shadow-xs);
+}
+
+.kpi[data-tom="accent"] {
+  border-color: var(--accent-soft-strong);
+  background: var(--accent-soft);
+}
+
+.kpi[data-tom="danger"] {
+  border-color: var(--danger);
+}
+
+.kpiRotulo {
+  color: var(--text-muted);
+  font-size: var(--fs-100);
+  font-weight: var(--fw-semibold);
+  letter-spacing: var(--tracking-label);
+  text-transform: uppercase;
+}
+
+.kpiValor {
+  font-size: var(--fs-kpi);
+  font-weight: var(--fw-bold);
+  line-height: var(--lh-tight);
+  font-variant-numeric: tabular-nums;
+  letter-spacing: -0.02em;
+}
+
+.kpi[data-tom="accent"] .kpiValor {
+  color: var(--accent-strong);
+}
+
+.kpi[data-tom="danger"] .kpiValor {
+  color: var(--danger-text);
+}
+
+.kpiNota {
+  color: var(--text-muted);
+  font-size: var(--fs-100);
+  line-height: var(--lh-snug);
+}
+
+.duasColunas {
+  display: grid;
+  grid-template-columns: minmax(0, 2fr) minmax(0, 1fr);
+  align-items: start;
+  gap: var(--sp-5);
+}
+
+/* --- distribuição -------------------------------------------------------- */
+
+.faixas {
+  display: grid;
+  gap: var(--sp-1);
+}
+
+.faixas li {
+  display: flex;
+  align-items: center;
+  gap: var(--sp-3);
+  padding: var(--sp-3) 0;
+  font-size: var(--fs-300);
+}
+
+.faixas li + li {
+  border-top: 1px solid var(--line);
+}
+
+/* A cor é reforço: o nome da faixa está escrito ao lado (WCAG 1.4.1). */
+.faixaMarca {
+  flex: 0 0 auto;
+  width: 10px;
+  height: 10px;
+  border-radius: var(--r-pill);
+  background: var(--text-muted);
+}
+
+.faixas li[data-tom="success"] .faixaMarca {
+  background: var(--success);
+}
+
+.faixas li[data-tom="warning"] .faixaMarca {
+  background: var(--warning);
+}
+
+.faixas li[data-tom="danger"] .faixaMarca {
+  background: var(--danger);
+}
+
+.faixaNome {
+  min-width: 0;
+  flex: 1 1 auto;
+  font-weight: var(--fw-medium);
+}
+
+.faixaValor {
+  display: flex;
+  flex: 0 0 auto;
+  align-items: baseline;
+  gap: var(--sp-2);
+  font-variant-numeric: tabular-nums;
+}
+
+.faixaValor strong {
+  font-size: var(--fs-400);
+  font-weight: var(--fw-bold);
+}
+
+.faixaValor small {
+  color: var(--text-muted);
+  font-size: var(--fs-100);
+}
+
+.eliminatoria {
+  display: inline-flex;
+  margin-left: var(--sp-1);
+  color: var(--danger-text);
+  vertical-align: -2px;
+}
+
+@media (max-width: 1100px) {
+  .duasColunas {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+
+@media (max-width: 640px) {
+  .cabecalho {
+    align-items: stretch;
+  }
+
+  .kpis {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: var(--sp-3);
+  }
+}

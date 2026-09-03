@@ -1,0 +1,721 @@
+/* ==========================================================================
+   Ficha de Monitoria — espelha a estrutura do QualiTalk com a paleta da DDM.
+
+   O cabeçalho do QualiTalk é um gradiente azul→roxo. Aqui ele é laranja da
+   marca: --orange-700 → --orange-900. Texto branco sobre #c93b04 dá 5,11:1 e
+   sobre #7e2608 sobe ainda mais, então toda a faixa passa AA — o que o roxo
+   original não garantia.
+   ========================================================================== */
+
+.ficha {
+  display: grid;
+  gap: var(--sp-5);
+}
+
+.sentimentoIa {
+  display: grid;
+  gap: var(--sp-4);
+}
+
+.sentimentoResumo {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 150px), 1fr));
+  gap: var(--sp-3);
+}
+
+.sentimentoResumo div {
+  padding: var(--sp-3);
+  border: 1px solid var(--line);
+  border-radius: var(--r-md);
+  background: var(--surface-2);
+}
+
+.sentimentoResumo dt {
+  color: var(--text-muted);
+  font-size: var(--fs-100);
+  font-weight: var(--fw-semibold);
+  letter-spacing: var(--tracking-label);
+  text-transform: uppercase;
+}
+
+.sentimentoResumo dd {
+  margin-top: var(--sp-1);
+  font-size: var(--fs-400);
+  font-weight: var(--fw-semibold);
+}
+
+.sentimentoResumo dd[data-sentimento="positivo"] {
+  color: var(--success-text);
+}
+
+.sentimentoResumo dd[data-sentimento="negativo"] {
+  color: var(--danger-text);
+}
+
+.sentimentoResumo dd[data-sentimento="misto"] {
+  color: var(--warning-text);
+}
+
+.sentimentoListas {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 220px), 1fr));
+  gap: var(--sp-4);
+}
+
+.sentimentoListas h3 {
+  margin-bottom: var(--sp-2);
+  font-size: var(--fs-300);
+}
+
+.sentimentoListas ul {
+  display: grid;
+  gap: var(--sp-2);
+}
+
+.sentimentoListas li {
+  padding-left: var(--sp-3);
+  border-left: 2px solid var(--line);
+  color: var(--text-soft);
+  font-size: var(--fs-200);
+  line-height: var(--lh-normal);
+}
+
+/* --- cabeçalho ----------------------------------------------------------- */
+
+.hero {
+  display: grid;
+  gap: var(--sp-4);
+  padding: var(--sp-5);
+  border-radius: var(--r-lg);
+  background: linear-gradient(105deg, var(--orange-700) 0%, var(--orange-900) 100%);
+  color: var(--text-on-dark);
+  box-shadow: var(--shadow-md);
+}
+
+.heroTopo {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-start;
+  gap: var(--sp-4);
+}
+
+.heroIcone {
+  display: grid;
+  place-items: center;
+  flex: 0 0 auto;
+  width: 44px;
+  height: 44px;
+  border-radius: var(--r-md);
+  background: rgba(255, 255, 255, 0.18);
+  color: var(--text-on-dark);
+}
+
+.heroIdent {
+  min-width: 0;
+  flex: 1 1 320px;
+  display: grid;
+  gap: var(--sp-2);
+}
+
+.heroSobre {
+  color: rgba(255, 255, 255, 0.82);
+  font-size: var(--fs-100);
+  font-weight: var(--fw-semibold);
+  letter-spacing: var(--tracking-label);
+  text-transform: uppercase;
+}
+
+.heroTitulo {
+  font-size: var(--fs-700);
+  overflow-wrap: anywhere;
+}
+
+.heroSelos {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--sp-2);
+}
+
+/* Os chips vêm de globals.css com fundo claro; sobre a faixa laranja eles
+   continuam legíveis porque o fundo do chip é próprio, não transparente. */
+.heroSelos :global(.chip) {
+  border-color: transparent;
+}
+
+.heroAcoes {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--sp-2);
+}
+
+/* Botões sobre a faixa: superfície translúcida com borda visível (3,1:1 contra
+   a tinta), em vez de branco cheio que competiria com o título. */
+.heroAcoes :global(.btn) {
+  min-height: var(--tap-min);
+  padding-inline: var(--sp-4);
+  border-color: rgba(255, 255, 255, 0.45);
+  background: rgba(255, 255, 255, 0.14);
+  color: var(--text-on-dark);
+  font-size: var(--fs-200);
+}
+
+.heroAcoes :global(.btn):hover {
+  border-color: var(--text-on-dark);
+  background: rgba(255, 255, 255, 0.26);
+}
+
+.heroAcoes :global(.btn):focus-visible {
+  outline-color: var(--text-on-dark);
+}
+
+.heroLinha {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--sp-2);
+  color: rgba(255, 255, 255, 0.88);
+  font-size: var(--fs-200);
+}
+
+.heroId {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--sp-1);
+  font-variant-numeric: tabular-nums;
+}
+
+/* O botão de copiar é branco aqui, não cinza — a superfície mudou. */
+.heroId :global(.copy-id) {
+  opacity: 1;
+  color: rgba(255, 255, 255, 0.9);
+}
+
+.heroId :global(.copy-id):hover {
+  color: var(--text-on-dark);
+}
+
+.heroDados {
+  display: grid;
+  gap: var(--sp-4);
+}
+
+.heroDados[hidden] {
+  display: none;
+}
+
+.faixaPrincipal,
+.faixaIdentificacao {
+  display: grid;
+  gap: var(--sp-4);
+}
+
+/* Faixa 1: 5 métricas centradas, como no print. */
+.faixaPrincipal {
+  grid-template-columns: repeat(auto-fit, minmax(min(50% - var(--sp-2), 150px), 1fr));
+  padding-bottom: var(--sp-4);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.28);
+  text-align: center;
+}
+
+/* Faixa 2: 8 campos de identificação, alinhados à esquerda. */
+.faixaIdentificacao {
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 190px), 1fr));
+}
+
+.faixaPrincipal dt,
+.faixaIdentificacao dt {
+  color: rgba(255, 255, 255, 0.8);
+  font-size: var(--fs-100);
+  font-weight: var(--fw-semibold);
+  letter-spacing: var(--tracking-label);
+  text-transform: uppercase;
+}
+
+.faixaPrincipal dd,
+.faixaIdentificacao dd {
+  margin-top: var(--sp-1);
+  overflow: hidden;
+  font-size: var(--fs-400);
+  font-weight: var(--fw-semibold);
+  text-overflow: ellipsis;
+}
+
+.faixaIdentificacao dd {
+  font-size: var(--fs-300);
+  white-space: nowrap;
+}
+
+/* Score na faixa: a cor da faixa de nota entra como pastilha própria, porque
+   verde/vermelho de texto sobre a tinta laranja não alcançaria contraste. */
+.heroScore {
+  display: inline-grid;
+  place-items: center;
+  min-width: 72px;
+  min-height: 32px;
+  padding: 0 var(--sp-3);
+  border-radius: var(--r-sm);
+  background: rgba(255, 255, 255, 0.92);
+  color: var(--text);
+  font-size: var(--fs-400);
+  font-weight: var(--fw-bold);
+  font-variant-numeric: tabular-nums;
+}
+
+.heroScore[data-tom="success"] {
+  color: var(--success-text);
+}
+
+.heroScore[data-tom="warning"] {
+  color: var(--warning-text);
+}
+
+.heroScore[data-tom="danger"] {
+  color: var(--danger-text);
+}
+
+/* --- corpo em duas colunas ---------------------------------------------- */
+
+.corpo {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 360px);
+  align-items: start;
+  gap: var(--sp-5);
+}
+
+.principal,
+.trilha {
+  display: grid;
+  align-content: start;
+  gap: var(--sp-5);
+  min-width: 0;
+}
+
+/* A navegação de seções acompanha a rolagem: a ficha tem 30 critérios e sem
+   isso o monitor precisa voltar ao topo para trocar de seção.
+
+   Quem gruda é a COLUNA (`.trilha` recebe `.sticky-rail` no JSX), não este
+   cartão. Cartão grudado é elemento posicionado: ele passava por cima do
+   "Leitura da IA" e do chat, que são irmãos estáticos da mesma coluna — era o
+   bug de sobreposição relatado na ficha IA. Aqui sobra só o alinhamento. */
+.navSecoes {
+  flex: 0 0 auto;
+}
+
+.navSecoes ul {
+  display: grid;
+  gap: var(--sp-1);
+}
+
+.navSecoes a {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--sp-3);
+  min-height: var(--tap-min);
+  padding: var(--sp-2) var(--sp-3);
+  border-radius: var(--r-sm);
+  color: var(--text-soft);
+  font-size: var(--fs-200);
+  font-weight: var(--fw-medium);
+  transition: background var(--dur) var(--ease), color var(--dur) var(--ease);
+}
+
+.navSecoes a:hover {
+  background: var(--accent-soft);
+  color: var(--accent-deep);
+}
+
+.navSecoes a > span:first-child {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.tituloSecao {
+  margin-bottom: var(--sp-3);
+  font-size: var(--fs-500);
+  font-weight: var(--fw-semibold);
+}
+
+/* --- pessoas ------------------------------------------------------------- */
+
+.pessoasCartao {
+  display: grid;
+  align-content: start;
+}
+
+.pessoas {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 260px), 1fr));
+  gap: var(--sp-4);
+}
+
+.pessoa {
+  display: grid;
+  gap: var(--sp-2);
+  padding: var(--sp-4);
+  border: 1px solid var(--line);
+  border-radius: var(--r-md);
+  background: var(--surface-2);
+}
+
+.pessoa h3 {
+  font-size: var(--fs-400);
+}
+
+.pessoa p {
+  color: var(--text-soft);
+  font-size: var(--fs-200);
+  overflow-wrap: anywhere;
+}
+
+.rotuloInline {
+  color: var(--text);
+  font-weight: var(--fw-semibold);
+}
+
+.email {
+  color: var(--accent-deep);
+  text-decoration: underline;
+}
+
+.textoCorrido {
+  color: var(--text-soft);
+  font-size: var(--fs-300);
+  line-height: var(--lh-normal);
+}
+
+.textoCorrido + .textoCorrido {
+  margin-top: var(--sp-3);
+}
+
+/* --- seções e critérios -------------------------------------------------- */
+
+.secoes {
+  display: grid;
+  gap: var(--sp-6);
+}
+
+.secao {
+  display: grid;
+  gap: var(--sp-4);
+  /* A âncora precisa parar abaixo da topbar fixa, senão o título fica escondido. */
+  scroll-margin-top: 88px;
+}
+
+/* Faixa de seção: no QualiTalk é lilás; aqui é a tinta clara da marca. */
+.secaoCabecalho {
+  display: grid;
+  gap: var(--sp-2);
+  padding: var(--sp-4);
+  border: 1px solid var(--accent-soft-strong);
+  border-radius: var(--r-md);
+  background: linear-gradient(100deg, var(--accent-soft) 0%, var(--surface-3) 100%);
+}
+
+.secaoCabecalho h3 {
+  font-size: var(--fs-500);
+}
+
+.secaoCabecalho p {
+  color: var(--text-soft);
+  font-size: var(--fs-200);
+  line-height: var(--lh-normal);
+}
+
+.criterios {
+  display: grid;
+  gap: var(--sp-4);
+}
+
+/* --- leitura da IA ------------------------------------------------------- */
+
+.listasIa {
+  gap: var(--sp-4);
+}
+
+.listasIa > div + div {
+  margin-top: var(--sp-4);
+  padding-top: var(--sp-4);
+  border-top: 1px solid var(--line);
+}
+
+.listasIa h3 {
+  display: flex;
+  align-items: center;
+  gap: var(--sp-2);
+  margin-bottom: var(--sp-2);
+  font-size: var(--fs-300);
+}
+
+.listasIa h3 > svg {
+  color: var(--accent);
+}
+
+.listasIa ul {
+  display: grid;
+  gap: var(--sp-2);
+}
+
+.listasIa li {
+  padding-left: var(--sp-4);
+  border-left: 2px solid var(--line);
+  color: var(--text-soft);
+  font-size: var(--fs-200);
+  line-height: var(--lh-normal);
+}
+
+/* --- feedback global ----------------------------------------------------- */
+
+.feedback {
+  display: grid;
+  gap: var(--sp-4);
+  border-color: var(--accent-soft-strong);
+  background: linear-gradient(180deg, var(--accent-soft) 0%, var(--surface) 32%);
+  scroll-margin-top: 88px;
+}
+
+.feedbackCampos {
+  display: grid;
+  gap: var(--sp-4);
+}
+
+.feedback :global(.btn-row) {
+  justify-content: flex-end;
+}
+
+/* --- rodapé -------------------------------------------------------------- */
+
+.rodape {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--sp-3);
+  padding-top: var(--sp-4);
+  border-top: 1px solid var(--line);
+}
+
+/* --- painéis (histórico / edições / feedbacks) --------------------------- */
+
+.modalFundo {
+  position: fixed;
+  inset: 0;
+  z-index: var(--z-drawer);
+  display: grid;
+  place-items: center;
+  padding: var(--sp-4);
+  background: rgba(23, 22, 20, 0.5);
+  animation: modal-entrada var(--dur) var(--ease);
+}
+
+@keyframes modal-entrada {
+  from {
+    opacity: 0;
+  }
+}
+
+.modal {
+  display: grid;
+  grid-template-rows: auto minmax(0, 1fr);
+  width: min(100%, 640px);
+  max-height: min(80dvh, 720px);
+}
+
+.modalCabecalho {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--sp-3);
+  padding: var(--sp-4) var(--sp-5);
+  border-bottom: 1px solid var(--line);
+}
+
+.modalCabecalho h2 {
+  font-size: var(--fs-500);
+}
+
+.modalCorpo {
+  overflow-y: auto;
+  overscroll-behavior-y: contain;
+  padding: var(--sp-5);
+}
+
+.painelLista {
+  display: grid;
+  gap: var(--sp-3);
+}
+
+.painelLista li {
+  display: grid;
+  gap: var(--sp-1);
+  padding: var(--sp-3);
+  border: 1px solid var(--line);
+  border-radius: var(--r-md);
+  background: var(--surface-2);
+}
+
+.painelLista strong {
+  font-size: var(--fs-300);
+  font-weight: var(--fw-semibold);
+}
+
+.painelLista p {
+  color: var(--text-soft);
+  font-size: var(--fs-200);
+  line-height: var(--lh-normal);
+}
+
+.painelLista span {
+  color: var(--text-muted);
+  font-size: var(--fs-100);
+}
+
+.painelVazio {
+  color: var(--text-soft);
+  font-size: var(--fs-200);
+}
+
+/* --- esqueleto ----------------------------------------------------------- */
+
+.esqueleto {
+  display: grid;
+  gap: var(--sp-5);
+}
+
+.esqueletoHero {
+  height: 220px;
+  border-radius: var(--r-lg);
+}
+
+.esqueletoCorpo {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 360px);
+  gap: var(--sp-5);
+}
+
+.esqueletoColuna {
+  display: grid;
+  gap: var(--sp-5);
+}
+
+.esqueletoBloco {
+  height: 120px;
+  border-radius: var(--r-lg);
+}
+
+.esqueletoBlocoAlto {
+  height: 240px;
+  border-radius: var(--r-lg);
+}
+
+/* ==========================================================================
+   Responsivo
+   ========================================================================== */
+
+@media (max-width: 1200px) {
+  .corpo,
+  .esqueletoCorpo {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+}
+
+@media (max-width: 640px) {
+  .hero {
+    padding: var(--sp-4);
+  }
+
+  .heroTitulo {
+    font-size: var(--fs-600);
+  }
+
+  .heroAcoes {
+    width: 100%;
+  }
+
+  .heroAcoes .btn {
+    flex: 1 1 140px;
+  }
+
+  .faixaPrincipal,
+  .faixaIdentificacao {
+    gap: var(--sp-3);
+    text-align: left;
+  }
+
+  /* Nome de formulário longo precisa quebrar em vez de virar "…" no celular. */
+  .faixaIdentificacao dd {
+    white-space: normal;
+  }
+
+  .rodape :global(.btn),
+  .feedback :global(.btn-row) :global(.btn) {
+    flex: 1 1 100%;
+  }
+
+  .modal {
+    max-height: 88dvh;
+  }
+}
+
+/* ==========================================================================
+   Impressão — "Exportar PDF" chama window.print(), então a folha precisa ser
+   um documento, não uma captura da tela: nada de gradiente, nada de coluna
+   lateral, nada de botão.
+   ========================================================================== */
+
+@media print {
+  .ficha {
+    gap: var(--sp-4);
+  }
+
+  .hero {
+    border: 1px solid #999;
+    background: none;
+    color: #000;
+    box-shadow: none;
+  }
+
+  .heroSobre,
+  .heroLinha,
+  .faixaPrincipal dt,
+  .faixaIdentificacao dt {
+    color: #333;
+  }
+
+  .heroIcone,
+  .heroAcoes,
+  .trilha,
+  .rodape,
+  .feedback :global(.btn-row),
+  .modalFundo {
+    display: none;
+  }
+
+  .heroScore {
+    background: none;
+    color: #000;
+  }
+
+  .corpo {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .secao,
+  .pessoa,
+  .secaoCabecalho {
+    break-inside: avoid;
+  }
+
+  .secaoCabecalho {
+    background: none;
+  }
+
+  .feedback {
+    background: none;
+  }
+}

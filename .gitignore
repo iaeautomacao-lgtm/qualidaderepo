@@ -1,0 +1,64 @@
+# See https://help.github.com/articles/ignoring-files/ for more about ignoring files.
+
+# dependencies
+/node_modules
+# O .zip de node_modules tem ~531 MB. O GitHub recusa arquivo acima de 100 MB e
+# o histórico do Git nunca esquece — a pasta é reconstruída com `npm ci` no
+# servidor, então o pacote não tem por que existir aqui.
+/node_modules.zip
+/.pnp
+.pnp.*
+.yarn/*
+!.yarn/patches
+!.yarn/plugins
+!.yarn/releases
+!.yarn/versions
+
+# testing
+/coverage
+
+# next.js
+/.next/
+/out/
+
+# production
+/build
+
+# misc
+.DS_Store
+*.pem
+
+# debug
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+.pnpm-debug.log*
+
+# env files — NUNCA commitar valor real de segredo.
+# Os dois modelos abaixo são exceções: só têm rótulos e instruções, nenhum
+# segredo. Sem eles, quem clonar o repositório não sabe o que configurar.
+.env*
+!.env.example
+!.env.secure.example
+
+# typescript
+*.tsbuildinfo
+next-env.d.ts
+
+# logs do servidor de desenvolvimento (gerados por next dev)
+next-dev.log
+next-dev.err.log
+.next-dev.pid
+.codex-next-dev.log
+.codex-next-dev.err
+
+# arquivos enviados pelos usuários ficam no servidor, não no Git
+/storage/
+
+# importacao local com dados pessoais da planilha de usuarios
+/database/cpanel/04-usuarios-planilha.sql
+
+# scripts de investigação local: úteis na máquina de quem depura, sem valor no
+# histórico. Ficam no disco, fora do repositório.
+/server-debug.js
+/tmp-*
