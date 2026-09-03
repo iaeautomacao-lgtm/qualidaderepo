@@ -1,0 +1,55 @@
+-- ---------------------------------------------------------------------------
+-- 008 — Descrição e tipo de cálculo do formulário
+--
+-- O PROBLEMA QUE ESTA MIGRATION RESOLVE: a tela "Gerenciamento de Formulários"
+-- mostra, em cada cartão, dois campos que não existiam em `formularios`:
+--
+--   * a descrição do que aquele formulário avalia — o texto que explica o
+--     objetivo da monitoria daquela carteira. Hoje isso mora na cabeça de quem
+--     cadastrou, e quem chega depois não sabe para que serve o formulário;
+--   * o "Tipo de Cálculo" (Sessão × Critério), que a tela de referência mostra
+--     como um par de cartões selecionáveis.
+--
+-- LEIA ISTO ANTES DE USAR `tipo_calculo`
+--
+-- Esta coluna é, POR DECISÃO EXPLÍCITA, apenas um registro de cadastro: ela NÃO
+-- muda como a nota é calculada. O motor de nota do sistema tem uma fórmula só —
+-- percentual dos pesos obtidos sobre os pesos aplicáveis, com eliminatório
+-- zerando a ficha — e ela vive em `services/avaliacao-ia.js` (lançamento) e em
+-- `repositories/contestacoes.js` (recálculo após julgamento).
+--
+-- Fazer a coluna valer de verdade significa duas fórmulas no sistema, e isso
+-- atinge o lançamento da IA, o recálculo da contestação, as médias do dashboard
+-- e — o mais delicado — as notas JÁ LANÇADAS, que passariam a ser inconsistentes
+-- com a fórmula nova. É trabalho de rodada própria, com revisão de cada ponto que
+-- calcula nota.
+--
+-- Até que isso aconteça, a tela avisa em texto que a nota segue a fórmula única.
+-- O default é 'criterio' porque é o que a conta atual FAZ: ela soma os pontos dos
+-- critérios aplicáveis. Marcar 'sessao' como default declararia uma regra que o
+-- sistema não executa.
+--
+-- COMO RODAR (cPanel > phpMyAdmin):
+--   1. selecione o banco `grpia_qualiddm` na coluna da esquerda
+--   2. aba SQL > cole este arquivo inteiro > Executar
+--   NÃO use a aba Import: ela quebra o arquivo em blocos.
+--
+-- PONTO DE PARTIDA: banco no nível da 007.
+--
+-- NÃO é idempotente (o MySQL 8 não aceita `ADD COLUMN IF NOT EXISTS`): rodar
+-- duas vezes acusa "Duplicate column name". O erro é inofensivo, mas rode uma
+-- vez só.
+--
+-- NADA AQUI APAGA DADO: só ADD COLUMN.
+--
+-- A aplicação tolera este schema AUSENTE: a tela de gerenciamento abre sem a
+-- descrição e sem o bloco de tipo de cálculo, e a edição desses dois campos
+-- responde 409 explicando que falta a 008.
+-- ---------------------------------------------------------------------------
+
+ALTER TABLE formularios
+  -- TEXT e não VARCHAR: o texto do print tem 3 linhas e nada garante que o
+  -- próximo tenha menos.
+  ADD COLUMN descricao TEXT NULL AFTER nome,
+  ADD COLUMN tipo_calculo ENUM('sessao','criterio') NOT NULL DEFAULT 'criterio'
+    AFTER categoria;

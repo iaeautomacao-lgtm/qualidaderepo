@@ -1,0 +1,162 @@
+/* ==========================================================================
+   Transcrição de uma gravação — material bruto: áudio + o que foi dito.
+
+   Os blocos de julgamento (critérios, resumo executivo, chat) vivem em
+   /avaliacoes/ia/[id]. Este módulo ficou com o cabeçalho, o player e o rodapé.
+   ========================================================================== */
+
+.pagina {
+  display: grid;
+  gap: var(--sp-5);
+}
+
+.hero {
+  display: grid;
+  gap: var(--sp-4);
+  padding: var(--sp-5);
+  border: 1px solid var(--line);
+  border-radius: var(--r-lg);
+  background: var(--surface);
+  box-shadow: var(--shadow-sm);
+}
+
+.heroTopo {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-start;
+  gap: var(--sp-4);
+}
+
+.heroIcone {
+  display: grid;
+  place-items: center;
+  flex: 0 0 auto;
+  width: 44px;
+  height: 44px;
+  border: 1px solid var(--accent-soft-strong);
+  border-radius: var(--r-md);
+  background: var(--accent-soft);
+  color: var(--accent);
+}
+
+.heroIdent {
+  min-width: 0;
+  flex: 1 1 320px;
+  display: grid;
+  gap: var(--sp-2);
+}
+
+.heroSobre {
+  color: var(--accent-strong);
+  font-size: var(--fs-100);
+  font-weight: var(--fw-semibold);
+  letter-spacing: var(--tracking-label);
+  text-transform: uppercase;
+}
+
+/* O nome do arquivo é o título aqui, e nome de arquivo é longo: tipografia de
+   h2 em vez de h1 para não quebrar em três linhas. */
+.heroIdent h1 {
+  font-size: var(--fs-600);
+  overflow-wrap: anywhere;
+}
+
+.heroLinha {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--sp-2);
+  color: var(--text-soft);
+  font-size: var(--fs-200);
+  overflow-wrap: anywhere;
+}
+
+/* O código MIA-... é o identificador que o usuário cola em conversas: pastilha
+   própria com dígitos de largura fixa e botão de copiar sempre visível. */
+.heroCodigo {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--sp-1);
+  padding: 2px var(--sp-2);
+  border: 1px solid var(--line-strong);
+  border-radius: var(--r-pill);
+  background: var(--surface-2);
+  color: var(--text);
+  font-weight: var(--fw-semibold);
+  font-variant-numeric: tabular-nums;
+}
+
+.heroCodigo :global(.copy-id) {
+  opacity: 1;
+}
+
+.heroAcoes {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--sp-2);
+}
+
+.cartaoAudio {
+  padding-block: var(--sp-4);
+}
+
+.rodape {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--sp-3);
+  padding-top: var(--sp-4);
+  border-top: 1px solid var(--line);
+}
+
+/* --- esqueleto ----------------------------------------------------------- */
+
+.esqueleto {
+  display: grid;
+  gap: var(--sp-5);
+}
+
+.esqueletoHero {
+  height: 132px;
+  border-radius: var(--r-lg);
+}
+
+.esqueletoBloco {
+  height: 120px;
+  border-radius: var(--r-lg);
+}
+
+.esqueletoBlocoAlto {
+  height: 320px;
+  border-radius: var(--r-lg);
+}
+
+@media (max-width: 640px) {
+  .hero {
+    padding: var(--sp-4);
+  }
+
+  .heroAcoes {
+    width: 100%;
+  }
+
+  .heroAcoes :global(.btn) {
+    flex: 1 1 140px;
+  }
+
+  .rodape :global(.btn) {
+    flex: 1 1 100%;
+  }
+}
+
+@media print {
+  .heroIcone,
+  .heroAcoes,
+  .rodape {
+    display: none;
+  }
+
+  .hero {
+    background: none;
+    box-shadow: none;
+  }
+}

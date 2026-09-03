@@ -1,0 +1,1095 @@
+import { one, query, transaction } from "../db";
+import { conflict, notFound } from "../errors";
+import { CLIENTES_INICIAIS } from "../catalogo-inicial";
+import { normalizarResposta } from "./avaliacoes";
+
+const OPTIONAL_SCHEMA_ERRORS = new Set(["ER_NO_SUCH_TABLE", "ER_BAD_FIELD_ERROR"]);
+
+function isOptionalSchemaError(error) {
+  return OPTIONAL_SCHEMA_ERRORS.has(error?.code);
+}
+
+export function listWallets() {
+  return query(
+    `SELECT id, name, description, active, created_at
+       FROM wallets
+      ORDER BY name`
+  );
+}
+
+export function listOperators() {
+  return query(
+    `SELECT o.id, o.name, o.external_code, o.active, w.name AS wallet_name
+       FROM operators o
+       LEFT JOIN wallets w ON w.id = o.wallet_id
+      ORDER BY o.name`
+  );
+}
+
+export function listChecklists() {
+  return query(
+    `SELECT t.id, t.name, t.version, t.active, w.name AS wallet_name,
+            COUNT(i.id) AS items_count
+       FROM checklist_templates t
+       JOIN wallets w ON w.id = t.wallet_id
+       LEFT JOIN checklist_items i ON i.template_id = t.id
+      GROUP BY t.id, t.name, t.version, t.active, w.name
+      ORDER BY w.name, t.name`
+  );
+}
+
+function slugCliente(nome) {
+  return String(nome || "cliente")
+    .normalize("NFD")
+    .replace(/\p{Diacritic}/gu, "")
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/^-|-$/g, "")
+    .slice(0, 110) || `cliente-${Date.now()}`;
+}
+
+function ativoCliente(status) {
+  return status === "Inativo" || status === "inativo" || status === false ? 0 : 1;
+}
+
+function tratarDuplicidadeCliente(error) {
+  if (error?.code === "ER_DUP_ENTRY") {
+    throw conflict("Já existe um cliente com esse nome.");
+  }
+  throw error;
+}
+
+export async function createCliente({ nome, status = "Ativo", contrato = null }) {
+  try {
+    await query(
+      `INSERT INTO clientes (slug, nome, contrato, ativo)
+       VALUES (:slug, :nome, :contrato, :ativo)`,
+      {
+        slug: slugCliente(nome),
+        nome,
+        contrato: contrato || null,
+        ativo: ativoCliente(status),
+      },
+    );
+  } catch (error) {
+    tratarDuplicidadeCliente(error);
+  }
+
+  return getClientesOverview();
+}
+
+export async function updateCliente(id, { nome, status = "Ativo", contrato = null }) {
+  const atual = await one("SELECT id FROM clientes WHERE slug = :id OR id = :id LIMIT 1", { id });
+  if (!atual) throw notFound("Cliente não encontrado.");
+
+  try {
+    await query(
+      `UPDATE clientes
+          SET slug = :slug,
+              nome = :nome,
+              contrato = :contrato,
+              ativo = :ativo
+        WHERE id = :id`,
+      {
+        id: atual.id,
+        slug: slugCliente(nome),
+        nome,
+        contrato: contrato || null,
+        ativo: ativoCliente(status),
+      },
+    );
+  } catch (error) {
+    tratarDuplicidadeCliente(error);
+  }
+
+  return getClientesOverview();
+}
+
+export async function deactivateCliente(id) {
+  const result = await query(
+    `UPDATE clientes
+        SET ativo = 0
+      WHERE slug = :id OR id = :id`,
+    { id },
+  );
+
+  if (result.affectedRows === 0) throw notFound("Cliente não encontrado.");
+  return getClientesOverview();
+}
+
+export async function getFormulariosOverview() {
+  try {
+    const [kpis] = await query(
+      `SELECT
+          COUNT(*) AS total,
+          SUM(status = 'ativo') AS ativos,
+          SUM(status = 'desenvolvimento') AS desenvolvimento
+         FROM formularios`
+    );
+
+    const [questoes] = await query(
+      `SELECT COUNT(*) AS total
+         FROM formulario_criterios`
+    );
+
+    const recentes = await query(
+      `SELECT
+          f.id,
+          f.nome,
+          f.categoria,
+          f.status,
+          f.versao,
+          f.created_at,
+          f.updated_at,
+          cl.nome AS cliente,
+          GROUP_CONCAT(DISTINCT ca.nome ORDER BY ca.nome SEPARATOR ', ') AS campanha,
+          COUNT(DISTINCT fc.campanha_id) AS campanhas,
+          COUNT(DISTINCT i.id) AS questoes
+         FROM formularios f
+         LEFT JOIN clientes cl ON cl.id = f.cliente_id
+         LEFT JOIN formulario_campanhas fc ON fc.formulario_id = f.id
+         LEFT JOIN campanhas ca ON ca.id = fc.campanha_id
+         LEFT JOIN formulario_secoes s ON s.formulario_id = f.id
+         LEFT JOIN formulario_criterios i ON i.secao_id = s.id
+        GROUP BY f.id, f.nome, f.categoria, f.status, f.versao, f.created_at, f.updated_at, cl.nome
+        ORDER BY f.updated_at DESC, f.id DESC
+        LIMIT 20`
+    );
+
+    return {
+      kpis: {
+        total: Number(kpis?.total ?? 0),
+        ativos: Number(kpis?.ativos ?? 0),
+        desenvolvimento: Number(kpis?.desenvolvimento ?? 0),
+        questoes: Number(questoes?.total ?? 0),
+      },
+      recentes: recentes.map((form) => ({
+        id: String(form.id),
+        nome: form.nome,
+        categoria: form.categoria,
+        status: form.status,
+        versao: Number(form.versao ?? 1),
+        cliente: form.cliente || null,
+        campanha: form.campanha || null,
+        campanhas: Number(form.campanhas ?? 0),
+        questoes: Number(form.questoes ?? 0),
+        criadoEm: form.created_at,
+      })),
+    };
+  } catch {
+    return {
+      kpis: { total: 0, ativos: 0, desenvolvimento: 0, questoes: 0 },
+      recentes: [],
+    };
+  }
+}
+
+function normalizarSecoesFormulario(secoes) {
+  return (Array.isArray(secoes) ? secoes : [])
+    .map((secao, secaoIndice) => ({
+      nome: String(secao?.nome || "").trim(),
+      descricao: String(secao?.descricao || "").trim() || null,
+      posicao: secaoIndice + 1,
+      criterios: (Array.isArray(secao?.criterios) ? secao.criterios : [])
+        .map((criterio, criterioIndice) => {
+          const eliminatoria = Boolean(criterio?.eliminatoria);
+          const peso = Number(criterio?.peso ?? 0);
+          return {
+            nome: String(criterio?.nome || "").trim(),
+            enunciado: String(criterio?.enunciado || "").trim(),
+            eliminatoria,
+            peso: eliminatoria ? null : Number.isFinite(peso) && peso >= 0 ? peso : 0,
+            posicao: criterioIndice + 1,
+          };
+        })
+        .filter((criterio) => criterio.nome && criterio.enunciado),
+    }))
+    .filter((secao) => secao.nome && secao.criterios.length > 0);
+}
+
+export async function createFormulario({ clienteId, nome, categoria = "padrao", status = "rascunho", secoes = [] }) {
+  const cliente = await one(
+    "SELECT id FROM clientes WHERE id = :clienteId OR slug = :clienteId LIMIT 1",
+    { clienteId }
+  );
+  if (!cliente) {
+    throw new Error("Cliente não encontrado.");
+  }
+
+  const secoesValidas = normalizarSecoesFormulario(secoes);
+  if (secoesValidas.length === 0) {
+    throw new Error("Cadastre ao menos uma secao com um criterio para gerar o formulario.");
+  }
+
+  const versao = await one(
+    `SELECT COALESCE(MAX(versao), 0) + 1 AS proxima
+       FROM formularios
+      WHERE cliente_id = :clienteId
+        AND nome = :nome`,
+    { clienteId: cliente.id, nome }
+  );
+
+  await transaction(async (connection) => {
+    const [insertFormulario] = await connection.execute(
+      `INSERT INTO formularios (cliente_id, nome, categoria, status, versao)
+       VALUES (:clienteId, :nome, :categoria, :status, :versao)`,
+      {
+        clienteId: cliente.id,
+        nome,
+        categoria,
+        status,
+        versao: Number(versao?.proxima ?? 1),
+      }
+    );
+
+    for (const secao of secoesValidas) {
+      const [insertSecao] = await connection.execute(
+        `INSERT INTO formulario_secoes (formulario_id, nome, descricao, posicao)
+         VALUES (:formularioId, :nome, :descricao, :posicao)`,
+        {
+          formularioId: insertFormulario.insertId,
+          nome: secao.nome,
+          descricao: secao.descricao,
+          posicao: secao.posicao,
+        }
+      );
+
+      for (const criterio of secao.criterios) {
+        await connection.execute(
+          `INSERT INTO formulario_criterios (secao_id, nome, enunciado, peso_pts, eliminatoria, posicao)
+           VALUES (:secaoId, :nome, :enunciado, :peso, :eliminatoria, :posicao)`,
+          {
+            secaoId: insertSecao.insertId,
+            nome: criterio.nome,
+            enunciado: criterio.enunciado,
+            peso: criterio.peso,
+            eliminatoria: criterio.eliminatoria ? 1 : 0,
+            posicao: criterio.posicao,
+          }
+        );
+      }
+    }
+  });
+
+  return getFormulariosOverview();
+}
+
+export async function getFormularioParaAvaliacaoIa({ formularioId = null } = {}) {
+  const filtroFormulario = formularioId ? "AND f.id = :formularioId" : "";
+  const formulario = await one(
+    `SELECT
+        f.id,
+        f.nome,
+        f.categoria,
+        f.cliente_id,
+        c.nome AS cliente,
+        ca.id AS campanha_id,
+        ca.nome AS campanha
+       FROM formularios f
+       JOIN clientes c ON c.id = f.cliente_id
+       LEFT JOIN formulario_campanhas fc ON fc.formulario_id = f.id
+       LEFT JOIN campanhas ca ON ca.id = fc.campanha_id
+      WHERE f.status IN ('ativo', 'desenvolvimento')
+        ${filtroFormulario}
+      ORDER BY f.status = 'ativo' DESC, f.updated_at DESC, f.id DESC
+      LIMIT 1`,
+    { formularioId }
+  );
+
+  if (!formulario) return null;
+
+  const rows = await query(
+    `SELECT
+        s.id AS secao_id,
+        s.nome AS secao_nome,
+        s.descricao AS secao_descricao,
+        s.posicao AS secao_posicao,
+        c.id AS criterio_id,
+        c.nome AS criterio_nome,
+        c.enunciado,
+        c.peso_pts,
+        c.eliminatoria,
+        c.posicao AS criterio_posicao
+       FROM formulario_secoes s
+       JOIN formulario_criterios c ON c.secao_id = s.id
+      WHERE s.formulario_id = :formularioId
+      ORDER BY s.posicao, c.posicao`,
+    { formularioId: formulario.id }
+  );
+
+  const secoes = [];
+  const porSecao = new Map();
+  for (const row of rows) {
+    if (!porSecao.has(row.secao_id)) {
+      const secao = {
+        id: row.secao_id,
+        nome: row.secao_nome,
+        descricao: row.secao_descricao,
+        criterios: [],
+      };
+      porSecao.set(row.secao_id, secao);
+      secoes.push(secao);
+    }
+
+    porSecao.get(row.secao_id).criterios.push({
+      id: row.criterio_id,
+      nome: row.criterio_nome,
+      enunciado: row.enunciado,
+      peso: row.peso_pts == null ? null : Number(row.peso_pts),
+      eliminatoria: Boolean(row.eliminatoria),
+    });
+  }
+
+  return { ...formulario, secoes };
+}
+
+export async function getFormularioParaAplicacaoManual({ formularioId }) {
+  if (!/^\d{1,20}$/.test(String(formularioId || "")) || String(formularioId) === "0") {
+    throw notFound("Formulario nao encontrado.");
+  }
+
+  const formulario = await one(
+    `SELECT
+        f.id,
+        f.nome,
+        f.categoria,
+        f.cliente_id,
+        c.nome AS cliente
+       FROM formularios f
+       JOIN clientes c ON c.id = f.cliente_id
+      WHERE f.id = :formularioId
+        AND f.status IN ('ativo', 'desenvolvimento')
+      LIMIT 1`,
+    { formularioId },
+  );
+
+  if (!formulario) throw notFound("Formulario nao encontrado ou indisponivel para avaliacao.");
+
+  const [campanhas, criterios] = await Promise.all([
+    query(
+      `SELECT ca.id, ca.nome
+         FROM formulario_campanhas fc
+         JOIN campanhas ca ON ca.id = fc.campanha_id
+        WHERE fc.formulario_id = :formularioId
+          AND ca.ativa = 1
+        ORDER BY ca.nome`,
+      { formularioId },
+    ),
+    query(
+      `SELECT
+          s.id AS secao_id,
+          s.nome AS secao_nome,
+          s.descricao AS secao_descricao,
+          s.posicao AS secao_posicao,
+          c.id AS criterio_id,
+          c.nome AS criterio_nome,
+          c.enunciado,
+          c.peso_pts,
+          c.eliminatoria,
+          c.posicao AS criterio_posicao
+         FROM formulario_secoes s
+         JOIN formulario_criterios c ON c.secao_id = s.id
+        WHERE s.formulario_id = :formularioId
+        ORDER BY s.posicao, c.posicao`,
+      { formularioId },
+    ),
+  ]);
+
+  const secoes = [];
+  const porSecao = new Map();
+  for (const row of criterios) {
+    if (!porSecao.has(row.secao_id)) {
+      const secao = {
+        id: String(row.secao_id),
+        nome: row.secao_nome,
+        descricao: row.secao_descricao,
+        criterios: [],
+      };
+      porSecao.set(row.secao_id, secao);
+      secoes.push(secao);
+    }
+
+    porSecao.get(row.secao_id).criterios.push({
+      id: String(row.criterio_id),
+      nome: row.criterio_nome,
+      enunciado: row.enunciado,
+      peso: row.peso_pts == null ? null : Number(row.peso_pts),
+      eliminatoria: Boolean(row.eliminatoria),
+    });
+  }
+
+  return {
+    id: String(formulario.id),
+    nome: formulario.nome,
+    categoria: formulario.categoria,
+    clienteId: String(formulario.cliente_id),
+    cliente: formulario.cliente,
+    campanhas: campanhas.map((campanha) => ({ id: String(campanha.id), nome: campanha.nome })),
+    secoes,
+  };
+}
+
+function codigoAvaliacao() {
+  const ano = String(new Date().getFullYear()).slice(-2);
+  const sufixo = String(Date.now()).slice(-6);
+  return `QA-${ano}-${sufixo}`;
+}
+
+// A IA responde em sim/não; "diagnostico" é decisão humana e nunca sai daqui.
+// `normalizarResposta` é a validação de escrita da coluna, que virou VARCHAR na
+// migration 004 e por isso não tem mais ENUM para barrar valor inválido.
+function respostaPorStatus(status) {
+  if (status === "conforme") return normalizarResposta("sim");
+  if (status === "nao_conforme") return normalizarResposta("nao");
+  return null;
+}
+
+/**
+ * Colunas que a migration 004 acrescenta.
+ *
+ * O INSERT é montado com as que existirem: num banco que ainda não rodou a 004
+ * a avaliação por IA tem de continuar gravando o essencial (status, peso, nota)
+ * em vez de falhar inteira. Sem esse cuidado, subir o código antes da migration
+ * derrubaria a única funcionalidade que gera ficha automática.
+ */
+async function colunasPresentes(connection, tabela, candidatas) {
+  try {
+    const [rows] = await connection.execute(`SHOW COLUMNS FROM ${tabela}`);
+    const existentes = new Set(rows.map((row) => row.Field));
+    return candidatas.filter((coluna) => existentes.has(coluna));
+  } catch {
+    return [];
+  }
+}
+
+// Texto corrido das "Observações da IA". Quando o modelo não devolve o campo
+// pronto, é montado a partir dos pontos fortes e de desenvolvimento — que é o
+// que a análise sempre produz.
+function observacoesDaIa(resultado) {
+  if (resultado.observacoesIa) return resultado.observacoesIa;
+
+  const blocos = [];
+  const fortes = (resultado.pontosFortes || []).filter(Boolean);
+  const desenvolver = (resultado.pontosDesenvolvimento || []).filter(Boolean);
+  if (fortes.length > 0) blocos.push(`Pontos fortes:\n${fortes.map((item) => `- ${item}`).join("\n")}`);
+  if (desenvolver.length > 0) {
+    blocos.push(`Pontos de desenvolvimento:\n${desenvolver.map((item) => `- ${item}`).join("\n")}`);
+  }
+  return blocos.length > 0 ? blocos.join("\n\n") : null;
+}
+
+export async function createAvaliacaoFromIa({
+  formulario,
+  resultado,
+  arquivo,
+  avaliadorId,
+  // Quem foi avaliado. OBRIGATÓRIO.
+  avaliadoId = null,
+  // Gravação de origem, para a ficha e a gravação apontarem uma para a outra.
+  gravacaoId = null,
+}) {
+  /* Antes, sem `avaliadoId`, isto escolhia "o primeiro operador da tabela".
+     A ficha ia para alguém que não fez o atendimento: a nota entrava na média
+     dessa pessoa e a monitoria caía na fila de feedback dela. Ficha na pessoa
+     errada é pior que ficha nenhuma, então agora falha em voz alta em vez de
+     adivinhar. */
+  if (!avaliadoId) {
+    throw new Error(
+      "Informe quem foi avaliado: a ficha atribui uma nota a uma pessoa e não pode ser criada sem essa informação."
+    );
+  }
+
+  const avaliado = await one("SELECT id FROM users WHERE id = :avaliadoId LIMIT 1", { avaliadoId });
+  if (!avaliado) {
+    throw new Error("Avaliado não encontrado.");
+  }
+
+  const codigo = codigoAvaliacao();
+  const criteriosPorNome = new Map(
+    formulario.secoes.flatMap((secao) => secao.criterios.map((criterio) => [criterio.nome, criterio]))
+  );
+
+  return transaction(async (connection) => {
+    // Tudo que a análise produz além do status por critério. Sem persistir isto
+    // a ficha "Detalhes da Avaliação IA" fica sem Evidência, Confiança e Notas
+    // da IA, e o chat sobre o operador não tem contexto para citar.
+    const valoresIa = {
+      ia_persona: resultado.persona || formulario.cliente || null,
+      ia_modelo: resultado.modelo || null,
+      ia_confianca: resultado.confianca ?? null,
+      ia_resumo: resultado.resumoAtendimento || null,
+      ia_observacoes: observacoesDaIa(resultado),
+      ia_analise_json: JSON.stringify({
+        persona: resultado.persona || formulario.cliente || null,
+        formulario: resultado.formulario || formulario.nome || null,
+        modelo: resultado.modelo || null,
+        resumo: resultado.resumoAtendimento || null,
+        observacoes: observacoesDaIa(resultado),
+        sentimento: resultado.sentimento || null,
+        transcricao: resultado.transcricao || null,
+        duracao: resultado.duracao || null,
+        insights: resultado.pontosFortes || [],
+        riscos: resultado.riscos || [],
+        proximosPassos: resultado.pontosDesenvolvimento || [],
+        criteriosSemAvaliacao: resultado.criteriosSemAvaliacao || [],
+        arquivo: arquivo ? { nome: arquivo.nome, mimeType: arquivo.mimeType, tamanho: arquivo.tamanho } : null,
+        geradoEm: resultado.geradoEm || new Date().toISOString(),
+      }),
+      cpf_cliente: resultado.cpfCliente || null,
+    };
+
+    const colunasIa = await colunasPresentes(connection, "avaliacoes", Object.keys(valoresIa));
+    // `gravacao_id` liga a ficha ao arquivo de origem: é como o player da ficha
+    // encontra o áudio e como a gravação sabe que já virou monitoria.
+    const colunasGravacao = gravacaoId
+      ? await colunasPresentes(connection, "avaliacoes", ["gravacao_id"])
+      : [];
+    const params = {
+      codigo,
+      codGravacao: arquivo?.nome?.slice(0, 60) || null,
+      clienteId: formulario.cliente_id,
+      campanhaId: formulario.campanha_id || null,
+      formularioId: formulario.id,
+      avaliadoId: avaliado.id,
+      avaliadorId,
+      categoria: formulario.categoria || "padrao",
+      score: resultado.resumo.score,
+      zerada: resultado.resumo.zerada ? 1 : 0,
+      audioPath: arquivo?.storagePath || arquivo?.nome || null,
+      conformes: resultado.resumo.conforme,
+      naoConformes: resultado.resumo.nao_conforme,
+      naoAplicaveis: resultado.resumo.nao_aplicavel,
+      total: resultado.resumo.total,
+    };
+    for (const coluna of colunasIa) params[coluna] = valoresIa[coluna];
+    if (colunasGravacao.includes("gravacao_id")) params.gravacao_id = gravacaoId;
+
+    const [insert] = await connection.execute(
+      `INSERT INTO avaliacoes (
+          codigo, cod_gravacao, cliente_id, campanha_id, formulario_id,
+          avaliado_id, avaliador_id, categoria, origem, score, zerada,
+          audio_path, data_contato, data_avaliacao, status_feedback,
+          total_conformes, total_nao_conformes, total_nao_aplicaveis, total_criterios
+          ${colunasIa.map((coluna) => `, ${coluna}`).join("")}
+          ${colunasGravacao.includes("gravacao_id") ? ", gravacao_id" : ""}
+       ) VALUES (
+          :codigo, :codGravacao, :clienteId, :campanhaId, :formularioId,
+          :avaliadoId, :avaliadorId, :categoria, 'ia', :score, :zerada,
+          :audioPath, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP, 'pendente',
+          :conformes, :naoConformes, :naoAplicaveis, :total
+          ${colunasIa.map((coluna) => `, :${coluna}`).join("")}
+          ${colunasGravacao.includes("gravacao_id") ? ", :gravacao_id" : ""}
+       )`,
+      params
+    );
+
+    const avaliacaoId = insert.insertId;
+    const colunasResposta = await colunasPresentes(connection, "avaliacao_respostas", [
+      "ia_evidencia",
+      "ia_confianca",
+      "ia_raciocinio",
+    ]);
+
+    for (const secao of resultado.secoes) {
+      for (const item of secao.criterios) {
+        const criterio = criteriosPorNome.get(item.nome);
+        if (!criterio) continue;
+
+        const status = item.status || "nao_aplicavel";
+        const valoresResposta = {
+          ia_evidencia: item.trecho || null,
+          ia_confianca: item.confianca ?? null,
+          ia_raciocinio: item.justificativa || null,
+        };
+        const respostaParams = {
+          avaliacaoId,
+          criterioId: criterio.id,
+          resposta: respostaPorStatus(status),
+          status,
+          pesoAplicado: status === "conforme" ? criterio.peso : 0,
+          // O raciocínio da IA também vai para `observacao_monitor`: é o campo
+          // que o relatório de Justificativas lê, e ele ficaria vazio para toda
+          // ficha de IA se a coluna deixasse de ser preenchida. Uma edição
+          // humana depois sobrescreve a observação e `ia_raciocinio` preserva o
+          // que a IA disse.
+          observacao: item.justificativa,
+        };
+        for (const coluna of colunasResposta) respostaParams[coluna] = valoresResposta[coluna];
+
+        await connection.execute(
+          `INSERT INTO avaliacao_respostas (
+              avaliacao_id, criterio_id, resposta, status, peso_aplicado, observacao_monitor
+              ${colunasResposta.map((coluna) => `, ${coluna}`).join("")}
+           ) VALUES (
+              :avaliacaoId, :criterioId, :resposta, :status, :pesoAplicado, :observacao
+              ${colunasResposta.map((coluna) => `, :${coluna}`).join("")}
+           )`,
+          respostaParams
+        );
+      }
+    }
+
+    return { codigo, avaliacaoId };
+  });
+}
+
+const STATUS_MANUAL = new Set(["conforme", "nao_conforme", "nao_aplicavel"]);
+
+async function temColunaTabela(tabela, coluna) {
+  try {
+    const rows = await query(`SHOW COLUMNS FROM ${tabela} LIKE :coluna`, { coluna });
+    return rows.length > 0;
+  } catch {
+    return false;
+  }
+}
+
+export async function listarOpcoesInicioAvaliacaoManual() {
+  const temDescricao = await temColunaTabela("formularios", "descricao");
+
+  const [clientes, campanhas, superiores, avaliados, formularios, motivos] = await Promise.all([
+    query(
+      `SELECT id, nome
+         FROM clientes
+        WHERE ativo = 1
+        ORDER BY nome`,
+    ),
+    query(
+      `SELECT id, cliente_id, nome
+         FROM campanhas
+        WHERE ativa = 1
+        ORDER BY nome`,
+    ),
+    query(
+      `SELECT DISTINCT
+          sup.id,
+          sup.name AS nome,
+          sup.email,
+          uc.campanha_id
+         FROM users sup
+         JOIN users av ON av.supervisor_id = sup.id
+         JOIN user_campanhas uc ON uc.user_id = av.id AND uc.ativo = 1
+        WHERE sup.active = 1
+          AND sup.role IN ('supervisor', 'administrador', 'monitor')
+          AND av.active = 1
+          AND av.role = 'operador'
+        ORDER BY sup.name`,
+    ),
+    query(
+      `SELECT
+          u.id,
+          u.name AS nome,
+          u.email,
+          u.login,
+          u.cliente_id,
+          u.supervisor_id,
+          uc.campanha_id
+         FROM users u
+         JOIN user_campanhas uc ON uc.user_id = u.id AND uc.ativo = 1
+        WHERE u.active = 1
+          AND u.role = 'operador'
+        ORDER BY u.name`,
+    ),
+    query(
+      `SELECT DISTINCT
+          f.id,
+          f.cliente_id,
+          fc.campanha_id,
+          f.nome,
+          ${temDescricao ? "f.descricao" : "NULL AS descricao"},
+          f.categoria
+         FROM formularios f
+         JOIN formulario_campanhas fc ON fc.formulario_id = f.id
+        WHERE f.status IN ('ativo', 'desenvolvimento')
+        ORDER BY f.nome`,
+    ),
+    query(
+      `SELECT id, nome, exige_texto
+         FROM justificativa_motivos
+        WHERE ativo = 1
+          AND escopo = 'ausencia_monitoria'
+        ORDER BY posicao, nome`,
+    ),
+  ]);
+
+  return {
+    clientes: clientes.map((row) => ({ id: String(row.id), nome: row.nome })),
+    campanhas: campanhas.map((row) => ({
+      id: String(row.id),
+      clienteId: row.cliente_id == null ? null : String(row.cliente_id),
+      nome: row.nome,
+    })),
+    superiores: superiores.map((row) => ({
+      id: String(row.id),
+      campanhaId: String(row.campanha_id),
+      nome: row.nome,
+      email: row.email || null,
+    })),
+    avaliados: avaliados.map((row) => ({
+      id: String(row.id),
+      clienteId: row.cliente_id == null ? null : String(row.cliente_id),
+      campanhaId: String(row.campanha_id),
+      superiorId: row.supervisor_id == null ? null : String(row.supervisor_id),
+      nome: row.nome,
+      email: row.email || null,
+      login: row.login || null,
+    })),
+    formularios: formularios.map((row) => ({
+      id: String(row.id),
+      clienteId: String(row.cliente_id),
+      campanhaId: String(row.campanha_id),
+      nome: row.nome,
+      descricao: row.descricao || null,
+      categoria: row.categoria,
+    })),
+    motivos: motivos.map((row) => ({
+      id: String(row.id),
+      nome: row.nome,
+      exigeTexto: Boolean(row.exige_texto),
+    })),
+  };
+}
+
+function respostaManualPorStatus(status) {
+  if (status === "conforme") return normalizarResposta("sim");
+  if (status === "nao_conforme") return normalizarResposta("nao");
+  return null;
+}
+
+function normalizarDataHoraManual(valor) {
+  const texto = String(valor || "").trim();
+  if (!texto) return null;
+  if (!/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}$/.test(texto)) return null;
+  return texto.replace("T", " ");
+}
+
+export async function createAvaliacaoManual({
+  formularioId,
+  campanhaId = null,
+  avaliadoId,
+  superiorId = null,
+  avaliadorId,
+  codGravacao = null,
+  dataContato = null,
+  respostas = [],
+}) {
+  const formulario = await getFormularioParaAplicacaoManual({ formularioId });
+  if (formulario.secoes.length === 0) {
+    throw conflict("O formulario selecionado nao possui criterios para avaliacao.");
+  }
+
+  const avaliado = await one(
+    `SELECT id, supervisor_id
+       FROM users
+      WHERE id = :avaliadoId
+        AND active = 1
+        AND role = 'operador'
+      LIMIT 1`,
+    { avaliadoId },
+  );
+  if (!avaliado) throw notFound("Operador avaliado nao encontrado.");
+
+  const campanhaValida =
+    campanhaId && formulario.campanhas.some((campanha) => campanha.id === String(campanhaId));
+  if (campanhaId && !campanhaValida) {
+    throw conflict("A campanha selecionada nao esta vinculada ao formulario.");
+  }
+
+  let superiorValido = null;
+  if (superiorId) {
+    superiorValido = await one(
+      `SELECT id
+         FROM users
+        WHERE id = :superiorId
+          AND active = 1
+          AND role IN ('supervisor', 'administrador', 'monitor')
+        LIMIT 1`,
+      { superiorId },
+    );
+    if (!superiorValido) throw notFound("Superior nao encontrado.");
+  }
+
+  const criterios = formulario.secoes.flatMap((secao) => secao.criterios);
+  const criteriosPorId = new Map(criterios.map((criterio) => [String(criterio.id), criterio]));
+  const respostasPorId = new Map(
+    (Array.isArray(respostas) ? respostas : []).map((item) => [String(item?.criterioId || ""), item]),
+  );
+
+  let totalPeso = 0;
+  let pesoObtido = 0;
+  let conformes = 0;
+  let naoConformes = 0;
+  let naoAplicaveis = 0;
+  let zerada = false;
+  const linhas = [];
+
+  for (const criterio of criterios) {
+    const item = respostasPorId.get(String(criterio.id));
+    const status = STATUS_MANUAL.has(item?.status) ? item.status : "nao_aplicavel";
+    const observacao = String(item?.observacao || "").trim().slice(0, 5000) || null;
+
+    if (status === "conforme") conformes += 1;
+    if (status === "nao_conforme") naoConformes += 1;
+    if (status === "nao_aplicavel") naoAplicaveis += 1;
+
+    let pesoAplicado = null;
+    if (criterio.eliminatoria) {
+      pesoAplicado = 0;
+      if (status === "nao_conforme") zerada = true;
+    } else if (status !== "nao_aplicavel") {
+      const peso = Number(criterio.peso ?? 0);
+      totalPeso += peso;
+      pesoAplicado = status === "conforme" ? peso : 0;
+      pesoObtido += pesoAplicado;
+    } else {
+      pesoAplicado = 0;
+    }
+
+    linhas.push({
+      criterioId: criterio.id,
+      resposta: respostaManualPorStatus(status),
+      status,
+      pesoAplicado,
+      observacao,
+    });
+  }
+
+  const score = zerada ? 0 : totalPeso > 0 ? Number(((pesoObtido / totalPeso) * 100).toFixed(2)) : null;
+  const codigo = codigoAvaliacao();
+  const dataContatoSql = normalizarDataHoraManual(dataContato);
+
+  return transaction(async (connection) => {
+    const [insert] = await connection.execute(
+      `INSERT INTO avaliacoes (
+          codigo, cod_gravacao, cliente_id, campanha_id, formulario_id,
+          avaliado_id, avaliador_id, supervisor_id, categoria, origem, score, zerada,
+          data_contato, data_avaliacao, status_feedback,
+          total_conformes, total_nao_conformes, total_nao_aplicaveis, total_criterios
+       ) VALUES (
+          :codigo, :codGravacao, :clienteId, :campanhaId, :formularioId,
+          :avaliadoId, :avaliadorId, :supervisorId, :categoria, 'humana', :score, :zerada,
+          :dataContato, CURRENT_TIMESTAMP, 'pendente',
+          :conformes, :naoConformes, :naoAplicaveis, :total
+       )`,
+      {
+        codigo,
+        codGravacao: String(codGravacao || "").trim().slice(0, 60) || null,
+        clienteId: formulario.clienteId,
+        campanhaId: campanhaValida ? campanhaId : null,
+        formularioId: formulario.id,
+        avaliadoId: avaliado.id,
+        avaliadorId,
+        supervisorId: superiorValido?.id || avaliado.supervisor_id || null,
+        categoria: formulario.categoria || "padrao",
+        score,
+        zerada: zerada ? 1 : 0,
+        dataContato: dataContatoSql,
+        conformes,
+        naoConformes,
+        naoAplicaveis,
+        total: criterios.length,
+      },
+    );
+
+    for (const linha of linhas) {
+      await connection.execute(
+        `INSERT INTO avaliacao_respostas (
+            avaliacao_id, criterio_id, resposta, status, peso_aplicado, observacao_monitor
+         ) VALUES (
+            :avaliacaoId, :criterioId, :resposta, :status, :pesoAplicado, :observacao
+         )`,
+        { avaliacaoId: insert.insertId, ...linha },
+      );
+    }
+
+    return { codigo, avaliacaoId: String(insert.insertId), score };
+  });
+}
+
+export async function registrarAusenciaMonitoria({
+  clienteId,
+  campanhaId,
+  avaliadoId,
+  motivoId,
+  texto = null,
+  criadoPorId,
+}) {
+  const [campanha, avaliado, motivo] = await Promise.all([
+    one(
+      `SELECT id, cliente_id
+         FROM campanhas
+        WHERE id = :campanhaId
+          AND ativa = 1
+        LIMIT 1`,
+      { campanhaId },
+    ),
+    one(
+      `SELECT id, cliente_id
+         FROM users
+        WHERE id = :avaliadoId
+          AND active = 1
+          AND role = 'operador'
+        LIMIT 1`,
+      { avaliadoId },
+    ),
+    one(
+      `SELECT id, exige_texto
+         FROM justificativa_motivos
+        WHERE id = :motivoId
+          AND escopo = 'ausencia_monitoria'
+          AND ativo = 1
+        LIMIT 1`,
+      { motivoId },
+    ),
+  ]);
+
+  if (!campanha || String(campanha.cliente_id) !== String(clienteId)) {
+    throw notFound("Campanha nao encontrada para a operacao selecionada.");
+  }
+  if (!avaliado || String(avaliado.cliente_id) !== String(clienteId)) {
+    throw notFound("Operador nao encontrado para a operacao selecionada.");
+  }
+  if (!motivo) throw notFound("Motivo de ausencia nao encontrado.");
+  if (motivo.exige_texto && !String(texto || "").trim()) {
+    throw conflict("Informe as observacoes para este motivo de ausencia.");
+  }
+
+  const vinculo = await one(
+    `SELECT 1
+       FROM user_campanhas
+      WHERE user_id = :avaliadoId
+        AND campanha_id = :campanhaId
+        AND ativo = 1
+      LIMIT 1`,
+    { avaliadoId, campanhaId },
+  );
+  if (!vinculo) throw conflict("O operador nao esta vinculado a campanha selecionada.");
+
+  const resultado = await query(
+    `INSERT INTO justificativas (
+        escopo, motivo_id, avaliado_id, cliente_id, campanha_id,
+        competencia, texto, criado_por_id
+     ) VALUES (
+        'ausencia_monitoria', :motivoId, :avaliadoId, :clienteId, :campanhaId,
+        DATE_FORMAT(CURRENT_DATE, '%Y-%m-01'), :texto, :criadoPorId
+     )`,
+    {
+      motivoId,
+      avaliadoId,
+      clienteId,
+      campanhaId,
+      texto: String(texto || "").trim().slice(0, 5000) || null,
+      criadoPorId,
+    },
+  );
+
+  return { id: String(resultado.insertId) };
+}
+
+export async function listJustificativas() {
+  try {
+    return await query(
+      `SELECT
+          a.codigo AS avaliacao,
+          a.data_avaliacao,
+          av.name AS avaliado,
+          av.email AS avaliado_email,
+          mo.name AS avaliador,
+          f.nome AS formulario,
+          c.nome AS criterio,
+          r.observacao_monitor AS justificativa
+         FROM avaliacao_respostas r
+         JOIN avaliacoes a ON a.id = r.avaliacao_id
+         JOIN users av ON av.id = a.avaliado_id
+         JOIN users mo ON mo.id = a.avaliador_id
+         JOIN formulario_criterios c ON c.id = r.criterio_id
+         JOIN formularios f ON f.id = a.formulario_id
+        WHERE r.observacao_monitor IS NOT NULL
+          AND r.observacao_monitor <> ''
+        ORDER BY a.data_avaliacao DESC`
+    );
+  } catch (error) {
+    if (isOptionalSchemaError(error)) return [];
+    return [];
+  }
+}
+
+export async function listMonitoriasEditadas() {
+  try {
+    return await query(
+      `SELECT
+          l.acao,
+          l.entidade,
+          l.entidade_id,
+          l.detalhe,
+          l.created_at,
+          u.name AS usuario
+         FROM audit_logs l
+         LEFT JOIN users u ON u.id = l.user_id
+        WHERE l.entidade IN ('avaliacoes', 'avaliacao_respostas', 'formularios')
+           OR l.acao LIKE '%edit%'
+           OR l.acao LIKE '%edi%'
+        ORDER BY l.created_at DESC
+        LIMIT 100`
+    );
+  } catch (error) {
+    if (isOptionalSchemaError(error)) return [];
+    return [];
+  }
+}
+
+export async function getClientesOverview() {
+  let clientes;
+  let bancoDisponivel = false;
+  try {
+    clientes = await query(
+      `SELECT
+          c.slug AS id,
+          c.nome,
+          c.contrato,
+          c.ativo,
+          COUNT(DISTINCT f.id) AS formularios,
+          COUNT(DISTINCT a.id) AS monitorias,
+          ROUND(COALESCE(AVG(a.score), 0), 1) AS score_medio
+         FROM clientes c
+         LEFT JOIN formularios f ON f.cliente_id = c.id
+         LEFT JOIN avaliacoes a ON a.cliente_id = c.id
+        WHERE c.ativo = 1
+        GROUP BY c.id, c.slug, c.nome, c.contrato, c.ativo
+        ORDER BY c.nome`
+    );
+    bancoDisponivel = true;
+  } catch {
+    clientes = [];
+  }
+
+  const fonte = bancoDisponivel
+    ? clientes
+    : CLIENTES_INICIAIS.map((cliente) => ({ ...cliente, ativo: 1, formularios: 0, monitorias: 0, score_medio: 0 }));
+
+  const rows = fonte.map((cliente) => ({
+    id: cliente.id,
+    nome: cliente.nome,
+    status: cliente.ativo ? "Ativa" : "Inativa",
+    formularios: Number(cliente.formularios ?? 0),
+    monitorias: Number(cliente.monitorias ?? 0),
+    scoreMedio: Number(cliente.score_medio ?? 0),
+    contrato: cliente.contrato || null,
+  }));
+
+  const monitorias = rows.reduce((total, cliente) => total + cliente.monitorias, 0);
+
+  return {
+    kpis: {
+      total: rows.length,
+      ativos: rows.filter((cliente) => cliente.status === "Ativa").length,
+      formularios: rows.reduce((total, cliente) => total + cliente.formularios, 0),
+      contratos: rows.filter((cliente) => cliente.contrato).length,
+      monitorias,
+      scoreMedio: monitorias > 0
+        ? Number((rows.reduce((total, cliente) => total + cliente.scoreMedio * cliente.monitorias, 0) / monitorias).toFixed(1))
+        : 0,
+    },
+    clientes: rows,
+  };
+}

@@ -1,0 +1,345 @@
+/* ==========================================================================
+   Perguntar à IA — copiloto da qualidade.
+
+   Duas fases na mesma tela:
+   - antes da primeira pergunta: campo e sugestões no alto, tela pronta para uso;
+   - conversando: as mensagens ocupam o corpo e o campo gruda no rodapé.
+
+   Largura contida (~880px): resposta de IA é texto corrido, e linha longa demais
+   cansa a leitura.
+   ========================================================================== */
+
+.pagina {
+  display: grid;
+  align-content: start;
+  gap: var(--sp-5);
+  width: 100%;
+  max-width: 880px;
+}
+
+.cabecalho {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: var(--sp-4);
+}
+
+.cabecalho h1 {
+  font-size: var(--fs-700);
+}
+
+.cabecalho p {
+  margin-top: var(--sp-1);
+  color: var(--text-soft);
+  font-size: var(--fs-300);
+}
+
+.cabecalhoAcoes {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--sp-2);
+}
+
+/* --- entrada -------------------------------------------------------------- */
+
+.entrada {
+  display: grid;
+  gap: var(--sp-4);
+}
+
+.campo {
+  display: flex;
+  align-items: center;
+  gap: var(--sp-2);
+}
+
+.campo :global(.input) {
+  flex: 1 1 auto;
+  min-height: var(--tap-min);
+  font-size: var(--fs-400);
+}
+
+.contexto {
+  display: grid;
+  gap: var(--sp-2);
+}
+
+.contextoCampos {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--sp-2);
+}
+
+.contextoCampos .field {
+  flex: 1 1 200px;
+  min-width: 0;
+}
+
+.sugestoes {
+  display: grid;
+  gap: var(--sp-2);
+  padding-top: var(--sp-4);
+  border-top: 1px solid var(--line);
+}
+
+/* --- conversa ------------------------------------------------------------- */
+
+.conversa {
+  display: grid;
+  gap: var(--sp-4);
+}
+
+.mensagem {
+  display: grid;
+  gap: var(--sp-2);
+  padding: var(--sp-4);
+  border: 1px solid var(--line);
+  border-radius: var(--r-lg);
+  background: var(--surface);
+}
+
+/* A pergunta é do usuário: superfície mais discreta e recuo à direita, para a
+   conversa ter direção sem virar bolha de aplicativo de mensagem. */
+.mensagem[data-autor="usuario"] {
+  margin-left: var(--sp-8);
+  border-color: var(--line-strong);
+  background: var(--surface-2);
+}
+
+.mensagem[data-autor="ia"] {
+  border-color: var(--accent-soft-strong);
+  box-shadow: inset 3px 0 0 var(--accent);
+}
+
+.autor {
+  display: flex;
+  align-items: center;
+  gap: var(--sp-2);
+  color: var(--text-muted);
+  font-size: var(--fs-100);
+  font-weight: var(--fw-semibold);
+  letter-spacing: var(--tracking-label);
+  text-transform: uppercase;
+}
+
+.mensagem[data-autor="ia"] .autor > svg {
+  color: var(--accent);
+}
+
+/* Recorte da resposta: qual período e qual carteira a IA leu. Sem isso, duas
+   respostas contraditórias na mesma conversa pareceriam erro do modelo quando
+   na verdade o filtro mudou no meio. */
+.recorte {
+  margin-left: auto;
+  padding: 1px var(--sp-2);
+  border-radius: var(--r-pill);
+  background: var(--surface-3);
+  color: var(--text-soft);
+  font-weight: var(--fw-medium);
+  letter-spacing: 0;
+  text-transform: none;
+}
+
+.textoMensagem {
+  color: var(--text);
+  font-size: var(--fs-300);
+  line-height: var(--lh-normal);
+  overflow-wrap: anywhere;
+}
+
+.digitando {
+  color: var(--text-muted);
+  font-size: var(--fs-200);
+}
+
+/* --- métricas da resposta ------------------------------------------------ */
+
+/* Número vem do servidor, nunca do texto do modelo: ver
+   services/copiloto-ia.js. */
+.metricas {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 150px), 1fr));
+  gap: var(--sp-2);
+  margin-top: var(--sp-1);
+}
+
+.metricas li {
+  display: grid;
+  align-content: start;
+  gap: 2px;
+  padding: var(--sp-3);
+  border-radius: var(--r-md);
+  background: var(--surface-2);
+}
+
+.metricaValor {
+  display: flex;
+  align-items: center;
+  gap: var(--sp-1);
+  font-size: var(--fs-500);
+  font-weight: var(--fw-bold);
+  line-height: var(--lh-tight);
+  font-variant-numeric: tabular-nums;
+  overflow-wrap: anywhere;
+}
+
+/* Tom pela direção de NEGÓCIO, que o servidor já resolveu: menos não
+   conformidade é verde mesmo sendo variação negativa. */
+.metricas li[data-direcao="melhora"] .metricaValor {
+  color: var(--success-text);
+}
+
+.metricas li[data-direcao="piora"] .metricaValor {
+  color: var(--danger-text);
+}
+
+.metricaRotulo {
+  color: var(--text-muted);
+  font-size: var(--fs-100);
+  font-weight: var(--fw-semibold);
+  letter-spacing: var(--tracking-label);
+  text-transform: uppercase;
+}
+
+.metricaDetalhe {
+  color: var(--text-soft);
+  font-size: var(--fs-100);
+}
+
+/* --- avaliações relacionadas -------------------------------------------- */
+
+.relacionadas {
+  display: grid;
+  gap: var(--sp-2);
+  padding-top: var(--sp-3);
+  border-top: 1px solid var(--line);
+}
+
+.relacionadas ul {
+  display: grid;
+  gap: var(--sp-2);
+}
+
+.relacionadas li {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--sp-3);
+  padding: var(--sp-2) var(--sp-3);
+  border-radius: var(--r-sm);
+  background: var(--surface-2);
+}
+
+.relacionadaId {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--sp-2);
+  font-size: var(--fs-200);
+  font-weight: var(--fw-semibold);
+  font-variant-numeric: tabular-nums;
+}
+
+.relacionadaId > svg {
+  color: var(--danger-text);
+}
+
+.relacionadaMeta {
+  flex: 1 1 auto;
+  color: var(--text-soft);
+  font-size: var(--fs-200);
+}
+
+.grafico {
+  padding: var(--sp-3);
+  border: 1px solid var(--line);
+  border-radius: var(--r-md);
+  background: var(--surface-2);
+}
+
+.acoes {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--sp-2);
+  padding-top: var(--sp-2);
+}
+
+/* --- histórico ---------------------------------------------------------- */
+
+.historico {
+  display: grid;
+  gap: var(--sp-2);
+}
+
+.linhaHistorico {
+  padding: 0;
+}
+
+.linhaHistorico button {
+  display: grid;
+  gap: 2px;
+  width: 100%;
+  min-height: var(--tap-min);
+  padding: var(--sp-3);
+  border: 0;
+  border-radius: var(--r-sm);
+  background: none;
+  text-align: left;
+  cursor: pointer;
+}
+
+.linhaHistorico button:hover {
+  background: var(--accent-soft);
+}
+
+/* --- campo grudado no rodapé -------------------------------------------- */
+
+/* Depois que a conversa começa, o campo desce e acompanha a rolagem. `bottom: 0`
+   com fundo próprio: sem o fundo, as mensagens passariam por baixo do campo e o
+   texto ficaria ilegível. */
+.rodapeEntrada {
+  position: sticky;
+  bottom: 0;
+  z-index: 1;
+  display: grid;
+  gap: var(--sp-3);
+  margin-top: var(--sp-2);
+  padding: var(--sp-4);
+  border: 1px solid var(--line);
+  border-radius: var(--r-lg);
+  background: color-mix(in srgb, var(--surface) 94%, transparent);
+  backdrop-filter: blur(8px);
+  box-shadow: var(--shadow-md);
+}
+
+@media (max-width: 640px) {
+  .cabecalho {
+    align-items: stretch;
+  }
+
+  .cabecalhoAcoes :global(.btn) {
+    flex: 1 1 auto;
+  }
+
+  .mensagem[data-autor="usuario"] {
+    margin-left: var(--sp-4);
+  }
+
+  .relacionadas li {
+    align-items: flex-start;
+  }
+}
+
+@media print {
+  .cabecalhoAcoes,
+  .rodapeEntrada,
+  .acoes,
+  .historico {
+    display: none;
+  }
+
+  .mensagem {
+    break-inside: avoid;
+    box-shadow: none;
+  }
+}
