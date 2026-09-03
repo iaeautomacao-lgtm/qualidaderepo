@@ -57,10 +57,14 @@ function MonitoriaManualContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const formularioId = searchParams.get("formularioId") || "";
+  const campanhaInicialId = searchParams.get("campanhaId") || "";
+  const avaliadoInicialId = searchParams.get("avaliadoId") || "";
+  const superiorInicialId = searchParams.get("superiorId") || "";
   const [formulario, setFormulario] = useState(null);
   const [opcoes, setOpcoes] = useState({ avaliados: [] });
-  const [campanhaId, setCampanhaId] = useState("");
-  const [avaliadoId, setAvaliadoId] = useState("");
+  const [campanhaId, setCampanhaId] = useState(campanhaInicialId);
+  const [avaliadoId, setAvaliadoId] = useState(avaliadoInicialId);
+  const [superiorId] = useState(superiorInicialId);
   const [codGravacao, setCodGravacao] = useState("");
   const [dataContato, setDataContato] = useState("");
   const [respostas, setRespostas] = useState({});
@@ -80,7 +84,7 @@ function MonitoriaManualContent() {
         if (!ativo) return;
         setFormulario(dadosFormulario.formulario);
         setOpcoes({ avaliados: dadosOpcoes.avaliados ?? [] });
-        setCampanhaId(dadosFormulario.formulario.campanhas?.[0]?.id ?? "");
+        setCampanhaId(campanhaInicialId || dadosFormulario.formulario.campanhas?.[0]?.id || "");
         setRespostas(respostasIniciais(dadosFormulario.formulario));
         setErro("");
       } catch (error) {
@@ -92,7 +96,7 @@ function MonitoriaManualContent() {
     return () => {
       ativo = false;
     };
-  }, [formularioId]);
+  }, [campanhaInicialId, formularioId]);
 
   const resumo = useMemo(() => calcularResumo(formulario, respostas), [formulario, respostas]);
 
@@ -114,6 +118,7 @@ function MonitoriaManualContent() {
         formularioId,
         campanhaId,
         avaliadoId,
+        superiorId,
         codGravacao,
         dataContato,
         respostas: Object.entries(respostas).map(([criterioId, resposta]) => ({

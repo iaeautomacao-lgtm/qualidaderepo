@@ -635,6 +635,121 @@ export async function createAvaliacaoFromIa({
 
 const STATUS_MANUAL = new Set(["conforme", "nao_conforme", "nao_aplicavel"]);
 
+async function temColunaTabela(tabela, coluna) {
+  try {
+    const rows = await query(`SHOW COLUMNS FROM ${tabela} LIKE :coluna`, { coluna });
+    return rows.length > 0;
+  } catch {
+    return false;
+  }
+}
+
+export async function listarOpcoesInicioAvaliacaoManual() {
+  const temDescricao = await temColunaTabela("formularios", "descricao");
+
+  const [clientes, campanhas, superiores, avaliados, formularios, motivos] = await Promise.all([
+    query(
+      `SELECT id, nome
+         FROM clientes
+        WHERE ativo = 1
+        ORDER BY nome`,
+    ),
+    query(
+      `SELECT id, cliente_id, nome
+         FROM campanhas
+        WHERE ativa = 1
+        ORDER BY nome`,
+    ),
+    query(
+      `SELECT DISTINCT
+          sup.id,
+          sup.name AS nome,
+          sup.email,
+          uc.campanha_id
+         FROM users sup
+         JOIN users av ON av.supervisor_id = sup.id
+         JOIN user_campanhas uc ON uc.user_id = av.id AND uc.ativo = 1
+        WHERE sup.active = 1
+          AND sup.role IN ('supervisor', 'administrador', 'monitor')
+          AND av.active = 1
+          AND av.role = 'operador'
+        ORDER BY sup.name`,
+    ),
+    query(
+      `SELECT
+          u.id,
+          u.name AS nome,
+          u.email,
+          u.login,
+          u.cliente_id,
+          u.supervisor_id,
+          uc.campanha_id
+         FROM users u
+         JOIN user_campanhas uc ON uc.user_id = u.id AND uc.ativo = 1
+        WHERE u.active = 1
+          AND u.role = 'operador'
+        ORDER BY u.name`,
+    ),
+    query(
+      `SELECT DISTINCT
+          f.id,
+          f.cliente_id,
+          fc.campanha_id,
+          f.nome,
+          ${temDescricao ? "f.descricao" : "NULL AS descricao"},
+          f.categoria
+         FROM formularios f
+         JOIN formulario_campanhas fc ON fc.formulario_id = f.id
+        WHERE f.status IN ('ativo', 'desenvolvimento')
+        ORDER BY f.nome`,
+    ),
+    query(
+      `SELECT id, nome, exige_texto
+         FROM justificativa_motivos
+        WHERE ativo = 1
+          AND escopo = 'ausencia_monitoria'
+        ORDER BY posicao, nome`,
+    ),
+  ]);
+
+  return {
+    clientes: clientes.map((row) => ({ id: String(row.id), nome: row.nome })),
+    campanhas: campanhas.map((row) => ({
+      id: String(row.id),
+      clienteId: row.cliente_id == null ? null : String(row.cliente_id),
+      nome: row.nome,
+    })),
+    superiores: superiores.map((row) => ({
+      id: String(row.id),
+      campanhaId: String(row.campanha_id),
+      nome: row.nome,
+      email: row.email || null,
+    })),
+    avaliados: avaliados.map((row) => ({
+      id: String(row.id),
+      clienteId: row.cliente_id == null ? null : String(row.cliente_id),
+      campanhaId: String(row.campanha_id),
+      superiorId: row.supervisor_id == null ? null : String(row.supervisor_id),
+      nome: row.nome,
+      email: row.email || null,
+      login: row.login || null,
+    })),
+    formularios: formularios.map((row) => ({
+      id: String(row.id),
+      clienteId: String(row.cliente_id),
+      campanhaId: String(row.campanha_id),
+      nome: row.nome,
+      descricao: row.descricao || null,
+      categoria: row.categoria,
+    })),
+    motivos: motivos.map((row) => ({
+      id: String(row.id),
+      nome: row.nome,
+      exigeTexto: Boolean(row.exige_texto),
+    })),
+  };
+}
+
 function respostaManualPorStatus(status) {
   if (status === "conforme") return normalizarResposta("sim");
   if (status === "nao_conforme") return normalizarResposta("nao");
@@ -652,6 +767,7 @@ export async function createAvaliacaoManual({
   formularioId,
   campanhaId = null,
   avaliadoId,
+  superiorId = null,
   avaliadorId,
   codGravacao = null,
   dataContato = null,
@@ -677,6 +793,20 @@ export async function createAvaliacaoManual({
     campanhaId && formulario.campanhas.some((campanha) => campanha.id === String(campanhaId));
   if (campanhaId && !campanhaValida) {
     throw conflict("A campanha selecionada nao esta vinculada ao formulario.");
+  }
+
+  let superiorValido = null;
+  if (superiorId) {
+    superiorValido = await one(
+      `SELECT id
+         FROM users
+        WHERE id = :superiorId
+          AND active = 1
+          AND role IN ('supervisor', 'administrador', 'monitor')
+        LIMIT 1`,
+      { superiorId },
+    );
+    if (!superiorValido) throw notFound("Superior nao encontrado.");
   }
 
   const criterios = formulario.secoes.flatMap((secao) => secao.criterios);
@@ -749,7 +879,7 @@ export async function createAvaliacaoManual({
         formularioId: formulario.id,
         avaliadoId: avaliado.id,
         avaliadorId,
-        supervisorId: avaliado.supervisor_id || null,
+        supervisorId: superiorValido?.id || avaliado.supervisor_id || null,
         categoria: formulario.categoria || "padrao",
         score,
         zerada: zerada ? 1 : 0,
@@ -774,6 +904,86 @@ export async function createAvaliacaoManual({
 
     return { codigo, avaliacaoId: String(insert.insertId), score };
   });
+}
+
+export async function registrarAusenciaMonitoria({
+  clienteId,
+  campanhaId,
+  avaliadoId,
+  motivoId,
+  texto = null,
+  criadoPorId,
+}) {
+  const [campanha, avaliado, motivo] = await Promise.all([
+    one(
+      `SELECT id, cliente_id
+         FROM campanhas
+        WHERE id = :campanhaId
+          AND ativa = 1
+        LIMIT 1`,
+      { campanhaId },
+    ),
+    one(
+      `SELECT id, cliente_id
+         FROM users
+        WHERE id = :avaliadoId
+          AND active = 1
+          AND role = 'operador'
+        LIMIT 1`,
+      { avaliadoId },
+    ),
+    one(
+      `SELECT id, exige_texto
+         FROM justificativa_motivos
+        WHERE id = :motivoId
+          AND escopo = 'ausencia_monitoria'
+          AND ativo = 1
+        LIMIT 1`,
+      { motivoId },
+    ),
+  ]);
+
+  if (!campanha || String(campanha.cliente_id) !== String(clienteId)) {
+    throw notFound("Campanha nao encontrada para a operacao selecionada.");
+  }
+  if (!avaliado || String(avaliado.cliente_id) !== String(clienteId)) {
+    throw notFound("Operador nao encontrado para a operacao selecionada.");
+  }
+  if (!motivo) throw notFound("Motivo de ausencia nao encontrado.");
+  if (motivo.exige_texto && !String(texto || "").trim()) {
+    throw conflict("Informe as observacoes para este motivo de ausencia.");
+  }
+
+  const vinculo = await one(
+    `SELECT 1
+       FROM user_campanhas
+      WHERE user_id = :avaliadoId
+        AND campanha_id = :campanhaId
+        AND ativo = 1
+      LIMIT 1`,
+    { avaliadoId, campanhaId },
+  );
+  if (!vinculo) throw conflict("O operador nao esta vinculado a campanha selecionada.");
+
+  const resultado = await query(
+    `INSERT INTO justificativas (
+        escopo, motivo_id, avaliado_id, cliente_id, campanha_id,
+        competencia, texto, criado_por_id
+     ) VALUES (
+        'ausencia_monitoria', :motivoId, :avaliadoId, :clienteId, :campanhaId,
+        DATE_FORMAT(CURRENT_DATE, '%Y-%m-01'), :texto, :criadoPorId
+     )`,
+    {
+      motivoId,
+      avaliadoId,
+      clienteId,
+      campanhaId,
+      texto: String(texto || "").trim().slice(0, 5000) || null,
+      criadoPorId,
+    },
+  );
+
+  return { id: String(resultado.insertId) };
 }
 
 export async function listJustificativas() {

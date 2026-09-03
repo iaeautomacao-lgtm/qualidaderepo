@@ -32,6 +32,7 @@ export async function POST(request) {
       formularioId: idObrigatorio(corpo, "formularioId"),
       campanhaId: idOpcional(corpo, "campanhaId"),
       avaliadoId: idObrigatorio(corpo, "avaliadoId"),
+      superiorId: idOpcional(corpo, "superiorId"),
       avaliadorId: session.user.id,
       codGravacao: readString(corpo, "codGravacao", { required: false, max: 60 }),
       dataContato: readString(corpo, "dataContato", { required: false, max: 16 }),

@@ -235,6 +235,62 @@
   grid-column: 1 / -1;
 }
 
+.hierarquiaPanel {
+  display: grid;
+  gap: var(--sp-5);
+  width: min(100%, 520px);
+  margin: min(18vh, 132px) auto 0;
+}
+
+.hierarquiaCampos {
+  display: grid;
+  gap: var(--sp-4);
+}
+
+.hierarquiaPanel :global(.btn-row) {
+  display: grid;
+  grid-template-columns: minmax(0, 0.7fr) minmax(0, 1fr) minmax(0, 1.1fr);
+}
+
+.hierarquiaPanel :global(.alert) {
+  margin: 0;
+}
+
+.modalFundo {
+  position: fixed;
+  inset: 0;
+  z-index: var(--z-overlay);
+  display: grid;
+  place-items: center;
+  padding: var(--sp-5);
+  background: rgb(15 23 42 / 42%);
+}
+
+.modalAusencia {
+  display: grid;
+  gap: var(--sp-4);
+  width: min(100%, 560px);
+  max-height: calc(100vh - 48px);
+  overflow: auto;
+}
+
+.modalTopo {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: var(--sp-4);
+}
+
+.modalTopo h2 {
+  margin: 0;
+  font-size: var(--fs-500);
+}
+
+.modalTopo p {
+  margin: var(--sp-1) 0 0;
+  color: var(--text-soft);
+}
+
 .builder {
   display: grid;
   grid-column: 1 / -1;
@@ -390,6 +446,7 @@
   .kpiGrid,
   .formRow,
   .formPanel,
+  .hierarquiaPanel :global(.btn-row),
   .secaoTopo,
   .criterioGrid,
   .criterioAplicacao {
