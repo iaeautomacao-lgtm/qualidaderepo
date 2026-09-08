@@ -85,14 +85,12 @@ function destinoDoResultado(gravacoes, busca) {
 export default function UploadPage() {
   const inputRef = useRef(null);
   const inputId = useId();
+  const envioAutomaticoRef = useRef("");
   const [files, setFiles] = useState([]);
-  const [opcoes, setOpcoes] = useState({ clientes: [], campanhas: [], avaliados: [] });
+  const [opcoes, setOpcoes] = useState({ clientes: [], campanhas: [] });
   const [clienteId, setClienteId] = useState("");
   const [campanhaId, setCampanhaId] = useState("");
-  const [formularios, setFormularios] = useState([]);
-  const [formularioId, setFormularioId] = useState("");
   const [canal, setCanal] = useState("");
-  const [avaliadoId, setAvaliadoId] = useState("");
   const [dragging, setDragging] = useState(false);
   // idle | sending | done | error
   const [status, setStatus] = useState("idle");
@@ -106,31 +104,15 @@ export default function UploadPage() {
 
     async function carregarDados() {
       try {
-        const [respostaFormularios, respostaOpcoes] = await Promise.all([
-          fetch("/api/formularios", { cache: "no-store" }),
-          fetch("/api/relatorios/opcoes", { cache: "no-store" }),
-        ]);
-
-        const payloadFormularios = await respostaFormularios.json().catch(() => null);
+        const respostaOpcoes = await fetch("/api/relatorios/opcoes", { cache: "no-store" });
         const payloadOpcoes = await respostaOpcoes.json().catch(() => null);
 
-        if (!respostaFormularios.ok || !payloadFormularios?.ok) {
-          throw new Error(payloadFormularios?.error?.message || "Nao foi possivel carregar formularios.");
-        }
-
         if (!ativo) return;
-        const lista = (payloadFormularios.data?.recentes || []).filter(
-          (formulario) =>
-            ["ativo", "desenvolvimento"].includes(formulario.status) &&
-            Number(formulario.questoes ?? 0) > 0,
-        );
-        setFormularios(lista);
 
         if (respostaOpcoes.ok && payloadOpcoes?.ok) {
           const opcoesApi = {
             clientes: payloadOpcoes.data?.clientes || [],
             campanhas: payloadOpcoes.data?.campanhas || [],
-            avaliados: payloadOpcoes.data?.avaliados || [],
           };
           setOpcoes(opcoesApi);
 
@@ -149,15 +131,12 @@ export default function UploadPage() {
 
           if (clienteEncontrado) setClienteId(clienteEncontrado.id);
           if (campanhaEncontrada) setCampanhaId(campanhaEncontrada.id);
-        }
-
-        const preSelecionado = new URLSearchParams(window.location.search).get("formularioId");
-        if (preSelecionado && lista.some((formulario) => formulario.id === preSelecionado)) {
-          setFormularioId(preSelecionado);
+        } else {
+          throw new Error(payloadOpcoes?.error?.message || "Nao foi possivel carregar as opcoes de upload.");
         }
       } catch (cause) {
         if (ativo) {
-          setFormError(cause instanceof Error ? cause.message : "Nao foi possivel carregar formularios.");
+          setFormError(cause instanceof Error ? cause.message : "Nao foi possivel carregar as opcoes de upload.");
         }
       }
     }
@@ -215,16 +194,6 @@ export default function UploadPage() {
     [clienteId, opcoes.campanhas],
   );
 
-  const formulariosDisponiveis = useMemo(() => {
-    const clienteSelecionado = opcoes.clientes.find((cliente) => cliente.id === clienteId);
-    const campanhaSelecionada = opcoes.campanhas.find((campanha) => campanha.id === campanhaId);
-    return formularios.filter((formulario) => {
-      if (clienteSelecionado && formulario.cliente && formulario.cliente !== clienteSelecionado.nome) return false;
-      if (campanhaSelecionada && formulario.campanha && !formulario.campanha.includes(campanhaSelecionada.nome)) return false;
-      return true;
-    });
-  }, [campanhaId, clienteId, formularios, opcoes.campanhas, opcoes.clientes]);
-
   const clienteSelecionado = useMemo(
     () => opcoes.clientes.find((cliente) => cliente.id === clienteId) || null,
     [clienteId, opcoes.clientes],
@@ -235,8 +204,7 @@ export default function UploadPage() {
     [campanhaId, opcoes.campanhas],
   );
 
-  async function onSubmit(event) {
-    event.preventDefault();
+  async function enviarArquivos() {
     if (files.length === 0) {
       setError("Selecione ao menos um arquivo antes de enviar.");
       setProgress(0);
@@ -256,42 +224,25 @@ export default function UploadPage() {
     setError("");
 
     try {
-      // Um arquivo por vez: a avaliação é de UM atendimento contra a ficha.
-      // Mandar vários de uma vez misturaria chamadas diferentes numa nota só.
       const body = new FormData();
-      if (formularioId) {
-        body.append("arquivo", files[0]);
-        body.append("formularioId", formularioId);
-        body.append("avaliadoId", avaliadoId);
-        body.append("clienteId", clienteId);
-        if (clienteSelecionado?.nome) body.append("clienteNome", clienteSelecionado.nome);
-        if (campanhaId) body.append("campanhaId", campanhaId);
-        if (campanhaSelecionada?.nome) body.append("campanhaNome", campanhaSelecionada.nome);
+      files.forEach((file) => body.append("files", file));
+      body.append("clienteId", clienteId);
+      if (clienteSelecionado?.nome) body.append("clienteNome", clienteSelecionado.nome);
+      if (campanhaId) body.append("campanhaId", campanhaId);
+      if (campanhaSelecionada?.nome) body.append("campanhaNome", campanhaSelecionada.nome);
+      body.append("transcrever", "true");
+      if (canal) body.append("canal", canal);
 
-        const resposta = await fetch("/api/avaliar", { method: "POST", body });
-        const avaliado = await readApiResponse(resposta);
-        setResult({ tipo: "avaliacao", ...avaliado });
-      } else {
-        files.forEach((file) => body.append("files", file));
-        body.append("clienteId", clienteId);
-        if (clienteSelecionado?.nome) body.append("clienteNome", clienteSelecionado.nome);
-        if (campanhaId) body.append("campanhaId", campanhaId);
-        if (campanhaSelecionada?.nome) body.append("campanhaNome", campanhaSelecionada.nome);
-        body.append("transcrever", "true");
-        if (canal) body.append("canal", canal);
-        if (avaliadoId) body.append("avaliadoId", avaliadoId);
-
-        const resposta = await fetch("/api/transcricoes", { method: "POST", body });
-        const gravacoes = await readApiResponse(resposta);
-        const primeiraComErro = gravacoes?.gravacoes?.find((gravacao) => gravacao.status === "erro");
-        setResult({
-          tipo: "gravacoes",
-          busca: files[0]?.name || "",
-          destino: destinoDoResultado(gravacoes?.gravacoes, files[0]?.name),
-          erroAnalise: primeiraComErro?.erro || null,
-          ...gravacoes,
-        });
-      }
+      const resposta = await fetch("/api/transcricoes", { method: "POST", body });
+      const gravacoes = await readApiResponse(resposta);
+      const primeiraComErro = gravacoes?.gravacoes?.find((gravacao) => gravacao.status === "erro");
+      setResult({
+        tipo: "gravacoes",
+        busca: files[0]?.name || "",
+        destino: destinoDoResultado(gravacoes?.gravacoes, files[0]?.name),
+        erroAnalise: primeiraComErro?.erro || null,
+        ...gravacoes,
+      });
       setProgress(100);
       setStatus("done");
     } catch (cause) {
@@ -314,16 +265,31 @@ export default function UploadPage() {
      é bem mais pesado que MP3 no mesmo tempo de áudio. */
   const grandesDemais = files.filter((file) => !cabeNaAnaliseIa(file.size));
 
-  /* Com ficha, o envio cria MONITORIA — e monitoria atribui nota a uma pessoa.
-     Sem o avaliado a ficha ia para o primeiro operador da tabela e contaminava a
-     média dele, então aqui o campo é obrigatório. Sem ficha é análise livre, que
-     não é atribuída: informar ajuda (a conversão em ficha depois não precisa
-     perguntar), mas não é exigido. */
-  const exigeAvaliado = Boolean(formularioId) && !avaliadoId;
+  /* O upload agora dispara a analise livre do Acordito automaticamente quando
+     existe carteira selecionada e arquivo valido. */
+  const autoKey =
+    status === "idle" && files.length > 0 && clienteId && grandesDemais.length === 0
+      ? [
+          clienteId,
+          campanhaId || "todas",
+          canal || "auto",
+          ...files.map((file) => `${file.name}:${file.size}:${file.lastModified}`),
+        ].join("|")
+      : "";
 
-  /* Envio COM formulário já volta com o href da ficha (/avaliacoes/[codigo]);
-     sem formulário, o destino é calculado a partir das gravações. Os dois casos
-     terminam na avaliação — nunca na transcrição, que é só o texto. */
+  useEffect(() => {
+    if (!autoKey || envioAutomaticoRef.current === autoKey) return undefined;
+    envioAutomaticoRef.current = autoKey;
+    const timer = setTimeout(() => {
+      enviarArquivos();
+    }, 250);
+    return () => clearTimeout(timer);
+    // autoKey concentra os campos que disparam novo envio automatico.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [autoKey]);
+
+  /* O destino termina na avaliacao IA quando a analise conclui; em caso de erro,
+     a transcricao continua sendo o lugar para revisar e reprocessar. */
   const destino =
     result?.tipo === "avaliacao"
       ? result.avaliacao?.href
@@ -356,14 +322,15 @@ export default function UploadPage() {
             aria-disabled={sending || !resultadoDisponivel}
           >
             <Icon name="review" size={17} />
-            {destino?.rotulo ?? "Abrir resultado"}
+            {destino?.rotulo ?? "Abrir a avaliacao"}
           </Link>
         </div>
       </section>
 
       <section className="upload-board">
-        <form className="card pad upload-primary" onSubmit={onSubmit}>
+        <section className="card pad upload-primary" aria-labelledby="upload-form-title">
           <div style={{ display: "grid", gap: "var(--sp-4)" }}>
+            <h2 className={styles.tituloBloco} id="upload-form-title">Enviar para o Acordito</h2>
             <div className="field">
               <label htmlFor="cliente-upload">Carteira / Acordito</label>
               <select
@@ -373,7 +340,6 @@ export default function UploadPage() {
                 onChange={(evento) => {
                   setClienteId(evento.target.value);
                   setCampanhaId("");
-                  setFormularioId("");
                   setStatus("idle");
                   setError("");
                   setResult(null);
@@ -396,7 +362,6 @@ export default function UploadPage() {
                 value={campanhaId}
                 onChange={(evento) => {
                   setCampanhaId(evento.target.value);
-                  setFormularioId("");
                   setStatus("idle");
                   setError("");
                   setResult(null);
@@ -449,72 +414,6 @@ export default function UploadPage() {
               </span>
             </fieldset>
 
-            {/* Quem foi avaliado.
-                Obrigatório quando há ficha, porque ficha atribui nota a uma
-                pessoa. Sem ficha é análise livre, que não é atribuída — mas
-                informar aqui evita a pergunta depois, na hora de converter a
-                análise em monitoria. */}
-            <div className="field">
-              <label htmlFor="avaliado-upload">
-                Quem foi avaliado
-                {formularioId ? <span aria-hidden="true"> *</span> : " (opcional)"}
-              </label>
-              <select
-                className="select"
-                id="avaliado-upload"
-                value={avaliadoId}
-                aria-describedby="dica-avaliado"
-                onChange={(evento) => {
-                  setAvaliadoId(evento.target.value);
-                  setStatus("idle");
-                  setError("");
-                  setResult(null);
-                }}
-              >
-                <option value="">Não informado</option>
-                {(opcoes.avaliados ?? []).map((pessoa) => (
-                  <option key={pessoa.id} value={pessoa.id}>
-                    {pessoa.nome}
-                  </option>
-                ))}
-              </select>
-              <span className="field-hint" id="dica-avaliado">
-                {formularioId
-                  ? "Com ficha, o envio cria monitoria — e a nota entra na média de quem for escolhido aqui."
-                  : "A análise livre não é atribuída a ninguém. Informar agora poupa a pergunta se você converter esta análise em monitoria depois."}
-              </span>
-            </div>
-
-            {/* A ficha só aparece quando existe alguma cadastrada para o recorte
-                escolhido. Antes o campo ficava sempre visível com uma única opção
-                ("sem ficha"), que não é escolha nenhuma. */}
-            {formulariosDisponiveis.length > 0 ? (
-              <div className="field">
-                <label htmlFor="formulario-upload">Avaliar por ficha (opcional)</label>
-                <select
-                  className="select"
-                  id="formulario-upload"
-                  value={formularioId}
-                  onChange={(evento) => {
-                    setFormularioId(evento.target.value);
-                    setStatus("idle");
-                    setError("");
-                    setResult(null);
-                  }}
-                >
-                  <option value="">Sem ficha - gerar análise livre com Acordito</option>
-                  {formulariosDisponiveis.map((formulario) => (
-                    <option key={formulario.id} value={formulario.id}>
-                      {[formulario.nome, formulario.cliente, formulario.campanha].filter(Boolean).join(" - ")}
-                    </option>
-                  ))}
-                </select>
-                <span className="field-hint">
-                  Com ficha, o Acordito usa os critérios cadastrados. Sem ficha, gera análise livre com
-                  transcrição, nota, evidências e insights.
-                </span>
-              </div>
-            ) : null}
           </div>
 
           {formError ? (
@@ -543,7 +442,7 @@ export default function UploadPage() {
               <h2>{dragging ? "Solte para adicionar" : "Arraste arquivos aqui"}</h2>
               <p>
                 Áudios MP3, MPEG, WAV, M4A, OGG ou FLAC e documentos PDF. Envie para análise e acompanhe o
-                processamento nesta fila.
+                processamento nesta fila. A analise com Acordito inicia automaticamente.
               </p>
 
               <input
@@ -563,20 +462,6 @@ export default function UploadPage() {
                   <Icon name="plus" size={17} />
                   Selecionar arquivos
                 </label>
-                <button
-                  className="btn"
-                  type="submit"
-                  disabled={
-                    sending ||
-                    files.length === 0 ||
-                    !clienteId ||
-                    grandesDemais.length > 0 ||
-                    exigeAvaliado
-                  }
-                >
-                  <Icon name={sending ? "spinner" : "sparkles"} size={17} className={sending ? "spinning" : undefined} />
-                  {sending ? "Enviando..." : formularioId ? "Enviar ao Acordito" : "Analisar com Acordito"}
-                </button>
               </div>
             </div>
           </div>
@@ -680,7 +565,7 @@ export default function UploadPage() {
               </ul>
             )}
           </div>
-        </form>
+        </section>
 
         <section className="card pad" aria-labelledby="fila">
           <div className="section-head">

@@ -12,6 +12,11 @@
   gap: var(--sp-3);
 }
 
+.tituloBloco {
+  margin: 0;
+  font-size: var(--fs-500);
+}
+
 .canal {
   display: flex;
   align-items: flex-start;
