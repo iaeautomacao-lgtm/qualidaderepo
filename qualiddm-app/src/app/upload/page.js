@@ -11,6 +11,7 @@ import styles from "./page.module.css";
 // para `.mpeg` e `.mp4` de audio -- sem eles o seletor de arquivos do sistema
 // esconde gravacao de ligacao legitima.
 const ACCEPT = ".mp3,.mpeg,.mpg,.mpga,.wav,.m4a,.mp4,.aac,.ogg,.opus,.webm,.flac,.pdf,.txt,.csv,.xls,.xlsx,audio/*,video/mpeg,video/mp4,application/pdf,text/plain,text/csv,application/vnd.ms-excel,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet";
+const MAX_ARQUIVOS_POR_LOTE = 20;
 
 async function readApiResponse(response) {
   const payload = await response.json();
@@ -463,6 +464,10 @@ export default function UploadPage() {
                   Selecionar arquivos
                 </label>
               </div>
+              <p className="subtle-text">
+                Limite: ate {MAX_ARQUIVOS_POR_LOTE} arquivos por lote, com ate 50 MB por arquivo.
+                Para melhor desempenho no cPanel, recomendamos enviar de 5 a 10 gravacoes por vez.
+              </p>
             </div>
           </div>
 
