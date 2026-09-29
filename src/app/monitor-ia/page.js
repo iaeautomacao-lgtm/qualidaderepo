@@ -6,6 +6,7 @@ import Link from "next/link";
 import AppShell from "@/components/AppShell";
 import KpiCard from "@/components/KpiCard";
 import { Icon } from "@/components/icons";
+import { enviarApi } from "@/lib/api";
 import styles from "./page.module.css";
 
 function normalizar(texto) {
@@ -51,6 +52,10 @@ export default function MonitorIaPage() {
   const [erro, setErro] = useState("");
   const [busca, setBusca] = useState("");
   const [carregando, setCarregando] = useState(true);
+  const [editando, setEditando] = useState(null);
+  const [config, setConfig] = useState({ nome: "", formularioId: "", prompt: "" });
+  const [salvando, setSalvando] = useState(false);
+  const [erroSalvar, setErroSalvar] = useState("");
 
   useEffect(() => {
     let ativo = true;
@@ -83,6 +88,38 @@ export default function MonitorIaPage() {
     };
   }, []);
 
+
+  function abrirConfiguracao(monitor) {
+    setEditando(monitor);
+    setConfig({
+      nome: monitor.configuracao?.nome || monitor.nome || "Acordito",
+      formularioId: monitor.configuracao?.formularioId || monitor.formulariosIa?.[0]?.id || "",
+      prompt: monitor.prompt || "",
+    });
+    setErroSalvar("");
+  }
+
+  async function salvarConfiguracao(evento) {
+    evento.preventDefault();
+    if (!editando) return;
+    setSalvando(true);
+    setErroSalvar("");
+    try {
+      const resposta = await enviarApi("/api/monitores-ia", {
+        clienteId: editando.clienteId,
+        formularioId: config.formularioId,
+        nome: config.nome,
+        prompt: config.prompt,
+        ativo: true,
+      });
+      setDados(resposta);
+      setEditando(null);
+    } catch (causa) {
+      setErroSalvar(causa instanceof Error ? causa.message : "Não foi possível salvar a configuração.");
+    } finally {
+      setSalvando(false);
+    }
+  }
   const filtrados = useMemo(() => {
     const monitores = dados?.itens || [];
     const alvo = normalizar(busca);
@@ -113,7 +150,7 @@ export default function MonitorIaPage() {
       id: "config",
       badge: "Configuração",
       value: carregando ? "..." : String(dados?.kpis?.emConfiguracao ?? 0),
-      label: "Ainda não ativados",
+      label: "Pendentes",
       icon: "clock",
     },
     {
@@ -130,7 +167,7 @@ export default function MonitorIaPage() {
       <section className="page-header">
         <div>
           <h1>Acordito</h1>
-          <p>Assistente DDM para monitoria automática de chamadas e chats.</p>
+          <p>Perfis IA por carteira, com formulário e prompt vinculados.</p>
         </div>
 
         <div className="actions">
@@ -162,6 +199,42 @@ export default function MonitorIaPage() {
           ))}
         </section>
 
+
+        {editando ? (
+          <section className="card pad" aria-labelledby="configurar-monitor-ia">
+            <div className="section-head">
+              <div>
+                <h2 id="configurar-monitor-ia">Configurar {editando.nome}</h2>
+                <p>{editando.cliente} · vincule o formulário e o prompt usados pelo Acordito.</p>
+              </div>
+              <button className="btn ghost" type="button" onClick={() => setEditando(null)}>Cancelar</button>
+            </div>
+            <form className={styles.configForm} onSubmit={salvarConfiguracao}>
+              <div className="field">
+                <label htmlFor="monitor-ia-nome">Nome do perfil</label>
+                <input className="input" id="monitor-ia-nome" value={config.nome} onChange={(evento) => setConfig((atual) => ({ ...atual, nome: evento.target.value }))} required minLength={2} />
+              </div>
+              <div className="field">
+                <label htmlFor="monitor-ia-formulario">Formulário IA</label>
+                <select className="select" id="monitor-ia-formulario" value={config.formularioId} onChange={(evento) => setConfig((atual) => ({ ...atual, formularioId: evento.target.value }))} required>
+                  <option value="">Selecione</option>
+                  {(editando.formulariosIa || []).map((formulario) => <option key={formulario.id} value={formulario.id}>{formulario.nome}</option>)}
+                </select>
+              </div>
+              <div className={`field ${styles.campoInteiro}`}>
+                <label htmlFor="monitor-ia-prompt">Prompt da análise</label>
+                <textarea className="input" id="monitor-ia-prompt" rows={8} value={config.prompt} onChange={(evento) => setConfig((atual) => ({ ...atual, prompt: evento.target.value }))} required minLength={20} />
+              </div>
+              {erroSalvar ? <p className={`alert danger ${styles.campoInteiro}`}><Icon name="alert" size={16} /><span className="alert-body"><strong>Configuração não salva</strong><span>{erroSalvar}</span></span></p> : null}
+              <div className={styles.campoInteiro}>
+                <button className="btn primary" type="submit" disabled={salvando || !editando.clienteId}>
+                  <Icon name={salvando ? "spinner" : "settings"} size={16} />
+                  {salvando ? "Salvando..." : "Salvar configuração"}
+                </button>
+              </div>
+            </form>
+          </section>
+        ) : null}
         <section className="card pad" aria-labelledby="monitores-recentes">
           <div className="section-head">
             <div>
@@ -200,9 +273,10 @@ export default function MonitorIaPage() {
 
                     <div className={styles.monitorTexto}>
                       <h3>{nomeMonitor}</h3>
-                      <span className="chip success">{monitor.statusLabel || "Ativo"}</span>
+                      <span className={`chip ${monitor.configurado ? "success" : "warning"}`}>{monitor.configurado ? "Configurado" : "Configuração pendente"}</span>
                       <p>{monitor.cliente}</p>
                       <p>{monitor.campanhasNomes || "Sem campanha vinculada"}</p>
+                      <p>{monitor.formularioIa ? `Formulário: ${monitor.formularioIa}` : "Sem formulário IA vinculado"}</p>
                     </div>
 
                     <dl className={styles.metricas}>
@@ -229,7 +303,7 @@ export default function MonitorIaPage() {
                         <Icon name="upload" size={15} />
                         Subir Gravação
                       </Link>
-                      <Link className="btn" href={`/avaliacoes?monitor=${encodeURIComponent(monitorQuery)}`}>
+                      <Link className="btn" href={`/avaliacoes?origem=ia&monitor=${encodeURIComponent(monitorQuery)}`}>
                         <Icon name="metrics" size={15} />
                         Ver Avaliações
                       </Link>
