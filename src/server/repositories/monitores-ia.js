@@ -2,7 +2,7 @@ import { isMissingSchemaError, one, paraLike, query } from "../db";
 import { inteiro } from "../format";
 import { MONITORES_IA_INICIAIS } from "../catalogo-inicial";
 
-const PROMPT_PADRAO_FIRJAN = `Você é o Acordito configurado para a carteira FIRJAN. Avalie o atendimento com foco em fraseologia Firjan, confirmação de dados, clareza da orientação, cordialidade, encerramento e evidências objetivas na transcrição. Sempre devolva critérios com evidência, confiança e status conforme o formulário vinculado.`;
+const PROMPT_PADRAO_FIRJAN = `Você é o Monitor IA configurado para a carteira FIRJAN. Avalie o atendimento com foco em fraseologia Firjan, confirmação de dados, clareza da orientação, cordialidade, encerramento e evidências objetivas na transcrição. Sempre devolva critérios com evidência, confiança e status conforme o formulário vinculado.`;
 
 async function safe(fallback, work) {
   try {
@@ -51,7 +51,7 @@ async function configuracoesPorCliente() {
         cliente: row.cliente || null,
         formularioId: row.formulario_id == null ? null : String(row.formulario_id),
         formulario: row.formulario || null,
-        nome: row.nome || "Acordito",
+        nome: row.nome || "Monitor IA",
         prompt: row.prompt || "",
         ativo: Boolean(Number(row.ativo ?? 1)),
         criadoPor: row.criado_por || null,
@@ -158,14 +158,18 @@ export async function listarMonitoresIa({ busca = null, limit = 48, offset = 0 }
 
   const rows = await safe([], () =>
     query(
-      `SELECT COALESCE(u.id, a.avaliador_id) AS id,
-              COALESCE(u.name, CONCAT('Acordito ', a.avaliador_id)) AS nome,
-              COALESCE(u.active, 1) AS ativo,
-              MIN(a.cliente_id) AS cliente_id,
+      `SELECT COALESCE(a.cliente_id, 0) AS id,
+              CASE
+                WHEN c.nome IS NULL THEN MIN(COALESCE(u.name, CONCAT('Monitor IA ', a.avaliador_id)))
+                WHEN LOWER(c.nome) LIKE '%firjan%' THEN 'Monitor IA Firjan'
+                ELSE CONCAT('Monitor IA ', c.nome)
+              END AS nome,
+              1 AS ativo,
+              a.cliente_id AS cliente_id,
               COUNT(DISTINCT a.id) AS avaliacoes,
               ROUND(COALESCE(AVG(a.score), 0), 1) AS score_medio,
               COUNT(DISTINCT a.campanha_id) AS campanhas,
-              GROUP_CONCAT(DISTINCT c.nome ORDER BY c.nome SEPARATOR ', ') AS clientes,
+              COALESCE(c.nome, 'Sem cliente vinculado') AS clientes,
               GROUP_CONCAT(DISTINCT ca.nome ORDER BY ca.nome SEPARATOR ', ') AS campanhas_nomes,
               MAX(a.data_avaliacao) AS ultima_avaliacao
          FROM avaliacoes a
@@ -173,7 +177,7 @@ export async function listarMonitoresIa({ busca = null, limit = 48, offset = 0 }
          LEFT JOIN clientes c ON c.id = a.cliente_id
          LEFT JOIN campanhas ca ON ca.id = a.campanha_id
         ${where}
-        GROUP BY COALESCE(u.id, a.avaliador_id), COALESCE(u.name, CONCAT('Acordito ', a.avaliador_id)), COALESCE(u.active, 1)
+        GROUP BY a.cliente_id, c.nome
         ORDER BY ultima_avaliacao DESC, nome
         LIMIT :limit OFFSET :offset`,
       { ...params, limit, offset },
@@ -203,7 +207,7 @@ export async function listarMonitoresIa({ busca = null, limit = 48, offset = 0 }
     itens.push({
       id: `cliente-${cliente.id}`,
       slug: slug(cliente.nome, cliente.id),
-      nome: /firjan/i.test(cliente.nome) ? "Acordito Firjan" : `Acordito ${cliente.nome}`,
+      nome: /firjan/i.test(cliente.nome) ? "Monitor IA Firjan" : `Monitor IA ${cliente.nome}`,
       avatar: null,
       status: "ativo",
       statusLabel: "Ativo",
@@ -234,7 +238,7 @@ export async function listarMonitoresIa({ busca = null, limit = 48, offset = 0 }
 
 export async function salvarConfiguracaoMonitorIa({ clienteId, formularioId, nome, prompt, ativo = true, userId, role }) {
   if (!(await tabelaConfiguracoesExiste())) {
-    throw new Error("Tabela monitor_ia_configuracoes ausente. Rode o SQL de configuração do Acordito/IA antes de salvar.");
+    throw new Error("Tabela monitor_ia_configuracoes ausente. Rode o SQL de configuração do Monitor IA antes de salvar.");
   }
   const cliente = await one("SELECT id FROM clientes WHERE id = :clienteId LIMIT 1", { clienteId });
   if (!cliente) throw new Error("Cliente não encontrado.");
@@ -243,7 +247,7 @@ export async function salvarConfiguracaoMonitorIa({ clienteId, formularioId, nom
       `SELECT id FROM users WHERE id = :userId AND cliente_id = :clienteId LIMIT 1`,
       { userId, clienteId },
     );
-    if (!vinculo) throw new Error("Monitor só pode configurar Acordito/IA da própria carteira.");
+    if (!vinculo) throw new Error("Monitor só pode configurar Monitor IA da própria carteira.");
   }
   const formulario = await one(
     "SELECT id FROM formularios WHERE id = :formularioId AND cliente_id = :clienteId LIMIT 1",

@@ -19,7 +19,7 @@ function normalizar(texto) {
 
 function nomeVisivelMonitor(nome) {
   const texto = String(nome || "").trim();
-  if (!texto || /^gemini$/i.test(texto)) return "Acordito";
+  if (!texto || /^gemini$/i.test(texto)) return "Monitor IA";
   return texto;
 }
 
@@ -66,7 +66,7 @@ export default function MonitorIaPage() {
         const resposta = await fetch("/api/monitores-ia", { cache: "no-store" });
         const payload = await resposta.json().catch(() => null);
         if (!resposta.ok || !payload?.ok) {
-          throw new Error(payload?.error?.message || "Não foi possível carregar o Acordito.");
+          throw new Error(payload?.error?.message || "Não foi possível carregar o Monitor IA.");
         }
         if (ativo) {
           setDados(payload.data);
@@ -75,7 +75,7 @@ export default function MonitorIaPage() {
       } catch (error) {
         if (ativo) {
           setDados(null);
-          setErro(error instanceof Error ? error.message : "Não foi possível carregar o Acordito.");
+          setErro(error instanceof Error ? error.message : "Não foi possível carregar o Monitor IA.");
         }
       } finally {
         if (ativo) setCarregando(false);
@@ -92,7 +92,7 @@ export default function MonitorIaPage() {
   function abrirConfiguracao(monitor) {
     setEditando(monitor);
     setConfig({
-      nome: monitor.configuracao?.nome || monitor.nome || "Acordito",
+      nome: monitor.configuracao?.nome || monitor.nome || "Monitor IA",
       formularioId: monitor.configuracao?.formularioId || monitor.formulariosIa?.[0]?.id || "",
       prompt: monitor.prompt || "",
     });
@@ -163,24 +163,24 @@ export default function MonitorIaPage() {
   ];
 
   return (
-    <AppShell active="Acordito" breadcrumb="Qualidade > Acordito">
+    <AppShell active="Monitor IA" breadcrumb="Qualidade > Monitor IA">
       <section className="page-header">
         <div>
-          <h1>Acordito</h1>
-          <p>Perfis IA por carteira, com formulário e prompt vinculados.</p>
+          <h1>Monitor IA</h1>
+          <p>Cadastre e gerencie Monitores IA por carteira.</p>
         </div>
 
         <div className="actions">
           <form className={`search-field ${styles.busca}`} role="search" onSubmit={(evento) => evento.preventDefault()}>
             <Icon name="search" size={18} />
             <label className="sr-only" htmlFor="busca-monitor-ia">
-              Buscar carteiras do Acordito
+              Buscar Monitores IA
             </label>
             <input
               className="input"
               id="busca-monitor-ia"
               onChange={(evento) => setBusca(evento.target.value)}
-              placeholder="Buscar carteiras do Acordito..."
+              placeholder="Buscar Monitores IA..."
               type="search"
               value={busca}
             />
@@ -193,7 +193,7 @@ export default function MonitorIaPage() {
       </section>
 
       <div className={styles.painel}>
-        <section className="grid kpi-grid" aria-label="Indicadores do Acordito">
+        <section className="grid kpi-grid" aria-label="Indicadores do Monitor IA">
           {kpis.map((kpi) => (
             <KpiCard badge={kpi.badge} icon={kpi.icon} key={kpi.id} label={kpi.label} value={kpi.value} />
           ))}
@@ -205,7 +205,7 @@ export default function MonitorIaPage() {
             <div className="section-head">
               <div>
                 <h2 id="configurar-monitor-ia">Configurar {editando.nome}</h2>
-                <p>{editando.cliente} · vincule o formulário e o prompt usados pelo Acordito.</p>
+                <p>{editando.cliente} · vincule o formulário e o prompt usados pelo Monitor IA.</p>
               </div>
               <button className="btn ghost" type="button" onClick={() => setEditando(null)}>Cancelar</button>
             </div>
@@ -238,8 +238,8 @@ export default function MonitorIaPage() {
         <section className="card pad" aria-labelledby="monitores-recentes">
           <div className="section-head">
             <div>
-              <h2 id="monitores-recentes">Carteiras do Acordito</h2>
-              <p>Selecione uma carteira para ações rápidas</p>
+              <h2 id="monitores-recentes">Monitores IA Recentes</h2>
+              <p>Selecione um monitor para ações rápidas</p>
             </div>
             <Link className="btn ghost" href="/">
               Ver dashboard
@@ -250,7 +250,7 @@ export default function MonitorIaPage() {
           {erro ? (
             <div className="empty-state">
               <Icon name="error" size={38} />
-              <h3>Não foi possível carregar o Acordito</h3>
+              <h3>Não foi possível carregar o Monitor IA</h3>
               <p>{erro}</p>
             </div>
           ) : filtrados.length === 0 ? (
@@ -295,10 +295,10 @@ export default function MonitorIaPage() {
                     </dl>
 
                     <div className={styles.acoes}>
-                      <Link className="btn primary" href="/administracao">
+                      <button className="btn primary" type="button" onClick={() => abrirConfiguracao(monitor)}>
                         <Icon name="settings" size={15} />
                         Configurar
-                      </Link>
+                      </button>
                       <Link className="btn" href={uploadHref(monitor)}>
                         <Icon name="upload" size={15} />
                         Subir Gravação
@@ -335,7 +335,7 @@ export default function MonitorIaPage() {
               <span className="icon-badge" aria-hidden="true">
                 <Icon name="review" size={18} />
               </span>
-              <strong>Avaliações do Acordito</strong>
+              <strong>Avaliações do Monitor IA</strong>
               <span>Ver resultados criados</span>
             </Link>
             <Link className="quick-action compact" href="/">
@@ -343,7 +343,7 @@ export default function MonitorIaPage() {
                 <Icon name="metrics" size={18} />
               </span>
               <strong>Dashboard</strong>
-              <span>Acompanhar indicadores do Acordito</span>
+              <span>Acompanhar indicadores do Monitor IA</span>
             </Link>
             <Link className="quick-action compact" href="/transcricoes">
               <span className="icon-badge" aria-hidden="true">

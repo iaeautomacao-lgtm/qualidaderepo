@@ -65,12 +65,12 @@ const menu = [
   { label: "Dashboard de Formulários", href: "/dashboard-formularios", icon: "metrics" },
   // Acordito e Transcrições ficam como entradas próprias, no padrão da tela
   // de referência: primeiro a gestão das personas, depois a entrada dos áudios.
-  { label: "Acordito", href: "/monitor-ia", icon: "sparkles" },
+  { label: "Monitor IA", href: "/monitor-ia", icon: "sparkles" },
   { label: "Transcrições", href: "/transcricoes", icon: "waveform" },
   // Copiloto de qualidade: pergunta sobre o período inteiro, não sobre uma ficha.
   // Fica depois das entradas de dado porque só faz sentido com monitoria no
   // banco — antes disso ele responde "não há base para dizer".
-  { label: "Perguntar ao Acordito", href: "/perguntar-ia", icon: "sparkles" },
+  { label: "Perguntar ao Monitor IA", href: "/perguntar-ia", icon: "sparkles" },
   { label: "Feedback", href: "/feedback", icon: "feedback" },
   // Contestação vem depois de Feedback porque é o passo seguinte dele: só se
   // contesta o que já foi apontado. As duas sub-abas são as da tela de
