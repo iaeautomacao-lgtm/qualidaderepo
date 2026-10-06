@@ -164,3 +164,223 @@
     grid-template-columns: minmax(0, 1fr);
   }
 }
+.kpiValue {
+  margin: var(--sp-3) 0 var(--sp-1);
+  font-size: var(--fs-700);
+  font-weight: var(--fw-bold);
+  line-height: 1;
+}
+
+.kpiLabel {
+  margin: 0;
+  color: var(--text-soft);
+  font-size: var(--fs-200);
+}
+
+.configGrid3 {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: var(--sp-4);
+}
+
+.dropzone {
+  display: grid;
+  place-items: center;
+  gap: var(--sp-3);
+  min-height: 230px;
+  padding: var(--sp-6);
+  border: 1px dashed var(--line-strong);
+  border-radius: var(--r-md);
+  background: var(--surface-muted);
+  text-align: center;
+}
+
+.dropzone p {
+  max-width: 640px;
+  color: var(--text-soft);
+}
+
+.steps {
+  display: grid;
+  grid-template-columns: repeat(7, minmax(0, 1fr));
+  gap: var(--sp-2);
+  padding: 0;
+  counter-reset: etapa;
+  list-style: none;
+}
+
+.steps li {
+  min-height: 88px;
+  padding: var(--sp-3);
+  border: 1px solid var(--line);
+  border-radius: var(--r-sm);
+  background: var(--surface-muted);
+  font-size: var(--fs-100);
+  font-weight: var(--fw-semibold);
+}
+
+.steps li::before {
+  display: grid;
+  place-items: center;
+  width: 26px;
+  height: 26px;
+  margin-bottom: var(--sp-2);
+  border-radius: 999px;
+  background: var(--accent-soft);
+  color: var(--accent-strong);
+  content: counter(etapa);
+  counter-increment: etapa;
+}
+
+.tabs {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--sp-2);
+}
+
+.tabs button,
+.quickButton {
+  font: inherit;
+}
+
+.quickButton {
+  cursor: pointer;
+}
+
+.listStack {
+  display: grid;
+  gap: var(--sp-3);
+}
+
+.progress,
+.progressSegment {
+  display: flex;
+  height: 10px;
+  overflow: hidden;
+  border-radius: 999px;
+  background: var(--surface-muted);
+}
+
+.progress span {
+  display: block;
+  border-radius: inherit;
+  background: var(--accent);
+}
+
+.progressSegment span[data-tone="success"] { background: #159a6b; }
+.progressSegment span[data-tone="warning"] { background: #d09311; }
+.progressSegment span[data-tone="danger"] { background: #d83b2d; }
+
+.filterBar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: end;
+  gap: var(--sp-3);
+}
+
+.filterBar > * {
+  min-width: min(220px, 100%);
+}
+
+.statusDot {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  color: var(--text-soft);
+  font-size: var(--fs-100);
+  font-weight: var(--fw-semibold);
+}
+
+.statusDot::before {
+  width: 8px;
+  height: 8px;
+  border-radius: 999px;
+  background: #159a6b;
+  content: "";
+}
+
+.statusDot[data-tone="warning"]::before { background: #d09311; }
+.statusDot[data-tone="danger"]::before { background: #d83b2d; }
+
+.tableWrap {
+  overflow-x: auto;
+}
+
+.table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: var(--fs-200);
+}
+
+.table th,
+.table td {
+  padding: var(--sp-3);
+  border-bottom: 1px solid var(--line);
+  text-align: left;
+  vertical-align: middle;
+}
+
+.table th {
+  color: var(--text-muted);
+  font-size: var(--fs-100);
+  text-transform: uppercase;
+}
+
+.emptyModule {
+  display: grid;
+  justify-items: center;
+  gap: var(--sp-3);
+  min-height: 280px;
+  text-align: center;
+}
+
+.twoColumns {
+  display: grid;
+  grid-template-columns: minmax(280px, 0.9fr) minmax(0, 1.4fr);
+  gap: var(--sp-4);
+}
+
+.compareBar {
+  display: grid;
+  gap: var(--sp-2);
+}
+
+.compareBar span,
+.compareBar i {
+  display: block;
+  height: 10px;
+  border-radius: 999px;
+}
+
+.compareBar span { background: #d83b2d; }
+.compareBar i { background: var(--line-strong); }
+
+.fakeChart {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  align-items: end;
+  gap: var(--sp-2);
+  height: 130px;
+  padding: var(--sp-3);
+  border: 1px solid var(--line);
+  border-radius: var(--r-sm);
+  background: var(--surface-muted);
+}
+
+.fakeChart span {
+  border-radius: 999px 999px 0 0;
+  background: var(--accent);
+}
+
+.fakeChart span:nth-child(1) { height: 35%; }
+.fakeChart span:nth-child(2) { height: 62%; }
+.fakeChart span:nth-child(3) { height: 48%; }
+.fakeChart span:nth-child(4) { height: 78%; }
+
+@media (max-width: 1180px) {
+  .configGrid3,
+  .steps,
+  .twoColumns {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}

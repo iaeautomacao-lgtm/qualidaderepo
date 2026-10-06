@@ -56,6 +56,8 @@ export default function MonitorIaPage() {
   const [config, setConfig] = useState({ nome: "", formularioId: "", prompt: "" });
   const [salvando, setSalvando] = useState(false);
   const [erroSalvar, setErroSalvar] = useState("");
+  const [novoAberto, setNovoAberto] = useState(false);
+  const [novoMonitor, setNovoMonitor] = useState({ nome: "", clienteId: "", campanha: "" });
 
   useEffect(() => {
     let ativo = true;
@@ -120,6 +122,22 @@ export default function MonitorIaPage() {
       setSalvando(false);
     }
   }
+  function criarMonitor(evento) {
+    evento.preventDefault();
+    const monitor = (dados?.itens || []).find((item) => String(item.clienteId || item.id) === String(novoMonitor.clienteId));
+    if (!monitor) return;
+    setNovoAberto(false);
+    setEditando({ ...monitor, nome: novoMonitor.nome || monitor.nome });
+    setConfig({
+      nome: novoMonitor.nome || monitor.nome || "Monitor IA",
+      formularioId: monitor.configuracao?.formularioId || monitor.formulariosIa?.[0]?.id || "",
+      prompt: monitor.prompt || "",
+    });
+    setErroSalvar("");
+  }
+
+  const monitoresCadastro = dados?.itens || [];
+
   const filtrados = useMemo(() => {
     const monitores = dados?.itens || [];
     const alvo = normalizar(busca);
@@ -235,7 +253,51 @@ export default function MonitorIaPage() {
             </form>
           </section>
         ) : null}
-        <section className="card pad" aria-labelledby="monitores-recentes">
+
+        {novoAberto ? (
+          <section className="card pad" aria-labelledby="novo-monitor-ia">
+            <div className="section-head">
+              <div>
+                <h2 id="novo-monitor-ia">Novo Monitor IA</h2>
+                <p>Crie um novo Monitor IA para monitorias automatizadas.</p>
+              </div>
+              <button className="btn ghost" type="button" onClick={() => setNovoAberto(false)}>Cancelar</button>
+            </div>
+            <form className={styles.configForm} onSubmit={criarMonitor}>
+              <div className="field">
+                <label htmlFor="novo-monitor-nome">Nome do Monitor</label>
+                <input autoFocus className="input" id="novo-monitor-nome" placeholder="Ex: Bia, Monitor Vendas..." value={novoMonitor.nome} onChange={(evento) => setNovoMonitor((atual) => ({ ...atual, nome: evento.target.value }))} />
+              </div>
+              <div className="field">
+                <label htmlFor="novo-monitor-cliente">Cliente</label>
+                <select className="select" id="novo-monitor-cliente" required value={novoMonitor.clienteId} onChange={(evento) => setNovoMonitor((atual) => ({ ...atual, clienteId: evento.target.value, campanha: "" }))}>
+                  <option value="">Selecione</option>
+                  {monitoresCadastro.map((monitor) => <option key={monitor.id} value={monitor.clienteId || monitor.id}>{monitor.cliente}</option>)}
+                </select>
+              </div>
+              <div className="field">
+                <label htmlFor="novo-monitor-campanha">Campanha</label>
+                <select className="select" id="novo-monitor-campanha" value={novoMonitor.campanha} onChange={(evento) => setNovoMonitor((atual) => ({ ...atual, campanha: evento.target.value }))} disabled={!novoMonitor.clienteId}>
+                  <option value="">{novoMonitor.clienteId ? "Todas as campanhas" : "Selecione um cliente primeiro"}</option>
+                  {String(monitoresCadastro.find((monitor) => String(monitor.clienteId || monitor.id) === String(novoMonitor.clienteId))?.campanhasNomes || "").split(",").map((campanha) => campanha.trim()).filter(Boolean).map((campanha) => <option key={campanha} value={campanha}>{campanha}</option>)}
+                </select>
+              </div>
+              <div className={styles.campoInteiro}>
+                <button className="btn primary" type="submit">Criar Monitor IA</button>
+              </div>
+            </form>
+          </section>
+        ) : null}
+
+        <section className="card pad">
+          <div className="section-head">
+            <div>
+              <h2>Como o Monitor IA aprende</h2>
+              <p>Monitores IA aprendem com avaliações executadas por humanos. Eles são especialistas em uma campanha de um cliente.</p>
+            </div>
+            <Link className="btn" href="/monitor-ia/resultados">Ver resultados</Link>
+          </div>
+        </section>        <section className="card pad" aria-labelledby="monitores-recentes">
           <div className="section-head">
             <div>
               <h2 id="monitores-recentes">Monitores IA Recentes</h2>
@@ -324,37 +386,48 @@ export default function MonitorIaPage() {
           </div>
 
           <div className={styles.acoesRapidas}>
-            <Link className="quick-action compact" href="/upload">
-              <span className="icon-badge" aria-hidden="true">
-                <Icon name="upload" size={18} />
-              </span>
-              <strong>Subir gravação</strong>
-              <span>Enviar áudio para análise</span>
+            <Link className="quick-action compact" href="/monitor-ia">
+              <span className="icon-badge" aria-hidden="true"><Icon name="review" size={18} /></span>
+              <strong>Cadastro</strong>
+              <span>Gerenciar monitores</span>
             </Link>
-            <Link className="quick-action compact" href="/avaliacoes">
-              <span className="icon-badge" aria-hidden="true">
-                <Icon name="review" size={18} />
-              </span>
-              <strong>Avaliações do Monitor IA</strong>
+            <button className={`quick-action compact ${styles.quickButton}`} type="button" onClick={() => setNovoAberto(true)}>
+              <span className="icon-badge" aria-hidden="true"><Icon name="plus" size={18} /></span>
+              <strong>Novo Monitor</strong>
+              <span>Criar persona por carteira</span>
+            </button>
+            <Link className="quick-action compact" href="/monitor-ia/upload">
+              <span className="icon-badge" aria-hidden="true"><Icon name="upload" size={18} /></span>
+              <strong>Upload</strong>
+              <span>Enviar lote para análise</span>
+            </Link>
+            <Link className="quick-action compact" href="/monitor-ia/automacao">
+              <span className="icon-badge" aria-hidden="true"><Icon name="bolt" size={18} /></span>
+              <strong>Automação</strong>
+              <span>Regras do acervo</span>
+            </Link>
+            <Link className="quick-action compact" href="/monitor-ia/fila">
+              <span className="icon-badge" aria-hidden="true"><Icon name="activity" size={18} /></span>
+              <strong>Fila</strong>
+              <span>Processamento e transcrições</span>
+            </Link>
+            <Link className="quick-action compact" href="/monitor-ia/avaliacoes">
+              <span className="icon-badge" aria-hidden="true"><Icon name="review" size={18} /></span>
+              <strong>Avaliações</strong>
               <span>Ver resultados criados</span>
             </Link>
-            <Link className="quick-action compact" href="/">
-              <span className="icon-badge" aria-hidden="true">
-                <Icon name="metrics" size={18} />
-              </span>
-              <strong>Dashboard</strong>
-              <span>Acompanhar indicadores do Monitor IA</span>
+            <Link className="quick-action compact" href="/monitor-ia/resultados">
+              <span className="icon-badge" aria-hidden="true"><Icon name="trendUp" size={18} /></span>
+              <strong>Resultados</strong>
+              <span>Breakdown executivo</span>
             </Link>
-            <Link className="quick-action compact" href="/transcricoes">
-              <span className="icon-badge" aria-hidden="true">
-                <Icon name="waveform" size={18} />
-              </span>
-              <strong>Transcrições</strong>
-              <span>Consultar gravações</span>
+            <Link className="quick-action compact" href="/monitor-ia/performance">
+              <span className="icon-badge" aria-hidden="true"><Icon name="users" size={18} /></span>
+              <strong>Performance</strong>
+              <span>Por agente</span>
             </Link>
           </div>
-        </section>
-      </div>
+        </section>      </div>
     </AppShell>
   );
 }
