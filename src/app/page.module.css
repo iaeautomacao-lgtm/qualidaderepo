@@ -586,3 +586,387 @@
   font-weight: var(--fw-regular);
   color: var(--text-muted);
 }
+
+/* ========================================================================== 
+   Ajustes Central de Qualidade
+   ========================================================================== */
+
+.cabecalho {
+  align-items: flex-start;
+  gap: var(--sp-5);
+  padding-bottom: var(--sp-2);
+}
+
+.cabecalhoTexto {
+  max-width: 620px;
+}
+
+.chapeu {
+  display: inline-flex;
+  margin-bottom: var(--sp-2);
+  color: var(--accent-strong);
+  font-size: var(--fs-100);
+  font-weight: var(--fw-semibold);
+  letter-spacing: var(--tracking-label);
+  text-transform: uppercase;
+}
+
+.cabecalhoTexto h1 {
+  font-size: clamp(2rem, 4vw, 3rem);
+  line-height: 1;
+}
+
+.cabecalhoTexto p {
+  max-width: 560px;
+  color: var(--text);
+  font-size: var(--fs-300);
+}
+
+.contextoPainel {
+  display: inline-flex;
+  margin-top: var(--sp-3);
+  color: var(--text-muted);
+  font-size: var(--fs-200);
+}
+
+.cabecalhoDireita {
+  display: grid;
+  justify-items: end;
+  gap: var(--sp-3);
+  max-width: 760px;
+}
+
+.acoesTopo {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: var(--sp-2);
+}
+
+.kpis {
+  overflow: hidden;
+  gap: 0;
+  border: 1px solid var(--line);
+  border-radius: var(--r-lg);
+  background: var(--surface);
+  box-shadow: var(--shadow-xs);
+}
+
+.kpi {
+  border: 0;
+  border-right: 1px solid var(--line);
+  border-radius: 0;
+  background: transparent;
+  box-shadow: none;
+}
+
+.kpi:last-child {
+  border-right: 0;
+}
+
+.kpi[data-destaque="true"] {
+  background: linear-gradient(180deg, var(--accent-soft), transparent 76%);
+  border-color: var(--line);
+}
+
+.atencao {
+  display: grid;
+  gap: var(--sp-3);
+  padding: var(--sp-5);
+  border: 1px solid var(--line);
+  border-radius: var(--r-lg);
+  background: var(--surface);
+  box-shadow: var(--shadow-xs);
+}
+
+.atencaoLista {
+  display: grid;
+  gap: var(--sp-2);
+}
+
+.atencaoLista li {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto auto;
+  align-items: center;
+  gap: var(--sp-3);
+  padding: var(--sp-3);
+  border: 1px solid var(--line);
+  border-radius: var(--r-md);
+  background: var(--surface-2);
+}
+
+.atencaoLista li[data-critica="true"] {
+  box-shadow: inset 3px 0 0 var(--danger);
+}
+
+.atencaoSelo {
+  display: inline-flex;
+  align-items: center;
+  min-height: 24px;
+  padding-inline: var(--sp-2);
+  border-radius: var(--r-pill);
+  background: var(--warning-soft);
+  color: var(--warning-text);
+  font-size: var(--fs-100);
+  font-weight: var(--fw-semibold);
+}
+
+.atencaoLista li[data-critica="true"] .atencaoSelo {
+  background: var(--danger-soft);
+  color: var(--danger-text);
+}
+
+.atencaoLista strong,
+.atencaoNota {
+  font-weight: var(--fw-semibold);
+}
+
+.atencaoLista p {
+  margin-top: 2px;
+  color: var(--text-muted);
+  font-size: var(--fs-200);
+}
+
+.atencaoNota {
+  color: var(--text-soft);
+  font-size: var(--fs-200);
+  font-variant-numeric: tabular-nums;
+}
+
+.atencaoLink {
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+  color: var(--accent-strong);
+  font-size: var(--fs-200);
+  font-weight: var(--fw-semibold);
+}
+
+.atencaoLink:hover {
+  color: var(--accent-deep);
+  text-decoration: underline;
+}
+
+.atencaoVazia {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--sp-2);
+  color: var(--success-text);
+  font-size: var(--fs-200);
+  font-weight: var(--fw-semibold);
+}
+
+@media (max-width: 900px) {
+  .cabecalhoDireita {
+    justify-items: stretch;
+    width: 100%;
+    max-width: none;
+  }
+
+  .acoesTopo {
+    justify-content: flex-start;
+  }
+
+  .kpis {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .kpi:nth-child(2n) {
+    border-right: 0;
+  }
+
+  .atencaoLista li {
+    grid-template-columns: minmax(0, 1fr);
+    align-items: start;
+  }
+
+  .atencaoSelo,
+  .atencaoLink {
+    justify-self: start;
+  }
+}
+/* ========================================================================== 
+   Refino visual Central de Qualidade
+   ========================================================================== */
+
+.cabecalho {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: start;
+  column-gap: var(--sp-6);
+  row-gap: var(--sp-5);
+  padding-bottom: var(--sp-3);
+  border-bottom: 1px solid var(--line);
+}
+
+.cabecalhoTexto h1 {
+  font-size: clamp(2.25rem, 1.95rem + 1vw, 2.5rem);
+  font-weight: 700;
+  letter-spacing: 0;
+}
+
+.cabecalhoTexto p {
+  color: var(--text-soft);
+  font-weight: 400;
+}
+
+.chapeu {
+  margin-bottom: var(--sp-2);
+  color: var(--accent-strong);
+  font-size: 0.6875rem;
+}
+
+.contextoPainel {
+  color: var(--text-muted);
+  font-size: var(--fs-200);
+}
+
+.cabecalhoDireita {
+  display: contents;
+}
+
+.acoesTopo {
+  grid-column: 2;
+  justify-content: flex-end;
+  align-self: start;
+}
+
+.filtros {
+  grid-column: 1 / -1;
+  display: grid;
+  grid-template-columns: minmax(150px, 0.8fr) minmax(190px, 1fr) minmax(260px, 1.4fr) minmax(190px, 1fr) auto;
+  align-items: end;
+  gap: var(--sp-3);
+  width: 100%;
+}
+
+.filtros .field {
+  min-width: 0;
+}
+
+.kpis {
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+  overflow: visible;
+  border: 0;
+  border-bottom: 1px solid var(--line);
+  border-radius: 0;
+  background: transparent;
+  box-shadow: none;
+}
+
+.kpi {
+  min-height: 116px;
+  padding: var(--sp-4) var(--sp-5);
+  border-right: 1px solid var(--line);
+}
+
+.kpi:first-child {
+  padding-left: 0;
+}
+
+.kpi:last-child {
+  padding-right: 0;
+}
+
+.kpi[data-destaque="true"] {
+  background: transparent;
+}
+
+.kpi[data-destaque="true"] .kpiValor {
+  color: var(--text);
+}
+
+.kpi[data-alerta="true"] .kpiValor,
+.kpi[data-alerta="true"] {
+  color: var(--danger-text);
+}
+
+.kpiRotulo {
+  color: var(--text-muted);
+  font-size: 0.6875rem;
+  letter-spacing: 0.06em;
+}
+
+.kpiValor {
+  font-weight: 600;
+  letter-spacing: 0;
+}
+
+.kpiContexto,
+.kpiAcao {
+  font-size: var(--fs-200);
+}
+
+.atencao {
+  padding: var(--sp-5) 0;
+  border: 0;
+  border-bottom: 1px solid var(--line);
+  border-radius: 0;
+  background: transparent;
+  box-shadow: none;
+}
+
+.atencaoLista li {
+  border-color: var(--line);
+  background: var(--surface);
+}
+
+.atencaoVazia {
+  color: var(--success-text);
+}
+
+.duasColunas :global(.card) {
+  border-radius: 12px;
+  box-shadow: none;
+}
+
+@media (max-width: 1100px) {
+  .cabecalho {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .acoesTopo {
+    grid-column: 1;
+    justify-content: flex-start;
+  }
+
+  .filtros {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .kpis {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    border: 1px solid var(--line);
+    border-radius: 12px;
+    background: var(--surface);
+  }
+
+  .kpi:first-child,
+  .kpi:last-child {
+    padding-inline: var(--sp-4);
+  }
+}
+
+@media (max-width: 640px) {
+  .cabecalhoTexto h1 {
+    font-size: 2rem;
+  }
+
+  .filtros {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .kpis {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .kpi,
+  .kpi:nth-child(2n) {
+    border-right: 0;
+    border-bottom: 1px solid var(--line);
+  }
+
+  .kpi:last-child {
+    border-bottom: 0;
+  }
+}

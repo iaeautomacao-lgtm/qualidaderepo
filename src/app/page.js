@@ -203,6 +203,17 @@ export default function DashboardPage() {
   const totalDistribuicao = distribuicao.reduce((soma, item) => soma + Number(item.value || 0), 0);
   const maiorOfensor = Math.max(1, ...ofensores.map((item) => Number(item.failures || 0)));
   const filtroAtivo = ["clienteId", "campanhaId", "operadorId"].some((chave) => filtros[chave] !== TODOS);
+  const clienteAtual = opcoes.clientes.find((item) => String(item.id) === String(filtros.clienteId));
+  const campanhaAtual = opcoes.campanhas.find((item) => String(item.id) === String(filtros.campanhaId));
+  const operadorAtual = opcoes.avaliados.find((item) => String(item.id) === String(filtros.operadorId));
+  const contextoPainel = [
+    periodo.label,
+    clienteAtual?.nome || "Todos os clientes",
+    campanhaAtual?.nome || "Todas as carteiras",
+    operadorAtual?.nome || null,
+  ]
+    .filter(Boolean)
+    .join(" · ");
 
   function alterar(chave, valor) {
     setLoading(true);
@@ -221,95 +232,102 @@ export default function DashboardPage() {
   return (
     <AppShell active="Dashboard" breadcrumb="Visão geral > Dashboard">
       <section className={styles.cabecalho}>
-        <div>
-          <h1>Dashboard</h1>
-          <p>
-            Visão geral da qualidade · {periodo.label.toLowerCase()}
-            {filtroAtivo ? " · recorte filtrado" : ""}
-          </p>
+        <div className={styles.cabecalhoTexto}>
+          <span className={styles.chapeu}>Qualidade e monitoria</span>
+          <h1>Central de Qualidade</h1>
+          <p>Visão consolidada das monitorias, não conformidades e ações pendentes.</p>
+          <span className={styles.contextoPainel}>{contextoPainel}</span>
         </div>
 
-        <div className={styles.filtros} role="group" aria-label="Filtros do painel">
-          <div className="field">
-            <label htmlFor="filtro-periodo">Período</label>
-            <select
-              className="select"
-              id="filtro-periodo"
-              value={filtros.period}
-              onChange={(evento) => alterar("period", evento.target.value)}
-            >
-              {PERIODOS.map((item) => (
-                <option key={item.value} value={item.value}>
-                  {item.label}
-                </option>
-              ))}
-            </select>
+        <div className={styles.cabecalhoDireita}>
+          <div className={styles.acoesTopo} aria-label="Ações do painel">
+            <Link className="btn" href="/avaliacoes">
+              <Icon name="download" size={16} />
+              Exportar
+            </Link>
+            <Link className="btn primary" href="/upload">
+              <Icon name="upload" size={16} />
+              Nova monitoria
+            </Link>
           </div>
 
-          <div className="field">
-            <label htmlFor="filtro-cliente">Cliente</label>
-            <select
-              className="select"
-              id="filtro-cliente"
-              value={filtros.clienteId}
-              onChange={(evento) => alterar("clienteId", evento.target.value)}
-            >
-              <option value={TODOS}>Todos</option>
-              {opcoes.clientes.map((item) => (
-                <option key={item.id} value={item.id}>
-                  {item.nome}
-                </option>
-              ))}
-            </select>
-          </div>
+          <div className={styles.filtros} role="group" aria-label="Filtros do painel">
+            <div className="field">
+              <label htmlFor="filtro-periodo">Período</label>
+              <select
+                className="select"
+                id="filtro-periodo"
+                value={filtros.period}
+                onChange={(evento) => alterar("period", evento.target.value)}
+              >
+                {PERIODOS.map((item) => (
+                  <option key={item.value} value={item.value}>
+                    {item.label}
+                  </option>
+                ))}
+              </select>
+            </div>
 
-          <div className="field">
-            <label htmlFor="filtro-carteira">Carteira</label>
-            <select
-              className="select"
-              id="filtro-carteira"
-              value={filtros.campanhaId}
-              onChange={(evento) => alterar("campanhaId", evento.target.value)}
-            >
-              <option value={TODOS}>Todas</option>
-              {campanhasVisiveis.map((item) => (
-                <option key={item.id} value={item.id}>
-                  {item.nome}
-                </option>
-              ))}
-            </select>
-          </div>
+            <div className="field">
+              <label htmlFor="filtro-cliente">Cliente</label>
+              <select
+                className="select"
+                id="filtro-cliente"
+                value={filtros.clienteId}
+                onChange={(evento) => alterar("clienteId", evento.target.value)}
+              >
+                <option value={TODOS}>Todos</option>
+                {opcoes.clientes.map((item) => (
+                  <option key={item.id} value={item.id}>
+                    {item.nome}
+                  </option>
+                ))}
+              </select>
+            </div>
 
-          <div className="field">
-            <label htmlFor="filtro-operador">Operador</label>
-            <select
-              className="select"
-              id="filtro-operador"
-              value={filtros.operadorId}
-              onChange={(evento) => alterar("operadorId", evento.target.value)}
-            >
-              <option value={TODOS}>Todos</option>
-              {opcoes.avaliados.map((item) => (
-                <option key={item.id} value={item.id}>
-                  {item.nome}
-                </option>
-              ))}
-            </select>
-          </div>
+            <div className="field">
+              <label htmlFor="filtro-carteira">Carteira</label>
+              <select
+                className="select"
+                id="filtro-carteira"
+                value={filtros.campanhaId}
+                onChange={(evento) => alterar("campanhaId", evento.target.value)}
+              >
+                <option value={TODOS}>Todas</option>
+                {campanhasVisiveis.map((item) => (
+                  <option key={item.id} value={item.id}>
+                    {item.nome}
+                  </option>
+                ))}
+              </select>
+            </div>
 
-          {filtroAtivo ? (
-            <button
-              className="btn ghost"
-              type="button"
-              onClick={limparRecortes}
-            >
-              <Icon name="undo" size={16} />
-              Limpar
-            </button>
-          ) : null}
+            <div className="field">
+              <label htmlFor="filtro-operador">Operador</label>
+              <select
+                className="select"
+                id="filtro-operador"
+                value={filtros.operadorId}
+                onChange={(evento) => alterar("operadorId", evento.target.value)}
+              >
+                <option value={TODOS}>Todos</option>
+                {opcoes.avaliados.map((item) => (
+                  <option key={item.id} value={item.id}>
+                    {item.nome}
+                  </option>
+                ))}
+              </select>
+            </div>
+
+            {filtroAtivo ? (
+              <button className="btn ghost" type="button" onClick={limparRecortes}>
+                <Icon name="undo" size={16} />
+                Limpar
+              </button>
+            ) : null}
+          </div>
         </div>
       </section>
-
       {error ? (
         <section className="card pad">
           <div className="empty-state">
@@ -328,12 +346,55 @@ export default function DashboardPage() {
         ))}
       </section>
 
+
+      <section className={styles.atencao} aria-labelledby="titulo-atencao">
+        <div className="section-head">
+          <div>
+            <h2 id="titulo-atencao">Precisa da sua atenção</h2>
+            <p>Fila curta para agir primeiro: notas críticas, falhas e feedbacks pendentes.</p>
+          </div>
+          <Link className="btn" href="/avaliacoes">
+            Ver fila completa
+            <Icon name="chevronRight" size={16} />
+          </Link>
+        </div>
+
+        {prioridades.length > 0 ? (
+          <ul className={styles.atencaoLista}>
+            {prioridades.slice(0, 3).map((item, indice) => {
+              const destino = item.href || "/avaliacoes";
+              return (
+                <li key={`${item.public_id}-atencao-${indice}`} data-critica={item.critica ? "true" : undefined}>
+                  <span className={styles.atencaoSelo}>{item.critica ? "Crítica" : "Atenção"}</span>
+                  <div>
+                    <strong>{item.public_id}</strong>
+                    <p>
+                      {item.wallet_name || "Sem carteira"} · {item.operator_name || "Operador não informado"}
+                    </p>
+                  </div>
+                  <span className={styles.atencaoNota}>Nota {formatarScore(item.score)}</span>
+                  <Link className={styles.atencaoLink} href={destino} aria-label={`Revisar ${item.public_id}`}>
+                    Revisar
+                    <Icon name="chevronRight" size={14} />
+                  </Link>
+                </li>
+              );
+            })}
+          </ul>
+        ) : (
+          <div className={styles.atencaoVazia}>
+            <Icon name="checkCircle" size={18} />
+            <span>Nenhuma ação crítica no recorte atual.</span>
+          </div>
+        )}
+      </section>
+
       <div className={styles.duasColunas} data-proporcao="dois-um">
         <section className="card pad" aria-labelledby="titulo-evolucao">
           <div className="section-head">
             <div>
-              <h2 id="titulo-evolucao">Evolução da qualidade</h2>
-              <p>Nota média por dia. A barra clara atrás mostra o volume de monitorias.</p>
+              <h2 id="titulo-evolucao">A qualidade está melhorando?</h2>
+              <p>Nota média por dia, com volume de monitorias para explicar variações.</p>
             </div>
             <span className="section-meta">{periodo.label}</span>
           </div>
@@ -394,7 +455,7 @@ export default function DashboardPage() {
         </section>
       </div>
 
-      {/* --- Prioridades e Carteiras em foco ------------------------------
+      {/* --- Prioridades e Desempenho por carteira ------------------------------
           Emparelhados porque os dois sao listas longas. Antes, "Prioridades"
           dividia a linha com "Foco da gestao" -- um bloco de uma frase so --
           e a coluna da direita ficava com meia tela de branco embaixo. Em
@@ -475,8 +536,8 @@ export default function DashboardPage() {
         <section className="card pad" aria-labelledby="titulo-carteiras">
           <div className="section-head">
             <div>
-              <h2 id="titulo-carteiras">Carteiras em foco</h2>
-              <p>Da pior para a melhor nota média.</p>
+              <h2 id="titulo-carteiras">Desempenho por carteira</h2>
+              <p>Ranking das carteiras no recorte selecionado.</p>
             </div>
           </div>
 
@@ -504,7 +565,7 @@ export default function DashboardPage() {
         </section>
       </div>
 
-      {/* --- Foco da gestao e Principais ofensores -------------------------
+      {/* --- Foco da gestao e Onde estamos falhando -------------------------
           Os dois curtos, agora juntos. Alem da altura parecida, eles falam da
           mesma coisa: qual criterio esta custando qualidade. Quando nao ha nao
           conformidade registrada os dois ficam vazios ao mesmo tempo -- e uma
@@ -579,8 +640,8 @@ export default function DashboardPage() {
         <section className="card pad" aria-labelledby="titulo-ofensores">
           <div className="section-head">
             <div>
-              <h2 id="titulo-ofensores">Principais ofensores</h2>
-              <p>Critérios com mais não conformidades.</p>
+              <h2 id="titulo-ofensores">Onde estamos falhando</h2>
+              <p>Critérios que mais derrubam a qualidade.</p>
             </div>
           </div>
 

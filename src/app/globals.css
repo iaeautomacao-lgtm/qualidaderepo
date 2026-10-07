@@ -27,19 +27,19 @@
 
 :root {
   /* --- superfícies e linhas ------------------------------------------- */
-  --bg: #f7f6f3;
+  --bg: #f7f7f5;
   --surface: #ffffff;
-  --surface-2: #faf9f7;
-  --surface-3: #f1f0ec;
+  --surface-2: #fbfbfa;
+  --surface-3: #f1f0ed;
   --surface-inverse: #171614;
-  --line: #e5e3de;             /* separador decorativo */
-  --line-strong: #d2cfc8;      /* separador com mais presença */
-  --border-control: #8a8579;   /* borda de input/select — 3,68:1 no branco */
+  --line: #e7e5e1;             /* separador decorativo */
+  --line-strong: #d8d5ce;      /* separador com mais presença */
+  --border-control: #d8d5ce;   /* borda de input/select — 3,68:1 no branco */
 
   /* --- texto ----------------------------------------------------------- */
-  --text: #171614;             /* 18,08:1 no branco */
-  --text-soft: #57544b;        /*  7,57:1 no branco */
-  --text-muted: #6b6760;       /*  5,62:1 no branco — menor tom permitido */
+  --text: #181816;             /* 18,08:1 no branco */
+  --text-soft: #55524d;        /*  7,57:1 no branco */
+  --text-muted: #6f6d68;       /*  5,62:1 no branco — menor tom permitido */
   --text-on-dark: #ffffff;
 
   /* --- laranja da marca ------------------------------------------------ */
@@ -111,8 +111,7 @@
      macOS/iOS, Roboto no Android. Carrega instantâneo (nenhuma requisição,
      nenhum flash de texto trocando) e dá ao app a cara dos aplicativos
      corporativos da própria máquina. */
-  --font-sans: system-ui, -apple-system, "Segoe UI Variable Text", "Segoe UI",
-    Roboto, "Helvetica Neue", Arial, sans-serif;
+  --font-sans: "Inter", "Geist", system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
 
   --fs-100: 0.75rem;      /* 12px — micro-rótulos, chips */
   --fs-200: 0.8125rem;    /* 13px — texto denso secundário */
@@ -121,8 +120,8 @@
   --fs-500: 1.125rem;     /* 18px — h3 */
   --fs-600: 1.375rem;     /* 22px — h2 */
   --fs-700: 1.75rem;      /* 28px */
-  --fs-800: clamp(1.625rem, 1.15rem + 1.5vw, 2.25rem);  /* h1 */
-  --fs-kpi: clamp(1.75rem, 1.3rem + 1.4vw, 2.375rem);   /* valor de KPI */
+  --fs-800: clamp(2rem, 1.7rem + 1.1vw, 2.5rem);  /* h1 */
+  --fs-kpi: clamp(1.875rem, 1.55rem + 0.9vw, 2.125rem);   /* valor de KPI */
   --fs-hero: clamp(2.25rem, 1.6rem + 2.4vw, 3.25rem);   /* número-herói */
 
   --fw-regular: 400;
@@ -152,13 +151,13 @@
   --r-xs: 4px;
   --r-sm: 6px;
   --r-md: 10px;
-  --r-lg: 14px;
+  --r-lg: 12px;
   --r-xl: 18px;
   --r-pill: 999px;
 
   /* --- sombras ---------------------------------------------------------- */
-  --shadow-xs: 0 1px 2px rgba(23, 22, 20, 0.05);
-  --shadow-sm: 0 1px 2px rgba(23, 22, 20, 0.04), 0 2px 6px rgba(23, 22, 20, 0.04);
+  --shadow-xs: none;
+  --shadow-sm: none;
   --shadow-md: 0 2px 4px rgba(23, 22, 20, 0.04), 0 8px 20px rgba(23, 22, 20, 0.06);
   --shadow-lg: 0 8px 16px rgba(23, 22, 20, 0.06), 0 24px 48px rgba(23, 22, 20, 0.1);
 
@@ -2893,4 +2892,120 @@ tr:hover .copy-id,
     transition-duration: 0.01ms !important;
     scroll-behavior: auto !important;
   }
+}
+
+/* ========================================================================== 
+   Refino B2B Qualidade
+   ========================================================================== */
+
+body {
+  font-feature-settings: "cv02", "cv03", "cv04", "cv11";
+}
+
+.card {
+  box-shadow: none;
+}
+
+.btn {
+  min-height: 42px;
+  border-color: var(--line-strong);
+  border-radius: 10px;
+  font-weight: 600;
+  box-shadow: none;
+}
+
+.btn.primary {
+  border-color: var(--accent-strong);
+  background: var(--accent-strong);
+}
+
+.input,
+.textarea,
+.select {
+  min-height: 42px;
+  border-color: var(--line-strong);
+  border-radius: 10px;
+  background-color: var(--surface);
+  box-shadow: none;
+}
+
+.select {
+  appearance: none;
+  padding-right: 2.25rem;
+  background-image:
+    linear-gradient(45deg, transparent 50%, var(--text-muted) 50%),
+    linear-gradient(135deg, var(--text-muted) 50%, transparent 50%);
+  background-position:
+    calc(100% - 18px) 50%,
+    calc(100% - 13px) 50%;
+  background-size: 5px 5px, 5px 5px;
+  background-repeat: no-repeat;
+}
+
+.field > label,
+.filtros label {
+  color: var(--text-muted);
+  font-size: 0.6875rem;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+.sidebar {
+  gap: var(--sp-3);
+  padding: var(--sp-3);
+}
+
+.brand {
+  padding: var(--sp-2) var(--sp-1);
+}
+
+.brand:hover {
+  background: transparent;
+}
+
+.brand img {
+  width: 138px;
+}
+
+.sidebar-user {
+  gap: var(--sp-2);
+  padding: var(--sp-2);
+  border-color: transparent;
+  background: transparent;
+}
+
+.avatar {
+  width: 32px;
+  height: 32px;
+  background: var(--accent-strong);
+  font-size: var(--fs-100);
+}
+
+.nav-item {
+  min-height: 34px;
+  border-radius: 9px;
+  color: var(--text-soft);
+  font-weight: 500;
+}
+
+.nav-icon {
+  color: var(--text-muted);
+}
+
+.nav-item:hover .nav-icon {
+  color: var(--text-soft);
+}
+
+.nav-item[aria-current="page"] {
+  background: var(--accent-soft);
+  color: var(--accent-strong);
+}
+
+.nav-item[aria-current="page"] .nav-icon {
+  color: var(--accent-strong);
+}
+
+.sidebar-footer .btn.danger {
+  border-color: var(--danger-text);
 }
