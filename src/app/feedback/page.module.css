@@ -181,6 +181,10 @@
   color: var(--accent);
 }
 
+.slaAlerta {
+  align-items: flex-start;
+}
+
 /* --- tabela --------------------------------------------------------------- */
 
 .tabelaHead {
@@ -191,7 +195,19 @@
 /* Dez colunas não cabem em tela estreita: abaixo desta largura o contêiner
    .table-scroll assume a rolagem horizontal, e a página nunca rola de lado. */
 .tabela {
-  min-width: 1300px;
+  min-width: 1420px;
+}
+
+.slaCelula {
+  display: inline-grid;
+  gap: 4px;
+  min-width: 150px;
+}
+
+.slaPrazo {
+  color: var(--text-soft);
+  font-size: var(--fs-100);
+  line-height: var(--lh-snug);
 }
 
 /* Ação por linha: mais baixa que o .btn padrão (44px deixaria cada linha da
@@ -216,7 +232,7 @@
 
 /* Campanha é o único campo longo o bastante para justificar quebra: os nomes
    passam de 40 caracteres ("Canais Online (E-mail, Chat e WhatsApp)"). */
-.tabela td:nth-child(8) {
+.tabela td:nth-child(10) {
   max-width: 22ch;
   overflow: hidden;
   text-overflow: ellipsis;

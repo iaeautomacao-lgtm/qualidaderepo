@@ -40,6 +40,11 @@ const ORDENACOES = {
   status: "a.status_feedback",
 };
 
+const STATUS_FECHADOS = new Set(["concluida", "justificada", "dispensado"]);
+const SLA_DIAS_CRITICO = 2;
+const SLA_DIAS_PADRAO = 5;
+const MS_DIA = 24 * 60 * 60 * 1000;
+
 // Monta o WHERE a partir de um conjunto FECHADO de filtros. Nenhum valor do
 // usuário entra no texto do SQL: cada condição é um placeholder nomeado, e o
 // nome vem daqui, não da query string.
@@ -119,7 +124,77 @@ function totalPorStatus(contadores, status, totalDoRecorte) {
   return inteiro(contadores?.[status]);
 }
 
+function parseDataLocal(valor) {
+  if (!valor) return null;
+  const texto = String(valor).replace(" ", "T");
+  const data = new Date(texto);
+  return Number.isNaN(data.getTime()) ? null : data;
+}
+
+function formatarDataSql(data) {
+  if (!(data instanceof Date) || Number.isNaN(data.getTime())) return null;
+  const iso = new Date(data.getTime() - data.getTimezoneOffset() * 60000).toISOString();
+  return iso.slice(0, 19).replace("T", " ");
+}
+
+function ehFeedbackCritico(row) {
+  return inteiro(row.zerada) === 1 || Number(row.score ?? 0) === 0;
+}
+
+function calcularPrazoFeedback(row) {
+  const prazoInformado = row.feedback_prazo || row.prazo_feedback;
+  if (prazoInformado) {
+    return { valor: prazoInformado, origem: "configurado" };
+  }
+
+  const dataBase = parseDataLocal(row.data_avaliacao || row.data_contato);
+  if (!dataBase) return { valor: null, origem: "indisponivel" };
+
+  const dias = ehFeedbackCritico(row) ? SLA_DIAS_CRITICO : SLA_DIAS_PADRAO;
+  return { valor: formatarDataSql(new Date(dataBase.getTime() + dias * MS_DIA)), origem: "calculado" };
+}
+
+function classificarSla(row) {
+  const prazo = calcularPrazoFeedback(row);
+  const prazoData = parseDataLocal(prazo.valor);
+  const fechado = STATUS_FECHADOS.has(row.status_feedback);
+
+  if (fechado) {
+    return {
+      prazo: prazo.valor,
+      prazoOrigem: prazo.origem,
+      status: "concluido",
+      label: "Concluído",
+      atrasado: false,
+      critico: ehFeedbackCritico(row),
+    };
+  }
+
+  if (!prazoData) {
+    return {
+      prazo: null,
+      prazoOrigem: prazo.origem,
+      status: "sem_prazo",
+      label: "Sem prazo",
+      atrasado: false,
+      critico: ehFeedbackCritico(row),
+    };
+  }
+
+  const atrasado = prazoData.getTime() < Date.now();
+  return {
+    prazo: prazo.valor,
+    prazoOrigem: prazo.origem,
+    status: atrasado ? "atrasado" : "no_prazo",
+    label: atrasado ? "Atrasado" : "No prazo",
+    atrasado,
+    critico: ehFeedbackCritico(row),
+  };
+}
+
 function montarItem(row) {
+  const sla = classificarSla(row);
+
   return {
     id: row.codigo,
     avaliacaoId: String(row.db_id),
@@ -139,7 +214,14 @@ function montarItem(row) {
     formulario: row.formulario,
     codGravacao: row.cod_gravacao || "N/A",
     score: row.score == null ? null : Number(row.score),
-    prazo: formatarDataIso(row.feedback_prazo || row.prazo_feedback),
+    zerada: inteiro(row.zerada) === 1,
+    prazo: formatarDataIso(sla.prazo),
+    prazoFormatado: formatarDataHora(sla.prazo),
+    prazoOrigem: sla.prazoOrigem,
+    slaStatus: sla.status,
+    slaLabel: sla.label,
+    slaAtrasado: sla.atrasado,
+    slaCritico: sla.critico,
     aplicadoEm: formatarDataHora(row.aplicado_em),
     assinadoEm: formatarDataHora(row.assinado_em),
     justificativaMotivo: row.justificativa_motivo || null,
@@ -156,6 +238,7 @@ function vazio(limit, offset) {
       justificadas: 0,
       revisao: 0,
       dispensado: 0,
+      atrasados: 0,
       todos: 0,
     },
     paginacao: { limit, offset, total: 0 },
@@ -192,8 +275,18 @@ export async function listarFeedbacks({
           SUM(a.status_feedback = 'assinatura')  AS assinatura,
           SUM(a.status_feedback = 'concluida')   AS concluida,
           SUM(a.status_feedback = 'justificada') AS justificada,
-         SUM(a.status_feedback = 'revisao')     AS revisao,
-         SUM(a.status_feedback = 'dispensado')  AS dispensado
+          SUM(a.status_feedback = 'revisao')     AS revisao,
+          SUM(a.status_feedback = 'dispensado')  AS dispensado,
+          SUM(
+            a.status_feedback NOT IN ('concluida', 'justificada', 'dispensado')
+            AND COALESCE(
+              a.prazo_feedback,
+              DATE_ADD(
+                a.data_avaliacao,
+                INTERVAL IF(COALESCE(a.zerada, 0) = 1 OR COALESCE(a.score, 0) = 0, 2, 5) DAY
+              )
+            ) < CURRENT_TIMESTAMP
+          ) AS atrasados
          FROM avaliacoes a
          JOIN clientes cl ON cl.id = a.cliente_id
          LEFT JOIN campanhas ca ON ca.id = a.campanha_id
@@ -217,6 +310,7 @@ export async function listarFeedbacks({
           a.data_contato,
           a.status_feedback,
           a.score,
+          a.zerada,
           a.prazo_feedback,
           cl.nome AS cliente,
           ca.nome AS campanha,
@@ -254,6 +348,7 @@ export async function listarFeedbacks({
         justificadas: justificada,
         revisao: inteiro(contadores?.revisao),
         dispensado: inteiro(contadores?.dispensado),
+        atrasados: inteiro(contadores?.atrasados),
         todos: totalDoRecorte,
       },
       // `total` é o total do recorte com o filtro de status aplicado — é o

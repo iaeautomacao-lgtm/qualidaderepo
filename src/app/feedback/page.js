@@ -54,6 +54,13 @@ const APARENCIA_STATUS = {
   dispensado: { tom: "", icone: "info" },
 };
 
+const APARENCIA_SLA = {
+  atrasado: { tom: "danger", icone: "alert" },
+  no_prazo: { tom: "success", icone: "checkCircle" },
+  concluido: { tom: "", icone: "check" },
+  sem_prazo: { tom: "warning", icone: "clock" },
+};
+
 function contarFiltros(filtros) {
   const simples = ["busca", "clienteId", "campanhaId", "avaliadorId", "avaliadoId", "supervisorId"];
   const total = simples.filter((chave) => filtros[chave].trim() !== "").length;
@@ -394,6 +401,19 @@ export default function FeedbackPage() {
         </ul>
       </section>
 
+      {!primeiraCarga && contadores?.atrasados > 0 ? (
+        <p className={`alert danger ${styles.slaAlerta}`}>
+          <Icon name="alert" size={16} />
+          <span className="alert-body">
+            <strong>{formatarNumero(contadores.atrasados)} feedbacks fora do SLA</strong>
+            <span>
+              Críticas usam prazo operacional de 48h; demais monitorias usam 5 dias quando o
+              banco ainda não tem prazo específico.
+            </span>
+          </span>
+        </p>
+      ) : null}
+
       {totalDoRecorte > POR_PAGINA ? (
         <p className={styles.nota}>
           <Icon name="info" size={15} />
@@ -472,6 +492,7 @@ export default function FeedbackPage() {
                     <th scope="col">ID</th>
                     <th scope="col">Data avaliação</th>
                     <th scope="col">Status feedback</th>
+                    <th scope="col">SLA</th>
                     <th scope="col">Operador</th>
                     <th scope="col">Superior</th>
                     <th scope="col">Avaliador</th>
@@ -485,6 +506,7 @@ export default function FeedbackPage() {
                 <tbody>
                   {itens.map((item) => {
                     const aparencia = APARENCIA_STATUS[item.status] ?? { tom: "", icone: "info" };
+                    const aparenciaSla = APARENCIA_SLA[item.slaStatus] ?? APARENCIA_SLA.sem_prazo;
 
                     return (
                       <tr key={item.id}>
@@ -508,6 +530,18 @@ export default function FeedbackPage() {
                           <span className={`chip ${aparencia.tom}`}>
                             <Icon name={aparencia.icone} size={13} />
                             {item.statusLabel}
+                          </span>
+                        </td>
+                        <td>
+                          <span className={styles.slaCelula}>
+                            <span className={`chip ${aparenciaSla.tom}`}>
+                              <Icon name={aparenciaSla.icone} size={13} />
+                              {item.slaLabel}
+                            </span>
+                            <span className={styles.slaPrazo}>
+                              {item.prazoFormatado || "Prazo não definido"}
+                              {item.prazoOrigem === "calculado" ? " · padrão" : ""}
+                            </span>
                           </span>
                         </td>
                         <td>{item.avaliado}</td>
