@@ -72,10 +72,6 @@ export default function GestaoAdmPage() {
         </div>
 
         <div className="actions">
-          <Link className="btn" href="/contestacoes/avaliacoes-candidatas">
-            <Icon name="alert" size={16} />
-            Avaliações candidatas
-          </Link>
           <button className="btn" type="button" onClick={recarregar} disabled={carregando}>
             <Icon
               className={carregando ? "spinning" : undefined}

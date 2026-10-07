@@ -77,10 +77,9 @@ const menu = [
   // referência — quem abre pedido e quem julga não são a mesma pessoa.
   {
     label: "Contestações",
-    href: "/contestacoes/avaliacoes-candidatas",
+    href: "/contestacoes/gestao-adm",
     icon: "alert",
     filhos: [
-      { label: "Avaliações candidatas", href: "/contestacoes/avaliacoes-candidatas" },
       { label: "Gestão ADM", href: "/contestacoes/gestao-adm" },
     ],
   },

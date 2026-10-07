@@ -136,9 +136,9 @@ export default function AbrirContestacaoPage({ params }) {
               <Icon name="refresh" size={16} />
               Tentar novamente
             </button>
-            <Link className="btn" href="/contestacoes/avaliacoes-candidatas">
+            <Link className="btn" href="/contestacoes/gestao-adm">
               <Icon name="chevronLeft" size={16} />
-              Voltar para as candidatas
+              Voltar para Gestão ADM
             </Link>
           </div>
         </div>
@@ -179,7 +179,7 @@ export default function AbrirContestacaoPage({ params }) {
                 <Icon name="review" size={15} />
                 Ver avaliação inteira
               </Link>
-              <Link className="btn" href="/contestacoes/avaliacoes-candidatas">
+              <Link className="btn" href="/contestacoes/gestao-adm">
                 <Icon name="chevronLeft" size={15} />
                 Fechar
               </Link>
@@ -511,7 +511,7 @@ export default function AbrirContestacaoPage({ params }) {
                       : `${marcadosIds.length} item(ns) prontos para envio.`}
                 </p>
                 <div className="btn-row">
-                  <Link className="btn" href="/contestacoes/avaliacoes-candidatas">
+                  <Link className="btn" href="/contestacoes/gestao-adm">
                     Fechar
                   </Link>
                   <button className="btn primary" type="submit" disabled={!podeEnviar}>
