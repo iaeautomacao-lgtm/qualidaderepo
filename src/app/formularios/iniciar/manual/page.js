@@ -67,6 +67,8 @@ function MonitoriaManualContent() {
   const [superiorId] = useState(superiorInicialId);
   const [codGravacao, setCodGravacao] = useState("");
   const [dataContato, setDataContato] = useState("");
+  const [arquivos, setArquivos] = useState([]);
+  const [textoAtendimento, setTextoAtendimento] = useState("");
   const [respostas, setRespostas] = useState({});
   const [erro, setErro] = useState("");
   const [salvando, setSalvando] = useState(false);
@@ -114,19 +116,39 @@ function MonitoriaManualContent() {
 
     try {
       if (!avaliadoId) throw new Error("Selecione o operador avaliado.");
-      const payload = await enviarApi("/api/avaliacoes/manual", {
+      const corpo = {
         formularioId,
         campanhaId,
         avaliadoId,
         superiorId,
         codGravacao,
         dataContato,
+        textoAtendimento,
         respostas: Object.entries(respostas).map(([criterioId, resposta]) => ({
           criterioId,
           status: resposta.status,
           observacao: resposta.observacao,
         })),
-      });
+      };
+      let payload;
+      if (arquivos.length > 0 || textoAtendimento.trim()) {
+        const formData = new FormData();
+        formData.append("payload", JSON.stringify(corpo));
+        arquivos.forEach((arquivo) => formData.append("files", arquivo));
+        if (textoAtendimento.trim()) formData.append("textoAtendimento", textoAtendimento.trim());
+
+        const resposta = await fetch("/api/avaliacoes/manual", {
+          method: "POST",
+          body: formData,
+        });
+        const json = await resposta.json().catch(() => null);
+        if (!resposta.ok || !json?.ok) {
+          throw new Error(json?.error?.message || "Não foi possível salvar a monitoria.");
+        }
+        payload = json.data;
+      } else {
+        payload = await enviarApi("/api/avaliacoes/manual", corpo);
+      }
       router.push(`/avaliacoes/${encodeURIComponent(payload.avaliacao.id)}`);
     } catch (error) {
       setErro(error.message);
@@ -183,6 +205,32 @@ function MonitoriaManualContent() {
             <div className="field">
               <label htmlFor="manual-data">Data do contato</label>
               <input className="input" id="manual-data" type="datetime-local" value={dataContato} onChange={(e) => setDataContato(e.target.value)} />
+            </div>
+            <div className="field">
+              <label htmlFor="manual-arquivos">Gravação ou conversa</label>
+              <input
+                className="input"
+                id="manual-arquivos"
+                type="file"
+                multiple
+                accept="audio/*,video/mp4,.mp3,.wav,.m4a,.mp4,.ogg,.opus,.webm,.flac,.txt,.csv,.pdf"
+                onChange={(e) => setArquivos(Array.from(e.target.files || []))}
+              />
+              <span className="field-hint">
+                Anexe áudio, vídeo, PDF, CSV ou TXT do atendimento.
+              </span>
+            </div>
+            <div className={`field ${styles.observacaoManual}`}>
+              <label htmlFor="manual-texto">Conversa em texto</label>
+              <textarea
+                className="input"
+                id="manual-texto"
+                rows={4}
+                maxLength={20000}
+                placeholder="Cole aqui a conversa quando não houver arquivo."
+                value={textoAtendimento}
+                onChange={(e) => setTextoAtendimento(e.target.value)}
+              />
             </div>
           </section>
 

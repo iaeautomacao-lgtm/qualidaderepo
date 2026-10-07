@@ -902,7 +902,13 @@ export async function createAvaliacaoManual({
       );
     }
 
-    return { codigo, avaliacaoId: String(insert.insertId), score };
+    return {
+      codigo,
+      avaliacaoId: String(insert.insertId),
+      clienteId: String(formulario.clienteId),
+      campanhaId: campanhaValida ? String(campanhaId) : null,
+      score,
+    };
   });
 }
 
