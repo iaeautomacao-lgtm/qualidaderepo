@@ -185,7 +185,7 @@ export default function MonitorIaPage() {
       <section className="page-header">
         <div>
           <h1>Monitor IA</h1>
-          <p>Cadastre e gerencie Monitores IA por carteira.</p>
+          <p>Cadastre e gerencie Monitores IA por carteira, formulário e prompt.</p>
         </div>
 
         <div className="actions">
