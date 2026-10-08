@@ -63,7 +63,7 @@ const menu = [
     ],
   },
   { label: "Dashboard de Formulários", href: "/dashboard-formularios", icon: "metrics" },
-  // Acordito e Transcrições ficam como entradas próprias, no padrão da tela
+  // Monitor IA e Transcrições ficam como entradas próprias, no padrão da tela
   // de referência: primeiro a gestão das personas, depois a entrada dos áudios.
   { label: "Monitor IA", href: "/monitor-ia", icon: "sparkles" },
   { label: "Transcrições", href: "/transcricoes", icon: "waveform" },

@@ -941,10 +941,10 @@ async function listarAvaliacoesIaLivres({ limit = 100 } = {}) {
         return {
           id: codigo,
           avaliado: analise.avaliado || analise.operador || "Monitoria IA",
-          avaliador: "Acordito",
+          avaliador: "Monitor IA",
           supervisor: "Revisão humana pendente",
           campanha: row.campanha || analise.campanha || "Sem campanha",
-          departamento: row.cliente || analise.carteira || "Acordito",
+          departamento: row.cliente || analise.carteira || "Monitor IA",
           categoria: "Monitoria IA",
           score: formatarScore(score),
           data: formatarDataIso(row.created_at),

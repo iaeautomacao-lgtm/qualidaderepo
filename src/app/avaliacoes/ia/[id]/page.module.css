@@ -220,7 +220,7 @@
 
 /* --- corpo em duas colunas ----------------------------------------------- */
 
-/* Laudo à esquerda, Acordito grudado à direita.
+/* Laudo à esquerda, Monitor IA grudado à direita.
 
    A largura da lateral é fixa em rem e não em fração: o chat tem uma linha de
    entrada e bolhas de texto, desconfortáveis tanto estreitas demais quanto
@@ -478,7 +478,7 @@
   gap: var(--sp-4);
 }
 
-.sentimentoAcordito {
+.sentimentoMonitorIa {
   display: grid;
   gap: var(--sp-4);
 }

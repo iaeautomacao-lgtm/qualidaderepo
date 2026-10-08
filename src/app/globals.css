@@ -1566,7 +1566,7 @@ tr:hover .copy-id,
   /* `clip` e nao `hidden`: os dois impedem a pagina inteira de deslizar de
      lado, mas `hidden` transforma este elemento em container de rolagem e
      quebra todo `position: sticky` dentro dele -- incluindo a lateral do
-     Acordito na ficha de IA. `clip` contem sem criar container.
+     Monitor IA na ficha de IA. `clip` contem sem criar container.
 
      Tabela larga continua rolando: ela tem `.scroll-x` proprio, com rolagem
      interna, que nao depende da rolagem do documento. */

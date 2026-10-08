@@ -274,11 +274,11 @@ export default function PerguntarIaPage() {
   );
 
   return (
-    <AppShell active="Perguntar ao Acordito" breadcrumb="Acordito > Perguntar ao Acordito">
+    <AppShell active="Perguntar ao Monitor IA" breadcrumb="Monitor IA > Perguntar ao Monitor IA">
       <div className={styles.pagina} data-conversando={conversando ? "true" : undefined}>
         <section className={styles.cabecalho}>
           <div>
-            <h1>Perguntar ao Acordito</h1>
+            <h1>Perguntar ao Monitor IA</h1>
             <p>Analise avaliações, encontre padrões e investigue problemas.</p>
           </div>
 

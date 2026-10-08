@@ -285,7 +285,7 @@ export default function AvaliacaoIaPage() {
   ];
 
   /* Três blocos de pessoas, como na ficha de monitoria.
-     O avaliador é o Acordito, e isso é dito com o modelo ao lado: a nota saiu
+     O avaliador é o Monitor IA, e isso é dito com o modelo ao lado: a nota saiu
      de um modelo, não de uma pessoa, e quem lê o feedback precisa saber disso.
      O superior vem do organograma de HOJE (`users.supervisor_id`) — análise
      livre não tem monitoria, então não existe retrato do superior na data. */
@@ -298,7 +298,7 @@ export default function AvaliacaoIaPage() {
     },
     {
       titulo: "Avaliador",
-      nome: "Acordito",
+      nome: "Monitor IA",
       email: null,
       nota: gravacao.transcricao?.modelo
         ? `Análise automática · ${gravacao.transcricao.modelo}`
@@ -480,7 +480,7 @@ export default function AvaliacaoIaPage() {
           </dl>
         </header>
 
-        {/* Duas colunas: o laudo a esquerda, o Acordito grudado a direita.
+        {/* Duas colunas: o laudo a esquerda, o Monitor IA grudado a direita.
 
             O chat estava no fim da coluna unica, depois de nove secoes -- quem
             queria perguntar sobre um criterio tinha de rolar ate embaixo,
@@ -724,7 +724,7 @@ export default function AvaliacaoIaPage() {
 
             {/* O player vem logo depois do resultado: é a fonte de tudo o que a IA
                 afirma, e o caminho evidência -> áudio tem de ser curto. */}
-            <SentimentoAcordito sentimento={analise.sentimento || SENTIMENTO_INDISPONIVEL} />
+            <SentimentoMonitorIa sentimento={analise.sentimento || SENTIMENTO_INDISPONIVEL} />
 
             <section className={`card pad ${styles.cartaoAudio}`}>
               <AudioPlayer
@@ -1025,7 +1025,7 @@ export default function AvaliacaoIaPage() {
               <ChatIa
                 escopo="gravacao"
                 referencia={id ? String(id) : ""}
-                titulo="Perguntar ao Acordito sobre esta avaliação"
+                titulo="Perguntar ao Monitor IA sobre esta avaliação"
                 descricao="Respostas ancoradas nos critérios e na transcrição desta gravação."
               />
             </section>
@@ -1189,16 +1189,16 @@ function EditarDadosAtendimento({ gravacao, onCancelar, onSalvo }) {
   );
 }
 
-function SentimentoAcordito({ sentimento }) {
+function SentimentoMonitorIa({ sentimento }) {
   const sinais = Array.isArray(sentimento.sinais) ? sentimento.sinais.filter(Boolean) : [];
   const alertas = Array.isArray(sentimento.alertas) ? sentimento.alertas.filter(Boolean) : [];
 
   return (
-    <section className={`card pad ${styles.sentimentoAcordito}`}>
+    <section className={`card pad ${styles.sentimentoMonitorIa}`}>
       <div className="section-head">
         <div>
           <h2>Sentimento do atendimento</h2>
-          <p>Leitura emocional do Acordito, separada da nota da monitoria.</p>
+          <p>Leitura emocional do Monitor IA, separada da nota da monitoria.</p>
         </div>
         <span className="icon-badge" aria-hidden="true">
           <Icon name="sparkles" size={18} />
@@ -1508,7 +1508,7 @@ function AcoesDaAnalise({ id }) {
           </Link>
           <a className="btn" href="#perguntar-ia">
             <Icon name="sparkles" size={16} />
-            Perguntar ao Acordito
+            Perguntar ao Monitor IA
           </a>
         </div>
         <p className={styles.notaAcao}>

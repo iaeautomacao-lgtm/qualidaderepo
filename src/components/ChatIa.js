@@ -41,7 +41,7 @@ function proximoId() {
 export default function ChatIa({
   escopo,
   referencia,
-  titulo = "Perguntar ao Acordito",
+  titulo = "Perguntar ao Monitor IA",
   descricao = "Sobre o operador, os critérios e o feedback desta monitoria.",
 }) {
   const idBase = useId();

@@ -271,7 +271,7 @@ function FichaConteudo({ id }) {
                 {origemIa ? (
                   <span className="chip info">
                     <Icon name="robot" size={13} />
-                    Gerada pelo Acordito
+                    Gerada pelo Monitor IA
                   </span>
                 ) : null}
                 {ficha.quadrante ? <span className="chip">Quadrante {ficha.quadrante}</span> : null}
@@ -576,7 +576,7 @@ function SentimentoIa({ sentimento }) {
       <div className="section-head">
         <div>
           <h2>Sentimento do atendimento</h2>
-          <p>Leitura emocional feita pelo Acordito, separada da nota de qualidade.</p>
+          <p>Leitura emocional feita pelo Monitor IA, separada da nota de qualidade.</p>
         </div>
         <span className="icon-badge" aria-hidden="true">
           <Icon name="sparkles" size={18} />
@@ -635,7 +635,7 @@ function ListasIa({ ia }) {
 
   return (
     <section className={`card pad ${styles.listasIa}`}>
-      <h2 className={styles.tituloSecao}>Leitura do Acordito</h2>
+      <h2 className={styles.tituloSecao}>Leitura do Monitor IA</h2>
       {grupos.map((grupo) => (
         <div key={grupo.titulo}>
           <h3>
