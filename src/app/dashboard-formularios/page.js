@@ -90,7 +90,9 @@ export default function DashboardFormulariosPage() {
 
   const campanhasVisiveis = useMemo(() => {
     if (filtros.clienteId === TODOS) return opcoes.campanhas;
-    return opcoes.campanhas.filter((campanha) => campanha.clienteId === filtros.clienteId);
+    return opcoes.campanhas.filter(
+      (campanha) => campanha.clienteId != null && String(campanha.clienteId) === String(filtros.clienteId),
+    );
   }, [opcoes.campanhas, filtros.clienteId]);
 
   const filtroAtivo = ["clienteId", "campanhaId", "operadorId"].some((chave) => filtros[chave] !== TODOS);

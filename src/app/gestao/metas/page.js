@@ -68,7 +68,10 @@ export default function MetasPage() {
   // Campanha só das campanhas da operação escolhida: meta de campanha de outra
   // carteira não faz sentido e o banco recusaria pela chave composta.
   const campanhasDaOperacao = useMemo(
-    () => opcoes.campanhas.filter((campanha) => !clienteId || campanha.clienteId === clienteId),
+    () =>
+      opcoes.campanhas.filter(
+        (campanha) => !clienteId || (campanha.clienteId != null && String(campanha.clienteId) === String(clienteId)),
+      ),
     [opcoes.campanhas, clienteId],
   );
 

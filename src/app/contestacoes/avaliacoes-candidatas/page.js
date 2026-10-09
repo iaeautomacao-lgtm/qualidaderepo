@@ -218,7 +218,11 @@ export default function ContestacoesPage() {
             >
               <option value="">Todas as campanhas</option>
               {opcoes.campanhas
-                .filter((campanha) => !filtros.clienteId || campanha.clienteId === filtros.clienteId)
+                .filter(
+                  (campanha) =>
+                    !filtros.clienteId ||
+                    (campanha.clienteId != null && String(campanha.clienteId) === String(filtros.clienteId)),
+                )
                 .map((campanha) => (
                   <option key={campanha.id} value={campanha.id}>
                     {campanha.nome}

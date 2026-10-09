@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useMemo, useState } from "react";
+import { Fragment, useMemo, useState } from "react";
 import AppShell from "./AppShell";
 import { Icon } from "./icons";
 import useRecurso from "@/hooks/useRecurso";
@@ -32,6 +32,7 @@ export default function CatalogoGestao({
   buscaPlaceholder = "Buscar...",
   kpis,
   camposDoItem,
+  agruparPor = null,
   acessar = null,
   criar = null,
   excluir = null,
@@ -309,8 +310,24 @@ export default function CatalogoGestao({
         </section>
       ) : (
         <ul className={styles.grade}>
-          {visiveis.map((item) => (
-            <li key={item.id}>
+          {visiveis.map((item, indice) => {
+            const grupo = agruparPor ? agruparPor(item) : null;
+            const grupoAnterior = agruparPor && indice > 0 ? agruparPor(visiveis[indice - 1]) : null;
+            const mostrarGrupo = grupo && (!grupoAnterior || grupoAnterior.chave !== grupo.chave);
+
+            return (
+            <Fragment key={item.id}>
+              {mostrarGrupo ? (
+                <li className={styles.grupoTitulo}>
+                  <div>
+                    <h2>{grupo.titulo}</h2>
+                    {grupo.descricao ? <p>{grupo.descricao}</p> : null}
+                  </div>
+                  {grupo.contador ? <span>{grupo.contador}</span> : null}
+                </li>
+              ) : null}
+
+            <li>
               <article className={`card pad ${styles.cartao}`} data-inativo={item.ativo === false || item.ativa === false ? "true" : undefined}>
                 <header className={styles.cartaoTopo}>
                   <div className={styles.cartaoIdent}>
@@ -404,7 +421,8 @@ export default function CatalogoGestao({
                 ) : null}
               </article>
             </li>
-          ))}
+            </Fragment>
+          )})}
         </ul>
       )}
     </AppShell>

@@ -210,7 +210,7 @@ export default function UploadPage() {
   const campanhasDisponiveis = useMemo(
     () =>
       opcoes.campanhas.filter(
-        (campanha) => !clienteId || campanha.clienteId === clienteId,
+        (campanha) => !clienteId || (campanha.clienteId != null && String(campanha.clienteId) === String(clienteId)),
       ),
     [clienteId, opcoes.campanhas],
   );

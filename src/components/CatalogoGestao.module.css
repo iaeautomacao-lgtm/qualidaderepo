@@ -116,6 +116,33 @@
   display: grid;
 }
 
+.grupoTitulo {
+  grid-column: 1 / -1;
+  display: flex;
+  align-items: end;
+  justify-content: space-between;
+  gap: var(--sp-3);
+  margin-top: var(--sp-2);
+  padding: var(--sp-2) 0 var(--sp-1);
+  border-bottom: 1px solid var(--line);
+}
+
+.grupoTitulo h2 {
+  font-size: var(--fs-500);
+  line-height: var(--lh-snug);
+}
+
+.grupoTitulo p,
+.grupoTitulo span {
+  color: var(--text-muted);
+  font-size: var(--fs-200);
+}
+
+.grupoTitulo span {
+  font-weight: var(--fw-semibold);
+  white-space: nowrap;
+}
+
 .cartao {
   display: grid;
   align-content: start;

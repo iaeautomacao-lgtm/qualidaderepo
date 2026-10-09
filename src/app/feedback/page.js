@@ -248,7 +248,8 @@ export default function FeedbackPage() {
                 {opcoes.campanhas
                   .filter(
                     (campanha) =>
-                      !filtros.clienteId || campanha.clienteId === filtros.clienteId,
+                        !filtros.clienteId ||
+                        (campanha.clienteId != null && String(campanha.clienteId) === String(filtros.clienteId)),
                   )
                   .map((campanha) => (
                     <option key={campanha.id} value={campanha.id}>

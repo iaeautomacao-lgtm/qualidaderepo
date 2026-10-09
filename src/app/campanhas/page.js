@@ -15,6 +15,15 @@ function texto(valor) {
   return valor == null ? "—" : String(valor).replace(".", ",");
 }
 
+function grupoDaCampanha(item) {
+  const titulo = item.cliente || "Sem operação";
+  return {
+    chave: item.clienteId || titulo,
+    titulo,
+    descricao: "Campanhas vinculadas a esta carteira.",
+  };
+}
+
 export default function CampanhasPage() {
   const [clientes, setClientes] = useState([]);
 
@@ -42,6 +51,7 @@ export default function CampanhasPage() {
       descricao="Campanhas por operação e canal, com desempenho dos últimos 31 dias."
       endpoint="/api/campanhas"
       buscaPlaceholder="Buscar campanha ou operação..."
+      agruparPor={grupoDaCampanha}
       kpis={(dados) => [
         { rotulo: "Total de campanhas", valor: String(dados?.kpis?.total ?? 0) },
         { rotulo: "Ativas", valor: String(dados?.kpis?.ativas ?? 0) },

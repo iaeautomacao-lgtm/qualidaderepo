@@ -1073,7 +1073,7 @@ function EditarDadosAtendimento({ gravacao, onCancelar, onSalvo }) {
   const campanhas = useMemo(
     () =>
       (opcoes?.campanhas ?? []).filter(
-        (campanha) => !clienteId || campanha.clienteId === clienteId,
+        (campanha) => !clienteId || (campanha.clienteId != null && String(campanha.clienteId) === String(clienteId)),
       ),
     [clienteId, opcoes?.campanhas],
   );

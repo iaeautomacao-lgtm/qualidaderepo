@@ -70,27 +70,34 @@ export default function IniciarAvaliacaoPage() {
   }, []);
 
   const campanhas = useMemo(
-    () => opcoes.campanhas.filter((item) => !selecionado.clienteId || item.clienteId === selecionado.clienteId),
+    () =>
+      opcoes.campanhas.filter(
+        (item) =>
+          !selecionado.clienteId ||
+          (item.clienteId != null && String(item.clienteId) === String(selecionado.clienteId)),
+      ),
     [opcoes.campanhas, selecionado.clienteId],
   );
   const superiores = useMemo(
-    () => opcoes.superiores.filter((item) => item.campanhaId === selecionado.campanhaId),
+    () => opcoes.superiores.filter((item) => String(item.campanhaId) === String(selecionado.campanhaId)),
     [opcoes.superiores, selecionado.campanhaId],
   );
   const avaliados = useMemo(
     () =>
       opcoes.avaliados.filter(
         (item) =>
-          item.clienteId === selecionado.clienteId &&
-          item.campanhaId === selecionado.campanhaId &&
-          (!selecionado.superiorId || item.superiorId === selecionado.superiorId),
+          String(item.clienteId) === String(selecionado.clienteId) &&
+          String(item.campanhaId) === String(selecionado.campanhaId) &&
+          (!selecionado.superiorId || String(item.superiorId) === String(selecionado.superiorId)),
       ),
     [opcoes.avaliados, selecionado.campanhaId, selecionado.clienteId, selecionado.superiorId],
   );
   const formularios = useMemo(
     () =>
       opcoes.formularios.filter(
-        (item) => item.clienteId === selecionado.clienteId && item.campanhaId === selecionado.campanhaId,
+        (item) =>
+          String(item.clienteId) === String(selecionado.clienteId) &&
+          String(item.campanhaId) === String(selecionado.campanhaId),
       ),
     [opcoes.formularios, selecionado.campanhaId, selecionado.clienteId],
   );

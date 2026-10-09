@@ -150,7 +150,7 @@ export default function DashboardPage() {
   const campanhasVisiveis = useMemo(() => {
     if (filtros.clienteId === TODOS) return opcoes.campanhas;
     return opcoes.campanhas.filter(
-      (campanha) => campanha.clienteId == null || campanha.clienteId === filtros.clienteId,
+      (campanha) => campanha.clienteId != null && String(campanha.clienteId) === String(filtros.clienteId),
     );
   }, [opcoes.campanhas, filtros.clienteId]);
 
