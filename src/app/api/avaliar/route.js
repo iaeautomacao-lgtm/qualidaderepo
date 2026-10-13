@@ -30,7 +30,7 @@ export async function POST(request) {
       throw badRequest("Informe quem foi avaliado antes de enviar para a IA.");
     }
 
-    validateUploadFiles([arquivo]);
+    const [arquivoValidado] = validateUploadFiles([arquivo]);
 
     const formulario = await getFormularioParaAvaliacaoIa({ formularioId });
     if (!formulario || formulario.secoes.length === 0) {
@@ -39,11 +39,17 @@ export async function POST(request) {
 
     const bytes = Buffer.from(await arquivo.arrayBuffer());
     const arquivoSalvo = await saveUploadFile({ file: arquivo, bytes });
+    const arquivoParaRegistro = {
+      ...arquivoSalvo,
+      nome: arquivoValidado.name,
+      mimeType: arquivoValidado.type,
+      tamanho: arquivoValidado.size,
+    };
     const resultado = await avaliarArquivo({
-      nome: arquivo.name,
-      mimeType: arquivo.type || "application/octet-stream",
+      nome: arquivoValidado.name,
+      mimeType: arquivoValidado.type,
       base64: bytes.toString("base64"),
-      tamanho: bytes.length,
+      tamanho: arquivoValidado.size,
       secoes: formulario.secoes,
       contexto: {
         cliente: formulario.cliente,
@@ -55,7 +61,7 @@ export async function POST(request) {
     const registro = await createAvaliacaoFromIa({
       formulario,
       resultado,
-      arquivo: arquivoSalvo,
+      arquivo: arquivoParaRegistro,
       avaliadorId: session.user.id,
       avaliadoId,
     });
