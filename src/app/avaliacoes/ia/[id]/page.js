@@ -479,7 +479,28 @@ export default function AvaliacaoIaPage() {
             ))}
           </dl>
         </header>
-
+        <nav className={styles.tabs} aria-label="Navegação da avaliação">
+          <a className={styles.tabAtiva} href="#resumo-avaliacao">
+            <Icon name="review" size={17} />
+            Resumo
+          </a>
+          <a href="#dados-atendimento">
+            <Icon name="info" size={17} />
+            Dados do atendimento
+          </a>
+          <a href="#criterios-scoring">
+            <Icon name="metrics" size={17} />
+            Critérios e scoring
+          </a>
+          <a href="#transcricao">
+            <Icon name="waveform" size={17} />
+            Transcrição
+          </a>
+          <a href="#analise-ia">
+            <Icon name="sparkles" size={17} />
+            Análise da IA
+          </a>
+        </nav>
         {/* Duas colunas: o laudo a esquerda, o Monitor IA grudado a direita.
 
             O chat estava no fim da coluna unica, depois de nove secoes -- quem
@@ -497,7 +518,7 @@ export default function AvaliacaoIaPage() {
                 `<details>` nativo e não estado em React: assim funciona antes da
                 hidratação, e Ctrl+F do navegador encontra texto dentro do bloco
                 fechado, o que um bloco desmontado não permitiria. */}
-            <details className={`card pad ${styles.dadosAtendimento}`} open>
+            <details className={`card pad ${styles.dadosAtendimento}`} id="dados-atendimento" open>
               <summary>
                 <span className={styles.dadosTitulo}>
                   <Icon name="info" size={16} />
@@ -726,7 +747,7 @@ export default function AvaliacaoIaPage() {
                 afirma, e o caminho evidência -> áudio tem de ser curto. */}
             <SentimentoMonitorIa sentimento={analise.sentimento || SENTIMENTO_INDISPONIVEL} />
 
-            <section className={`card pad ${styles.cartaoAudio}`}>
+            <section className={`card pad ${styles.cartaoAudio}`} id="transcricao">
               <AudioPlayer
                 src={gravacao.audioUrl || null}
                 titulo="Gravação avaliada"
@@ -771,7 +792,7 @@ export default function AvaliacaoIaPage() {
               </dl>
             </section>
 
-            <section className="card pad">
+            <section className="card pad" id="criterios-scoring">
               <div className="section-head">
                 <div>
                   <h2>Critérios avaliados</h2>
@@ -937,7 +958,7 @@ export default function AvaliacaoIaPage() {
               )}
             </section>
 
-            <section className={`card pad ${styles.proximaAcao}`} aria-labelledby="proxima-acao">
+            <section className={`card pad ${styles.proximaAcao}`} id="analise-ia" aria-labelledby="proxima-acao">
               <div className={styles.proximaTopo}>
                 <div>
                   <h2 id="proxima-acao">Próxima ação</h2>
