@@ -350,7 +350,28 @@ function FichaConteudo({ id }) {
             </dl>
           </div>
         </header>
-
+        <nav className={styles.tabs} aria-label="Navegação da ficha">
+          <a className={styles.tabAtiva} href="#resumo-conformidade">
+            <Icon name="gauge" size={17} />
+            Resumo
+          </a>
+          <a href="#dados-atendimento">
+            <Icon name="info" size={17} />
+            Dados do atendimento
+          </a>
+          <a href="#respostas-e-avaliacoes">
+            <Icon name="checklist" size={17} />
+            Critérios e scoring
+          </a>
+          <a href="#transcricao">
+            <Icon name="waveform" size={17} />
+            Transcrição
+          </a>
+          <a href="#feedback-global">
+            <Icon name="feedback" size={17} />
+            Feedback
+          </a>
+        </nav>
         {ficha.zerada ? (
           <p className="alert danger">
             <Icon name="alert" size={18} />
@@ -366,7 +387,7 @@ function FichaConteudo({ id }) {
 
         <div className={styles.corpo}>
           <div className={styles.principal}>
-            <section className="card pad">
+            <section className={`card pad ${styles.audioCartao}`} id="transcricao">
               <AudioPlayer
                 src={audioUrl}
                 titulo="Gravação avaliada"
@@ -381,7 +402,7 @@ function FichaConteudo({ id }) {
               />
             </section>
 
-            <section className={`card pad ${styles.pessoasCartao}`}>
+            <section className={`card pad ${styles.pessoasCartao}`} id="dados-atendimento">
               <h2 className={styles.tituloSecao}>Pessoas e cabeçalho</h2>
               <div className={styles.pessoas}>
                 {pessoas.map((bloco) => (
@@ -416,7 +437,9 @@ function FichaConteudo({ id }) {
               </div>
             </section>
 
-            <ResumoConformidade resumo={ficha.resumo} pesos={ficha.pesos} />
+            <div id="resumo-conformidade">
+              <ResumoConformidade resumo={ficha.resumo} pesos={ficha.pesos} />
+            </div>
 
             {ia?.observacoes || ia?.resumo ? (
               <section className="card pad">
